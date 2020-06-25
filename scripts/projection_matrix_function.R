@@ -22,3 +22,4 @@ proj_matrix <- function(age_groups, survival, fecundity, p_female, female_ages){
   
   return(proj_Mat)
 }
+
