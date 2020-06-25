@@ -9,10 +9,14 @@ here() # use instead of setwd() so that you can use relative paths to access scr
 #create survival and fecundity vectors for each season (example with 2 seasons, hot and cold)
 
 
+########################################################################### 
+################# CREATE PROJECTION MATRICES #########################
+
 # Source the prjoection matrix function to generate seasonal projection matrices
 # Use here() to access proj_mat function in scripts folder
 
 source(here("scripts", "projection_matrix_function.R"))
+
 
 #create variables required for projection matrix function
 
@@ -20,12 +24,12 @@ source(here("scripts", "projection_matrix_function.R"))
 age_groups <- c('F1', 'F2', 'F3', 'M1', "M2")
 
 #fecundity in form: F1, F2, F3, M1, M2
-fecundity_HOT <- c(0, 0.75, 1.1, 0, 0)
-fecundity_COLD <- c(0, 0.6, 0.9, 0, 0) #simulate reduced fecundity during cold season
+fecundity_HOT <- c(0, 1.5, 2, 0, 0)
+fecundity_COLD <- c(0, 1.3, 1.5, 0, 0) #simulate reduced fecundity during cold season
 
 #survival (greater during cold than hot season?)
-survival_HOT <- c(0.75, 0.8, 0, 0.75, 0)
-survival_COLD <- c(0.8, 0.95, 0, 0.8, 0)
+survival_HOT <- c(0.75, 0.9, 0, 0.85, 0)
+survival_COLD <- c(0.8, 0.95, 0, 0.9, 0)
 
 # NB - the survival and fecundity vectors could be stored in a df with each row corresponding to each season and accessed by indexing
 
@@ -55,10 +59,12 @@ for(i in 1:n_month){
 }
 
 
-
-#### Simulate population over year cycle: #####
+########################################################### 
+############### SIMULATE POPULATION ###########################
 
 #source population projection function:
+
+source(here("scripts", "pop_projection_function.R"))
 
 #set variavbles required for population projection function:
 age_groups <- c('F1', 'F2', 'F3', 'M1', "M2")
@@ -66,7 +72,7 @@ pop_init <- c(50,40,60,20,40)#initial population vector
 months <- 12 #number of simulations i.e. years/months
 proj_Mat_list <- proj_Mat_list #list of matrices for 12 months of year
 
-pop_projection <- population_projection(pop_init,n_sim,proj_Mat_list, age_groups)
+pop_projection <- population_projection(pop_init,n_sim = months,proj_Mat_list, age_groups)
 
 #make useable by ggplot
 pop_df <- as.data.frame(t(pop_projection))
@@ -75,4 +81,10 @@ colnames(pop_df) <- age_groups
 
 #use dplyr to create a new column with the years in the first column of the df
 pop_df <- pop_df %>% mutate(months = c(0:months)) %>% select(months, everything())
+
+
+#long data format for ggplot
+pop_df_long <- melt(pop_df, id = "months")
+
+ggplot(pop_df_long, aes(x = months, y = value, colour = variable)) + geom_line()
 
