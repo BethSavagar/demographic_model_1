@@ -1,0 +1,185 @@
+---
+title: " "
+output: html_document
+---
+
+## Seasonal matrix population model
+
+
+Setting up framework for modelling a sex and age structured population over a 1 year period with different demographic rates depending on season.
+
+In this example the population has 3 female age classes and 2 male age classes, within a 1 year cycle there are two seasons ('hot' and 'cold') with different demographic rates. The population is simulated over a 1year, 12month cycle. Values chosen for demographic parameters are completely arbitrary, randomly selected to test methodology. 
+
+
+```{r echo=TRUE}
+library(here)
+library(ggplot2)
+library(reshape2)
+library(dplyr)
+
+here() # use instead of setwd() so that you can use relative paths to access scripts
+```
+
+### Step 1: Creating seasonal projection matrices
+  
+    
+Coding the `proj_mat` function to generate seasonal projection matrices using vectors containing survival and fecundity rates  
+*NB survival and fecundity could also be stored in a dataframe with a row per season and column for survival and fecundity parameters, values accessed by indexing*
+
+```{r echo=TRUE}
+# function to create projection matrix given the following variables: 
+# age_groups : a vector containing reference names for each age group e.g. F1, F2, F3, M1, M2
+# survival : a vector with the survival into the next age category for each age group, in the same order as the age_groups vector
+# fecundity : a vector with the fecundity of each age group (only females reproduce), in the same order as the age_groups vector
+# p_female : the proportion of offspring which are female
+# female_ages : the number of female age categories, required to identify which row of the proj mat corresponds to the first male age group
+
+proj_matrix <- function(age_groups, survival, fecundity, p_female, female_ages){
+  
+  proj_Mat <- matrix(0, nrow = length(age_groups), ncol = length(age_groups)) #projection matrix template
+  
+  for (i in 2:nrow(proj_Mat)){ #starts from row 2 as first row will contain fecundity 
+    proj_Mat[i,i-1] <- survival[i-1]
+  } 
+  
+  male_offspring <- (female_ages+1) #which row of matrix corresponds to male offspring
+  
+  for (i in 1:ncol(proj_Mat)){
+    proj_Mat[1,i] <- p_female*fecundity[i]
+    proj_Mat[male_offspring,i] <- (1-p_female)*fecundity[i] #male_offspring variable selects row corresponding to first male age category
+  }
+  
+  return(proj_Mat)
+}
+
+```
+
+**Create variables required for projection matrix function:**
+
+Two survival and fecundity vectors, containing parameter values for each season
+
+```{r echo=TRUE}
+
+#number of age groups
+age_groups <- c('F1', 'F2', 'F3', 'M1', "M2")
+
+#fecundity in form: F1, F2, F3, M1, M2
+fecundity_HOT <- c(0, 1.5, 2, 0, 0)
+fecundity_COLD <- c(0, 1.3, 1.5, 0, 0) #simulate reduced fecundity during cold season
+
+#survival 
+survival_HOT <- c(0.75, 0.9, 0, 0.85, 0)
+survival_COLD <- c(0.8, 0.95, 0, 0.9, 0)
+
+#proportion female:
+# this ensures that the offspring are assigned proportionally to male and female sex classes
+p_female <- 0.5
+
+#number of female age classes:
+female_ages <- 3 
+
+```
+
+**Test the `projection matrix` function**
+
+Use the `proj_matrix` function to create a projection matrix corresponding to each season, then create a list of 12 matrices, with monthly projection matrices according to season.  
+
+In this example imagining that the HOT season lasts for months 1-6 and the COLD season lasts for months 6-12.
+
+```{r echo = TRUE}
+#create projection matrices for each season
+mat_HOT <- proj_matrix(age_groups, survival_HOT, fecundity_HOT, p_female, female_ages)
+mat_COLD <- proj_matrix(age_groups, survival_COLD, fecundity_COLD, p_female, female_ages)
+
+# Create a list of matrices of length 12, corresponding to 12 months of year
+# Each item in the list should be the correct matrix according to the season e.g. items 1-6 are mat_HOT and 6-12 are mat_COLD
+
+n_month = 12 # number of months simulated
+hot_season = 6 # variable containing the length of the hot season
+proj_Mat_list <- vector("list", length = n_month)
+
+for(i in 1:n_month){
+  if(i <= hot_season){
+    proj_Mat_list[[i]] <- mat_HOT 
+  }else{
+    proj_Mat_list[[i]] <- mat_COLD # >2 seasons would require multiple if statements
+  }
+}
+
+```
+*NOTE: This code lacks generaliseability, when thinking about simultaing different scenarios it would be easier to supply one dataframe from which information can be extracted, this will require changes to the above code*
+
+### Step 2: Simulate population growth
+
+Create population projection function which uses the list of projection matrices and the initial population size to simulate population growth over 1 year period
+
+**Population projection function:**
+
+```{r}
+# Create population projection function requiring the following variables:
+
+# pop_init : initial population size at time = 0
+# n_sim : number of months to run over (this currently wouldn't work beyond 1 year period)
+# proj_mat_list : list of monthly projection matrices each monthly matrix contains the appropriate  seasonal demographic rates.
+# age_groups : a list of age categories
+
+population_projection <- function(pop_init,
+                                  n_sim,
+                                  proj_Mat_list,
+                                  age_groups) {
+  pop_projection <-
+    matrix(0, nrow = length(pop_init), ncol = n_sim + 1) #nb n_sim+1 to account for initial population in col 1
+  pop_projection[, 1] <- pop_init 
+  
+  for (i in 1:n_sim) {
+    pop_projection[, i + 1] <-
+      proj_Mat_list[[i]] %*% pop_projection[, i]
+  }
+ 
+  return(pop_projection)
+}
+
+```
+
+**Create variables required by `population_projection` function:**
+
+
+```{r echo = TRUE}
+
+#set variavbles required for population projection function:
+age_groups <- c('F1', 'F2', 'F3', 'M1', "M2")
+pop_init <- c(50,40,60,20,40) #initial population vector
+months <- 12 #number of simulations, 1 year cycle
+proj_Mat_list <- proj_Mat_list #list of matrices for 12 months of year
+
+```
+
+Test `population_projection` function:
+
+```{r echo = TRUE}
+pop_projection <- population_projection(pop_init,n_sim = months,proj_Mat_list, age_groups)
+
+```
+
+### Step 3: Visualise population
+
+Visualise population growth over 1 year period using ggplot:
+
+```{r echo = TRUE}
+#make useable by ggplot
+pop_df <- as.data.frame(t(pop_projection))
+colnames(pop_df) <- age_groups
+#pop_projection matrix as dataframe suitable for ggplot (transposed)
+
+#use dplyr to create a new column with the years in the first column of the df
+pop_df <- pop_df %>% mutate(months = c(0:months)) %>% select(months, everything())
+
+
+#long data format for ggplot
+pop_df_long <- melt(pop_df, id = "months")
+
+ggplot(pop_df_long, aes(x = months, y = value, colour = variable)) + geom_line()
+# nb: M1 and F1 lines overlap after month 1 hence only blue lin eis visible
+
+```
+
