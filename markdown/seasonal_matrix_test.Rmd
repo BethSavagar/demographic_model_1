@@ -179,7 +179,7 @@ pop_df <- pop_df %>% mutate(months = c(0:months)) %>% select(months, everything(
 pop_df_long <- melt(pop_df, id = "months")
 
 ggplot(pop_df_long, aes(x = months, y = value, colour = variable)) + geom_line()
-# nb: M1 and F1 lines overlap after month 1 hence only blue lin eis visible
+# nb: M1 and F1 lines overlap after month 1 hence only blue line is visible
 
 ```
 
