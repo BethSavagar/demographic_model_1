@@ -51,7 +51,32 @@ proj_matrix <- function(age_groups, survival, fecundity, p_female, female_ages){
   
   return(proj_Mat)
 }
+```
 
+The `proj_matrix` function produces a leslie matrix which conforms to the following structure: 
+
+```{r echo = FALSE}
+############ DEMONSTRATION ###############
+# The proj_matrix function produces a leslie matrix of the following structure: 
+
+age_groups <- c('F1', 'F2', 'F3', 'M1', "M2") #age categories in matrix
+
+proj_Mat_example <- matrix(0, nrow = length(age_groups), ncol = length(age_groups)) #projection matrix template
+
+fec_example <- c("fec_F1", "fec_F2", "fec_F3", "fec_M1", "fec_M2")
+
+proj_Mat_example[1, ] <- fec_example # female age group 1
+proj_Mat_example[4, ] <- fec_example # male age group 1
+
+proj_Mat_example[2,1] <- "surv_F1" #F1 - F2 survival
+proj_Mat_example[3,2] <- "surv_F2" #F2 - F3 survival
+proj_Mat_example[5,4] <- "surv_M1" #M1 - M2 survival
+
+colnames(proj_Mat_example) <- age_groups
+rownames(proj_Mat_example) <- age_groups
+
+proj_Mat_example
+  
 ```
 
 **Create variables required for projection matrix function:**
