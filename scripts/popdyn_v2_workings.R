@@ -55,8 +55,8 @@ age_cats_df <- data.frame(
                           sex=="M" & month %in% new ~ "M_new", 
                           sex=="M" & month %in% kid ~ "M_kid",
                           sex=="M" & month %in% young ~ "M_young", 
-                          sex=="M" & month %in% adult ~ "M_adult")
-  ) 
+                          sex=="M" & month %in% adult ~ "M_adult"),
+    "cat_code" = paste0(sex, month)) 
 
 ################################################################################# 
 ## Sex-Age demographics table
