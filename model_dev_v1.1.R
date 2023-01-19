@@ -19,7 +19,7 @@ You <- 18:26 # Young (5-6m) = 18w-26w
 Juv <- 27:52 # Juvenile (6-12m) = 27w-52w
 Sub <- 53:78 # Sub-adult (12-18m) = 53w-78w
 Adu <- 79:261 # Adult (18m-5y) = 79w-261w
-
+max_age <- 261
 
 # demographic parameters: 
 
@@ -64,8 +64,11 @@ age_params <- data.frame(
 
 
 # initial age groups (all susceptible)
-
-
+Im_init <- 1:max(Imm)
+S_init <- age_params %>% pull(pop_init)
+E_init <- 1:max_age
+I_init <- 1:max_age
+R_init <- 1:max_age
 
 #################################################################################
 #################################################################################
@@ -79,8 +82,8 @@ TimeStop_transmission <- 24 # 1 day, hourly timestep
 for(w in 1:TimeStop_dynamics){
   
   # immune offspring, immune compartment
-  
-  Imm_1 <- b*imm*sum(R_adult_f)
+ 
+
   
   
   
