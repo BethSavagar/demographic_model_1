@@ -1,4 +1,6 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
+# task for next week: 
+# -- think about splitting up males and females and how to do this with matrices/vectors
 
 # Setup 
 
@@ -27,19 +29,22 @@ max_age <- 261
 Imm_b <- 0.92 # proportion of young born to immune mothers that gain maternal antibodies
 Imm_wane <- data.frame(weeks = c(4,8,12), 
                        immunity = c(0.91,0.38,0.15)) # monthly decline in mat immunity (hammami 2016/18)
-off_1 <- 0 # NET offtake rate <12M (per week)
-off_2 <- 0 # NET offtake rate >12M (per week)
-mort_1 <- 0.5 # natural mortality rate <6M (per week)
-mort_2 <- 0.3 # natural mortality rate >6M  (per week)
+off_1 <- 0 # NET offtake rate <12M (per week) # NO trade of animals <12m
+off_F <- 0 # NET offtake rate FEMALE >12M (per week)
+off_M <- 0 # NET offtake rate MALE >12M (per week)
+mort_1 <- 0.007 # natural mortality rate <6M (per week)
+mort_2 <- 0.002 # natural mortality rate >6M  (per week)
+# see https://math.stackexchange.com/questions/1122085/how-to-calculate-a-monthly-mortality-rate for calc of weekly rate from yearly mortality of 0.3, 0.1 respectively.
 mort_end <- 1 # natural mortality rate final age cat  (per week)
 ppr_mort_1 <- 0 # natural mortality rate <6M (per week)
-ppr_mort_2 <- 1 # natural mortality rate >6M  (per week)
+ppr_mort_2 <- 0 # natural mortality rate >6M  (per week)
 birth_r <- 0.5 # only animals >18M
 age_p <- c(0,0,0.2,0.3,0.5) # proportion of population in each age group (initial)
 
 # offtake
 demos <- data.frame(age_cat = c("Imm","You","Juv","Sub","Adu"),
-                    net_off = c(off_1,off_1,off_1,off_2,off_2),
+                    net_off_F = c(off_1,off_1,off_1,off_F,off_F),
+                    net_off_M = c(off_1,off_1,off_1,off_M,off_M),
                     mort = c(mort_1,mort_1,mort_2,mort_2,mort_2),
                     ppr_mort = c(ppr_mort_1,ppr_mort_1,ppr_mort_2,ppr_mort_2,ppr_mort_2),
                     birth = c(0,0,0,0,birth_r),
