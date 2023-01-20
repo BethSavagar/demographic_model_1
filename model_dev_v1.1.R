@@ -11,7 +11,7 @@ sigma <- 1 # rate of becoming infectious , E-I (per hour)
 gamma <- 1 # rate of becoming recovery, I-R (per hour)
 
 birth <- 1 # birth rate (per week)
-N_tot <- 1700 # number of animals in population
+N_tot <- 1700 # number of animals in population (flock)
 
 # AGE GROUPS: max age = 5y, 1 week groups, = 261 (260.714)
 Imm <- 1:17 # Imm (1-4m) = 1w-17w
@@ -23,32 +23,34 @@ max_age <- 261
 
 # demographic parameters: 
 
-# waning of maternal immunity for first 4months (17 wk) (see below)
-Imm_wane <- data.frame(weeks = c(1,5,9,13),
-                       immunity = c(0.92,0.91,0.38,0.15))
+# waning of maternal immunity for first 4months (17 wk) 
+Imm_b <- 0.92 # proportion of young born to immune mothers that gain maternal antibodies
+Imm_wane <- data.frame(weeks = c(4,8,12), 
+                       immunity = c(0.91,0.38,0.15)) # monthly decline in mat immunity (hammami 2016/18)
 off_1 <- 0 # NET offtake rate <12M (per week)
 off_2 <- 0 # NET offtake rate >12M (per week)
-mort_1 <- 0 # natural mortality rate <6M (per week)
-mort_2 <- 1 # natural mortality rate >6M  (per week)
+mort_1 <- 0.5 # natural mortality rate <6M (per week)
+mort_2 <- 0.3 # natural mortality rate >6M  (per week)
+mort_end <- 1 # natural mortality rate final age cat  (per week)
 ppr_mort_1 <- 0 # natural mortality rate <6M (per week)
 ppr_mort_2 <- 1 # natural mortality rate >6M  (per week)
-birth <- 1 # only animals >18M
-age_p <- c(0,0,0.2,0.3,0.5)
+birth_r <- 0.5 # only animals >18M
+age_p <- c(0,0,0.2,0.3,0.5) # proportion of population in each age group (initial)
 
 # offtake
 demos <- data.frame(age_cat = c("Imm","You","Juv","Sub","Adu"),
                     net_off = c(off_1,off_1,off_1,off_2,off_2),
                     mort = c(mort_1,mort_1,mort_2,mort_2,mort_2),
                     ppr_mort = c(ppr_mort_1,ppr_mort_1,ppr_mort_2,ppr_mort_2,ppr_mort_2),
-                    birth = c(0,0,0,0,birth),
+                    birth = c(0,0,0,0,birth_r),
                     age_p = age_p, # proportion of population in each age group
                     age_n = age_p*N_tot, # number of animals in age group
                     n_weeks = c(length(Imm), length(You), length(Juv), length(Sub), length(Adu)) # number of weeks (sub-compartments) in each age group
                     )
                 
-
+# dataframe of demogrpahic rates for each week-long age group in the population.
 age_params <- data.frame(
-  age_weeks = 1:max(Adu),
+  age_weeks = 1:max_age,
   age_cat = c(rep("Imm",length(Imm)),
               rep("You",length(You)),
               rep("Juv",length(Juv)),
@@ -59,16 +61,18 @@ age_params <- data.frame(
   mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, 
                            if_else(is.na(immunity),0, immunity))
          ) %>%
-  left_join(demos) %>%
-  mutate(pop_init = age_n/n_weeks)
+  left_join(demos, by = "age_cat") %>%
+  # divide population in each age group into week-long sub-compartments , equally
+  mutate(pop_init = age_n/n_weeks,
+         mort = ifelse(age_weeks == max_age, 1, mort)) 
 
 
 # initial age groups (all susceptible)
-Im_init <- 1:max(Imm)
+Im_init <- rep(0,max_age)
 S_init <- age_params %>% pull(pop_init)
-E_init <- 1:max_age
-I_init <- 1:max_age
-R_init <- 1:max_age
+E_init <- rep(0,max_age)
+I_init <- rep(0,max_age)
+R_init <- rep(0,max_age)
 
 #################################################################################
 #################################################################################
@@ -77,15 +81,92 @@ R_init <- 1:max_age
 TimeStop_dynamics <- 52 # 1 year, weekly timestep
 TimeStop_transmission <- 24 # 1 day, hourly timestep
 
+Im_mat <- as.data.frame(matrix(nrow = max_age, ncol = TimeStop_dynamics)) %>%
+  rename_all(~week_cols) %>%
+  mutate("w1" = Im_init)
+
+S_mat <- as.data.frame(matrix(nrow = max_age, ncol = TimeStop_dynamics)) %>%
+  rename_all(~week_cols) %>%
+  mutate("w1" = S_init)
+
+E_mat <- as.data.frame(matrix(nrow = max_age, ncol = TimeStop_dynamics)) %>%
+  rename_all(~week_cols) %>%
+  mutate("w1" = E_init)
+
+I_mat <- as.data.frame(matrix(nrow = max_age, ncol = TimeStop_dynamics)) %>%
+  rename_all(~week_cols) %>%
+  mutate("w1" = I_init)
+
+R_mat <- as.data.frame(matrix(nrow = max_age, ncol = TimeStop_dynamics)) %>%
+  rename_all(~week_cols) %>%
+  mutate("w1" = R_init)
+
+#Demo rates as vectors
+immunity <- age_params %>% pull(immunity)
+net_off <- age_params %>% pull(net_off)
+mort <- age_params %>% pull(mort)
+ppr_mort <- age_params %>% pull(ppr_mort)
+birth <- age_params %>% pull(birth)
+
 # Demographics LOOP
 
-for(w in 1:TimeStop_dynamics){
+for(w in 2:TimeStop_dynamics){
   
-  # immune offspring, immune compartment
- 
+  # update week of simulation
+  w_prev <- paste0("w",w-1)
+  w_cur <- paste0("w",w)
 
+  ## BIRTHS ## 
+  
+  # immune births
+  Im_births <- sum(birth* Imm_b* R_mat[,w_prev])
+  # susceptible births
+  S_births <- sum(birth*(1-Imm_b)* R_mat[w_prev]) + sum(birth*S_mat[,w_prev])
+  
+  E_births <- 0; I_births <- 0; R_births <- 0 # set EIR births to 0
+  
+  ## DEMOGRAPHICS ##
+  
+  # Born Immune Demographics
+  Im_demos <- immunity*Im_mat[,w_prev]- #decline in mat immunity with age
+    Im_mat[,w_prev]*(net_off+mort) # offtake and mortality
+  
+  Im_new <- c(Im_births,Im_demos) %>%
+    slice(1:max_age) # add births and remove last age group
+    
+  # Susceptible Demographics:
+
+  S_demos <- 	S_mat[,w_prev]
+    (1-immunity)*Im_mat[,w_prev]- # kids/lambs which have lost immunity
+    S_mat[,w_prev]*(net_off+mort) # offtake and mortality
+  
+  S_new <- c(S_births,S_demos) %>%
+    slice(1:max_age) # add births and remove last age group
+  
+  # Exposed Demographics:
+  
+  E_demos <- E_mat[,w_prev]-
+    E_mat[,w_prev]*(net_off+mort) # offtake and mortality
+  
+  E_new <- c(E_births,E_demos) %>%
+    slice(1:max_age) # add births and remove last age group
+  
+  # Infectious Demographics:
+  
+  I_demos <- I_mat[,w_prev]-
+    I_mat[,w_prev]*(net_off+mort) # offtake and mortality (**ppr_mortality in disease loop?)
+  
+  I_new <- c(I_births,I_demos) %>%
+    slice(1:max_age) # add births and remove last age group
   
   
+  # Recovered Demographics:
+  
+  R_demos <- R_mat[,w_prev]-
+    R_mat[,w_prev]*(net_off+mort) # offtake and mortality (**ppr_mortality in disease loop?)
+  
+  R_new <- c(R_births,R_demos) %>%
+    slice(1:max_age) # add births and remove last age group
   
 }
 
