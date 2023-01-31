@@ -8,6 +8,7 @@
 
 library(tidyverse)
 
+#########################################################################################################################################
 # define parameters (probably a separate script in due course)
 
 # Transmission Parameters (not coded yet)
@@ -109,9 +110,8 @@ age_pars_M <- data.frame(
          mort = ifelse(age_weeks == max_age_M, 1, mort)) 
 
 
-
-#################################################################################
-######################## MODEL SET UP ########################################
+#########################################################################################################################################
+## MODEL SETUP ##
 # potentially reconfigure this stuff as lists and use apply?
 
 TimeStop_dynamics <- 52 # 1 year, weekly timestep for demographic component
@@ -257,6 +257,8 @@ for(w in 2:TimeStop_dynamics){
   
   fR_mat[,w_cur] <- c(0.5*R_births,fR_new[1:max_age_F-1]) # F add births (R_births = 0) and remove last age group
   mR_mat[,w_cur] <- c(0.5*R_births,mR_new[1:max_age_M-1]) # M add births (R_births = 0) and remove last age group
+  
+  # trnamsission loop here >>>>>
   
  
   ## OUTPUT ##
