@@ -1,5 +1,7 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
 # 06/02/23 -- rudimentary model works fine.
+# check immunity decay rate. At the moment week 2-3 = 0.92 retain immunity... should be 92% immune AT week 2..
+
 # 30/01/23 
 # -- think about use of apply and functions for creating the M/F vectors, and for updating population (demographic) states within the model
 # what is the output, run some tests of this demographic model
