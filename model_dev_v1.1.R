@@ -1,4 +1,5 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
+# 06/02/23 -- rudimentary model works fine.
 # 30/01/23 
 # -- think about use of apply and functions for creating the M/F vectors, and for updating population (demographic) states within the model
 # what is the output, run some tests of this demographic model
@@ -18,7 +19,6 @@ gamma <- NA # rate of becoming recovery, I-R (per hour)
 
 
 # Flock Structure: Sex-Age groups
-
 N_tot <- 1700 # number of animals in population (flock or village)?
 
 # AGE GROUPS: max age = 5y Females 3y Males
@@ -36,9 +36,12 @@ Adu_M <- (age_cuts_wk[4]+1):max_age_M # Adult M (18m-3y) = 79w-261w
 
 # Demographic Parameters
 
-# waning of maternal immunity for first 4months (17 wk) 
-Imm_b <- 0.92 # proportion of young born to immune mothers that gain maternal antibodies
-Imm_wane <- data.frame(weeks = c(4,8,12), immunity = c(0.91,0.38,0.15)) # monthly decline in mat immunity (data from hammami 2016/18)
+# # waning of maternal immunity for first 4months (17 wk) 
+Imm_b <- 1 # proportion of young born to immune mothers that gain maternal antibodies
+# Imm_wane <- data.frame(weeks = c(4,8,12), immunity = c(0.91,0.38,0.15)) # monthly decline in mat immunity (data from hammami 2016/18)
+# 
+# ## integrate new immunity calculation... 06/02/23
+
 off_1 <- 0 # NET offtake rate <12M (per week) - NO trade of animals <12m
 off_F <- 0.001 # NET offtake rate FEMALE >12M (per week) 
 off_M <- 0.001 # NET offtake rate MALE >12M (per week)
@@ -77,9 +80,11 @@ age_pars_F <- data.frame(
               rep("Sub",length(Sub)),
               rep("Adu",length(Adu_F)))) %>%
   # fill in maternal immunity
-  left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
-  mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
-                           if_else(is.na(immunity),0, immunity))) %>%
+  left_join(imm_decay, c("age_weeks" = "wk")) %>%
+  mutate(imm = ifelse(is.na(imm),0,imm)) %>%
+  # left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
+  # mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
+  #                          if_else(is.na(immunity),0, immunity))) %>%
   # Join demographics (Female)
   left_join(demos, by = "age_cat") %>%
   # remove male variables
@@ -98,9 +103,11 @@ age_pars_M <- data.frame(
               rep("Sub",length(Sub)),
               rep("Adu",length(Adu_M)))) %>%
   # fill in maternal immunity
-  left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
-  mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
-                           if_else(is.na(immunity),0, immunity))) %>%
+  left_join(imm_decay, c("age_weeks" = "wk")) %>%
+  mutate(imm = ifelse(is.na(imm),0,imm)) %>%
+  # left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
+  # mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
+  #                          if_else(is.na(immunity),0, immunity))) %>%
   # Join demographics (Female)
   left_join(demos, by = "age_cat") %>%
   # remove female variables
@@ -180,8 +187,8 @@ mR_mat <- as.data.frame(matrix(nrow = max_age_M, ncol = TimeStop_dynamics)) %>%
 ## DEMOGRAPHIC PARAMS
 # Pull demographic rates as vectors from data-frames (for vectorised equations)
 # NB: create if statements for if there's a difference between males and females?
-immunity_F <- age_pars_F %>% pull(immunity)
-immunity_M <- age_pars_M %>% pull(immunity)
+immunity_F <- age_pars_F %>% pull(imm)
+immunity_M <- age_pars_M %>% pull(imm)
 # Imm_b immune birth rate is already defined (proportion of offspring born with maternal immunity)
 net_off_F <- age_pars_F %>% pull(net_off_F)
 net_off_M <- age_pars_M %>% pull(net_off_M)
