@@ -214,7 +214,7 @@ for(w in 2:TimeStop_dynamics){
   # Only females > 18M can give birth (birth rate =0 for all other age groups)
   # No M/F differentiation for births
   Im_births <- sum(birth* Imm_b* fR_mat[,w_prev]) # immune births 
-  S_births <- sum(birth*(1-Imm_b)* fR_mat[,w_prev]) + sum(birth*fS_mat[,w_prev]) # Sus births
+  S_births <- sum(birth*(1-Imm_b)* fR_mat[,w_prev]) + sum(birth*fS_mat[,w_prev]) # Sus births = non-immune births to R mothers, and births to S mothers.
   
   E_births <- 0; I_births <- 0; R_births <- 0 # set EIR births to 0
   
@@ -222,21 +222,19 @@ for(w in 2:TimeStop_dynamics){
   ## SEIR DEMOGRAPHICS ##
   
   # Immune Offspring Demographics (f/m)
-  fIm_new <- fIm_mat[,w_prev]*(immunity_F - (net_off_F+mort_F)) # decline in mat immunity, offtake and mortality
-  mIm_new <- mIm_mat[,w_prev]*(immunity_M - (net_off_M+mort_M))
+  fIm_new <- fIm_mat[,w_prev]*(immunity_F)*(1-net_off_F)*(1-mort_F) # decline in mat immunity, offtake and mortality
+  mIm_new <- mIm_mat[,w_prev]*(immunity_M)*(1-net_off_M)*(1-mort_M)
   
   fIm_mat[,w_cur] <- c(0.5*Im_births, fIm_new[1:max_age_F-1]) # 0.5*births for F/M, # subset demographics remove last age-group
   mIm_mat[,w_cur] <- c(0.5*Im_births, mIm_new[1:max_age_M-1]) # 0.5*births for F/M, # subset demographics remove last age-group
   
   ##
   # Susceptible Demographics
-  fS_new <- fS_mat[,w_prev] +
-    (1-immunity_F)*fIm_mat[,w_prev]- # add offspring which have lost immunity
-    fS_mat[,w_prev]*(net_off_F+mort_F) # offtake and mortality
+  fS_new <- fS_mat[,w_prev]*(1-net_off_F)*(1-mort_F) + # survival (those not offtake, and not died)
+    fIm_mat[,w_prev]*(1-immunity_F) # add offspring which have lost immunity
   
-  mS_new <- mS_mat[,w_prev] +
-    (1-immunity_M)*mIm_mat[,w_prev]- # add offspring which have lost immunity
-    mS_mat[,w_prev]*(net_off_M+mort_M) # offtake and mortality
+  mS_new <- mS_mat[,w_prev]*(1-net_off_M)*(1-mort_M) +
+    mIm_mat[,w_prev]*(1-immunity_M) # add offspring which have lost immunity
   
   # update fS and mS matrices
   fS_mat[,w_cur] <- c(0.5*S_births, fS_new[1:max_age_F-1]) # 0.5* births are F, lose last age group
@@ -244,23 +242,23 @@ for(w in 2:TimeStop_dynamics){
   
   ##
   # Exposed Demographics:
-  fE_new <- fE_mat[,w_prev]- fE_mat[,w_prev]*(net_off_F+mort_F) # F offtake and mortality
-  mE_new <- mE_mat[,w_prev]- mE_mat[,w_prev]*(net_off_M+mort_M) # M offtake and mortality
+  fE_new <- fE_mat[,w_prev]*(1-net_off_F)*(1-mort_F) # F offtake and mortality
+  mE_new <- mE_mat[,w_prev]*(1-net_off_M)*(1-mort_M) # M offtake and mortality
   
   fE_mat[,w_cur] <- c(0.5*E_births,fE_new[1:max_age_F-1]) # F add births (E_births = 0)  and remove last age group
   mE_mat[,w_cur] <- c(0.5*E_births,mE_new[1:max_age_M-1]) # M add births (E_births = 0) and remove last age group
   
   ##
   # Infectious Demographics:
-  fI_new <- fI_mat[,w_prev]- fI_mat[,w_prev]*(net_off_F+mort_F) # F offtake and mortality (**ppr_mortality in disease loop?)
-  mI_new <- mI_mat[,w_prev]- mI_mat[,w_prev]*(net_off_M+mort_M) # M offtake and mortality
+  fI_new <- fI_mat[,w_prev]*(1-net_off_F)*(1-mort_F) # F offtake and mortality (**ppr_mortality in disease loop?)
+  mI_new <- mI_mat[,w_prev]*(1-net_off_M)*(1-mort_M) # M offtake and mortality
   
   fI_mat[,w_cur] <- c(0.5*I_births,fI_new[1:max_age_F-1]) # F add births (I_births = 0) and remove last age group
   mI_mat[,w_cur] <- c(0.5*I_births,mI_new[1:max_age_M-1]) # M add births (I_births = 0) and remove last age group
   
   # Recovered Demographics:
-  fR_new <- fR_mat[,w_prev]- fR_mat[,w_prev]*(net_off_F+mort_F) # offtake and mortality (**ppr_mortality in disease loop?)
-  mR_new <- mR_mat[,w_prev]- mR_mat[,w_prev]*(net_off_M+mort_M)
+  fR_new <- fR_mat[,w_prev]*(1-net_off_F)*(1-mort_F) # offtake and mortality (**ppr_mortality in disease loop?)
+  mR_new <- mR_mat[,w_prev]*(1-net_off_M)*(1-mort_M)
   
   fR_mat[,w_cur] <- c(0.5*R_births,fR_new[1:max_age_F-1]) # F add births (R_births = 0) and remove last age group
   mR_mat[,w_cur] <- c(0.5*R_births,mR_new[1:max_age_M-1]) # M add births (R_births = 0) and remove last age group
@@ -269,7 +267,7 @@ for(w in 2:TimeStop_dynamics){
   
  
   ## OUTPUT ##
-  
+  # reduce output so that rather than storing entire matrices we just produce summary statistics: need to decide what stats are of interest (06/02/23)
   # totals = dataframe tracking population in each disease-state over time 
   # sum totals for each disease compartment, and total population size.
   totals <- data.frame(
@@ -284,3 +282,7 @@ for(w in 2:TimeStop_dynamics){
            "time" = 1:TimeStop_dynamics) # timestep
 }
 
+ggplot(totals,aes(x=time,y=all))+
+  geom_line()+
+  labs(x="time (weeks)", y = "total population")+
+  theme_bw()
