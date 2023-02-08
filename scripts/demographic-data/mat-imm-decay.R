@@ -38,7 +38,7 @@ bodjo_wk <- bodjo %>%
          wk = as.numeric(wk)) %>%
   # set imm for >4months to 0, following consensus of papers
   mutate(imm_data = imm,
-         imm = ifelse(wk>16,0,imm_data),
+         imm = ifelse(wk>17,0,imm_data),
          ) %>%
   arrange(day)
 
@@ -62,7 +62,11 @@ for(i in 2:nrow(bodjo_wk)){
     )
 }
 
-imm_decay <- imm_decay %>%
-  distinct()
+# correct immune decay so that probability of remaining immune at week 2 = 0.92 etc
+# i.e. Previously immunity from week 2-3 = 0.92 retain immunity... should be 92% immune AT week 2..
+imm_decay_corrected <- imm_decay %>%
+  distinct() %>%
+  mutate(week_corrected = wk-1) %>%
+  select(-c(wk))
 # plot of empirical data - red points - from Bodjo, against computed decay - black line + points - for model.
 ggplot(imm_decay, aes(x=wk, y=imm))+geom_line()+geom_point()+geom_point(data = bodjo_wk, aes(x=wk, y = imm_data), col="red")

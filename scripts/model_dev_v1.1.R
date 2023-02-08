@@ -1,6 +1,5 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
 # 06/02/23 -- rudimentary model works fine.
-# check immunity decay rate. At the moment week 2-3 = 0.92 retain immunity... should be 92% immune AT week 2..
 
 # 30/01/23 
 # -- think about use of apply and functions for creating the M/F vectors, and for updating population (demographic) states within the model
@@ -39,7 +38,8 @@ Adu_M <- (age_cuts_wk[4]+1):max_age_M # Adult M (18m-3y) = 79w-261w
 # Demographic Parameters
 
 # # waning of maternal immunity for first 4months (17 wk) 
-Imm_b <- 1 # proportion of young born to immune mothers that gain maternal antibodies
+source("scripts/demographic-data/mat-imm-decay.R")
+Imm_b <- imm_decay_corrected %>% filter(week_corrected ==0) %>% pull(imm) # proportion of young born to immune mothers that gain maternal antibodies
 # Imm_wane <- data.frame(weeks = c(4,8,12), immunity = c(0.91,0.38,0.15)) # monthly decline in mat immunity (data from hammami 2016/18)
 # 
 # ## integrate new immunity calculation... 06/02/23
@@ -82,7 +82,7 @@ age_pars_F <- data.frame(
               rep("Sub",length(Sub)),
               rep("Adu",length(Adu_F)))) %>%
   # fill in maternal immunity
-  left_join(imm_decay, c("age_weeks" = "wk")) %>%
+  left_join(imm_decay_corrected, c("age_weeks" = "week_corrected")) %>%
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   # left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
   # mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
@@ -105,7 +105,7 @@ age_pars_M <- data.frame(
               rep("Sub",length(Sub)),
               rep("Adu",length(Adu_M)))) %>%
   # fill in maternal immunity
-  left_join(imm_decay, c("age_weeks" = "wk")) %>%
+  left_join(imm_decay_corrected, c("age_weeks" = "week_corrected")) %>%
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   # left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
   # mutate(immunity = ifelse(is.na(immunity) & age_cat=="Imm", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
