@@ -175,8 +175,14 @@ for(w in 2:TimeStop_dynamics){
     "R" = apply(fR_mat, 2, sum)+apply(mR_mat, 2, sum)
   ) %>%
     mutate("all" = apply(.,1,sum), # total population size
-           "imm_frac" = (I+Im)/all, # immune proportion of population
+           "imm_frac" = (R+Im)/all, # immune proportion of population
            "time" = 1:TimeStop_dynamics) # timestep
+  
+  ## CREATE OUTPUTS THAT DON'T DEPEND ON TRACKING MATRIX >>>>
+  
+  # total population size
+  # proportion immune population
+  
 }
 
 ggplot(totals,aes(x=time,y=all))+
