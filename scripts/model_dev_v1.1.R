@@ -15,6 +15,9 @@ library(tidyverse)
 ## MODEL SETUP ##
 # potentially reconfigure this stuff as lists and use apply?
 
+# Soure parameters script
+source("scripts/set-pars.R")
+
 TimeStop_dynamics <- 5*52 # 1 year, weekly timestep for demographic component
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
 
@@ -181,8 +184,7 @@ ggplot(totals,aes(x=time,y=all))+
   labs(title = "Total Population",
        x="time (weeks)", 
        y = "total population")+
-  theme_bw()+
-  coord_cartesian(ylim=c(0,3000))
+  theme_bw()
 
 ## test age-sex proportions
 
