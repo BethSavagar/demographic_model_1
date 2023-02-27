@@ -18,12 +18,12 @@ library(tidyverse)
 ## MODEL SETUP ##
 # potentially reconfigure this stuff as lists and use apply?
 
-# Soure parameters script
+# Source parameters script
 source("scripts/set-pars.R")
 
 TimeStop_dynamics <- 5*52 # 1 year, weekly timestep for demographic component
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
-output <- "summary" # define output type
+output <- "summary" # define output type "summary" or "count"
 
 # initial POPULATION-STATE
 
@@ -42,11 +42,17 @@ if(pR>0){
 
 ## SUMMARY STATS DF
 # create summary data frame to store summary stats for each timestep
-sum_stats <-  c("w", "sum_pop", "prop_immune", "prop_inf", "pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")
-summary_df <- as.data.frame(matrix(0,
-                                   nrow=TimeStop_dynamics, 
-                                   ncol = length(sum_stats)))
-colnames(summary_df) <- sum_stats
+
+if(output == "summary"){
+  sum_stats <-  c("w", "sum_pop", "prop_immune", "prop_inf", "pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")
+  summary_df <- as.data.frame(matrix(0,
+                                     nrow=TimeStop_dynamics, 
+                                     ncol = length(sum_stats)))
+  colnames(summary_df) <- sum_stats
+}else if(output == "counts"){
+  # make df
+}
+
 
 # total population size
 fpop <- fIm_init+fS_init+fE_init+fI_init+fR_init
@@ -213,7 +219,8 @@ for(w in 2:TimeStop_dynamics){
     
     summary_df[w,] <- c(w, sum_pop, prop_immune, prop_inf, pKid,pYou,pJuv,pSub,pAdu,pF)
     
-  }else if(output=="totals"){
+  }else if(output=="counts"){
+    # matrix storing total pop in each disease state.
     # totals <- data.frame(
     #   "Im" = apply(fIm_mat, 2, sum)+apply(mIm_mat, 2, sum),
     #   "S" = apply(fS_mat, 2, sum)+apply(mS_mat, 2, sum),
