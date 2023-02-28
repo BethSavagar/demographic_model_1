@@ -35,6 +35,8 @@ Imm_b <- imm_decay_corrected %>% filter(week_corrected ==0) %>% pull(imm) # prop
 # 
 # ## integrate new immunity calculation... 06/02/23
 
+# use baobab from here for demo
+
 off_1 <- 0 # NET offtake rate <12M (per week) - NO trade of animals <12m
 off_F <- 0.001 # NET offtake rate FEMALE >12M (per week) 
 off_M <- 0.001 # NET offtake rate MALE >12M (per week)
