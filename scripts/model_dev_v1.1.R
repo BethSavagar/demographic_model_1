@@ -279,6 +279,7 @@ ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
   geom_line(size=1)+
   # scale_color_brewer(palette = "Set1")+
   scale_color_manual(values = colors_agesex)+
+  labs(x = "weeks", y = "Proportion of total population", col = "age-sex cat")+
   theme_bw()
 
 # immunity
