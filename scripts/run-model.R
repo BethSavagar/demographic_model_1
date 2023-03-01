@@ -185,23 +185,20 @@ for(w in 2:TimeStop_dynamics){
   
   ## TRANSMISSION LOOP ##
   
- 
-
+  
+  
   ## OUTPUT....CREATE OUTPUTS THAT DON'T DEPEND ON TRACKING MATRIX >>>>
   # reduce output so that rather than storing entire matrices we just produce summary statistics: need to decide what stats are of interest (06/02/23)
   
   # summary stats (for sensitivity analysis)
   if(output=="summary"){
     
-    
-    # total population size
+    # total population 
     fpop <- fIm_cur+fS_cur+fE_cur+fI_cur+fR_cur
     mpop <- mIm_cur+mS_cur+mE_cur+mI_cur+mR_cur
-    # mpop <- c(mpop, rep(0,max_age_F-max_age_M))
     pop_tot <- fpop+mpop
     sum_pop <- sum(fpop)+sum(mpop)
     
-    # population growth (yearly calculation)
     # proportion immune
     fimmune <- fIm_cur+fR_cur
     mimmune <- mIm_cur+mR_cur
@@ -215,16 +212,24 @@ for(w in 2:TimeStop_dynamics){
     # proportion in each age-group
     Kid_tot <- pop_tot[Kid] ; sum_Kid <- sum(Kid_tot) ; pKid <- sum_Kid/sum_pop
     You_tot <- pop_tot[You] ; sum_You <- sum(You_tot) ; pYou <- sum_You/sum_pop
-    # KidYou_tot <- Kid_tot+You_tot ; sum_KidYou <- sumKid+sumYou ; pKidYou <- sumKidYou/sum_pop
     Juv_tot <- pop_tot[Juv] ; sum_Juv <- sum(Juv_tot) ; pJuv <- sum_Juv/sum_pop
     Sub_tot <- pop_tot[Sub] ; sum_Sub <- sum(Sub_tot) ; pSub <- sum_Sub/sum_pop
     Adu_tot <- pop_tot[Adu_F] ; sum_Adu <- sum(Adu_tot) ; pAdu <- sum_Adu/sum_pop
-    # also add for female and male stratification (of adults/all) ??
+    
+    # sex-age group
+    fKid_tot <- fpop[Kid] ; sum_fKid <- sum(fKid_tot) ; pfKid <- sum_fKid/sum(fpop)
+    mKid_tot <- mpop[Kid] ; sum_mKid <- sum(mKid_tot) ; pmKid <- sum_mKid/sum(mpop)
+    fYou_tot <- fpop[You] ; sum_fYou <- sum(fYou_tot) ; pfYou <- sum_fYou/sum(fpop)
+    mYou_tot <- mpop[You] ; sum_mYou <- sum(mYou_tot) ; pmYou <- sum_mYou/sum(mpop)
+    fJuv_tot <- fpop[Juv] ; sum_fJuv <- sum(fJuv_tot) ; pfJuv <- sum_fJuv/sum(fpop)
+    mJuv_tot <- mpop[Juv] ; sum_mJuv <- sum(mJuv_tot) ; pmJuv <- sum_mJuv/sum(mpop)
+    fSub_tot <- fpop[Sub] ; sum_fSub <- sum(fSub_tot) ; pfSub <- sum_fSub/sum(fpop)
+    mSub_tot <- mpop[Sub] ; sum_mSub <- sum(mSub_tot) ; pmSub <- sum_mSub/sum(mpop)
+    fAdu_tot <- fpop[Adu_F] ; sum_fAdu <- sum(fAdu_tot) ; pfAdu <- sum_fAdu/sum(fpop)
+    mAdu_tot <- mpop[Adu_F] ; sum_mAdu <- sum(mAdu_tot) ; pmAdu <- sum_mAdu/sum(mpop)
     
     # proportion female
-    F_tot <- fIm_cur+fS_cur+fE_cur+fI_cur+fR_cur
-    F_sum <- sum(F_tot)
-    pF <- F_sum/sum_pop
+    pF <- sum(fpop)/sum(pop_tot)
     
     summary_df[w,] <- c(w, sum_pop, prop_immune, prop_inf, pKid,pYou,pJuv,pSub,pAdu,pF)
     
@@ -241,7 +246,7 @@ for(w in 2:TimeStop_dynamics){
     #          "imm_frac" = (R+Im)/all, # immune proportion of population
     #          "time" = 1:TimeStop_dynamics) # timestep
   }
-
+  
   # update time and state vectors: 
   
   fIm_prev <- fIm_cur ; mIm_prev <- mIm_cur

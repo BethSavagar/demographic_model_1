@@ -69,4 +69,9 @@ imm_decay_corrected <- imm_decay %>%
   mutate(week_corrected = wk-1) %>%
   select(-c(wk))
 # plot of empirical data - red points - from Bodjo, against computed decay - black line + points - for model.
-ggplot(imm_decay, aes(x=wk, y=imm))+geom_line()+geom_point()+geom_point(data = bodjo_wk, aes(x=wk, y = imm_data), col="red")
+ggplot(imm_decay, aes(x=wk, y=imm))+
+  geom_line()+
+  geom_point()+
+  geom_point(data = bodjo_wk, aes(x=wk, y = imm_data), col="red")
+
+# write.csv(imm_decay_corrected, "data/imm_decay_bodjo.csv", row.names = F)
