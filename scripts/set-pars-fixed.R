@@ -1,5 +1,7 @@
 ## Default Parameters Script ##
 # Parameter set selected in run-model.R script
+# think about reading in parameter data from .csv files - how would this work (01/03/23)
+# see .csv files for parameters
 
 ######################################################################################
 ## TRANSMISSION PARAMETERS ## (new script, transmission branch - 01/03/23)
@@ -16,6 +18,8 @@ if(transmission == T){
 ######################################################################################
 
 ## DEMOGRAPHIC PARAMETERS ##
+
+test_data <- read_csv("data/test_data/test-parameters.csv", col_names=T)
 
 # Flock Structure #
 
@@ -77,10 +81,10 @@ demos <- data.frame(age_cat = c("Kid","You","Juv","Sub","Adu"), # age group
                     n_weeks_M = c(length(Kid), length(You), length(Juv), length(Sub), length(Adu_M)) # number of weeks (sub-compartments) in each age group
 )
 
-## CREATE M/F DATAFRAMES ##
+## CREATE DEMO DATAFRAMES ##
 
-# Female dataframe of demographic rates for each week-long age group in the population.
-# rows = weeklong age gorup, cols = demographic rates 
+# Dataframe of demographic rates for each week-long age group in the population.
+# rows = weeklong age group, cols = demographic rates 
 demographic_pars <- data.frame(
   age_weeks = 1:max_age_F, # nrow = age in weeks
   age_cat = c(rep("Kid",length(Kid)),
@@ -93,14 +97,13 @@ demographic_pars <- data.frame(
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   # Join demographics (Female)
   left_join(demos, by = "age_cat") %>%
-  # remove male variables
-  # select(-c(net_off_M, age_p_M, n_weeks_M)) %>%
   # divide initial population between age groups according to proportions in age_p_F
   mutate(pop_init_F = (age_p_F*N_tot)/n_weeks_F,
          mort = ifelse(age_weeks == max_age_F, 1, mort)) %>%
   mutate(age_p_M = ifelse(age_weeks>max_age_M,0,age_p_M),
          pop_init_M = (age_p_M*N_tot)/n_weeks_M,
          mort = ifelse(age_weeks >= max_age_M, 1, mort)) %>%
+  # select relevant variables   
   select(age_weeks,
          age_cat,
          imm,
@@ -113,28 +116,5 @@ demographic_pars <- data.frame(
          pop_init_M
          )
   
-
 # Delete interim parameters to clean up environment?
 
-
-# # Male dataframe of demographic rates for each week-long age group in the population.
-# age_pars_M <- data.frame(
-#   age_weeks = 1:max_age_M,
-#   age_cat = c(rep("Kid",length(Kid)),
-#               rep("You",length(You)),
-#               rep("Juv",length(Juv)),
-#               rep("Sub",length(Sub)),
-#               rep("Adu",length(Adu_M)))) %>%
-#   # fill in maternal immunity
-#   left_join(imm_decay_corrected, c("age_weeks" = "week_corrected")) %>%
-#   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
-#   # left_join(Imm_wane, c("age_weeks" = "weeks")) %>%
-#   # mutate(immunity = ifelse(is.na(immunity) & age_cat=="Kid", 1, # immunity wanes at weeks 4,8,12 (and 17) between which immunity is maintained i.e. =1
-#   #                          if_else(is.na(immunity),0, immunity))) %>%
-#   # Join demographics (Female)
-#   left_join(demos, by = "age_cat") %>%
-#   # remove female variables
-#   select(-c(net_off_F, age_p_F, n_weeks_F, birth)) %>%
-#   # divide initial population between age groups according to proportions in age_p_F
-#   mutate(pop_init_M = (age_p_M*N_tot)/n_weeks_M,
-#          mort = ifelse(age_weeks == max_age_M, 1, mort)) 
