@@ -1,40 +1,59 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
-# 20/02/23
-# -- outputs_dev branch: switch from tracker matrix to vectors and summary stats as output (reduce computational lload)
 
-# 06/02/23 -- rudimentary model works fine.
+# 08/03/23
+# -- Clean up scripts: run-model, set-pars, set-pars-transmission, plot-output (test)
+# -- merge model dev into master 
+# -- test model functionality: population growth based on individual parameters (mortality rate)
+
+# 20/02/23
+# outputs_dev branch has been deleted following merge into model_dev_1 (08/03/23)
+# -- outputs_dev branch: switch from tracker matrix to vectors and summary stats as output
 
 # 30/01/23 
 # -- think about use of apply and functions for creating the M/F vectors, and for updating population (demographic) states within the model
-# what is the output, run some tests of this demographic model
-# how to maintain population i.e. stability or growth?
+
+######################################################################################################
 
 ## SETUP ##
-
+# Load libraries etc
 library(tidyverse)
 
 
-#########################################################################################################################################
+######################################################################################################
 ## MODEL SETUP ##
 # potentially reconfigure this stuff as lists and use apply?
-
-
-## TRANSMISSION PARAMETERS ##
-transmission <- F # include transmission? T = Yes, F = No
-
-## DEMOGRAPHIC PARAMETERS ##
-# define parameter set to use: "fixed", "baobab"...
-# flock_profile <- "baobab" 
-flock_profile <- "fixed"
-pars_filepath <- paste0("scripts/set-pars-",flock_profile,".R")
-source(pars_filepath)
 
 
 TimeStop_dynamics <- 5*52 # 1 year, weekly timestep for demographic component
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
 output <- "summary" # define output type "summary" or "count"
 
-# initial POPULATION-STATE
+## TRANSMISSION PARAMETERS ##
+transmission <- F # include transmission? T = Yes, F = No
+
+## DEMOGRAPHIC PARAMETERS ##
+# define parameter set to use: "fixed", "baobab"...
+flock_profile <- "fixed" # "baobab"
+pars_filepath <- paste0("scripts/set-pars-",flock_profile,".R")
+source(pars_filepath)
+
+# -- Put lines 40-51 within set-pars.R? --
+# Pull demographic rates as vectors from data-frames (for vectorised equations)
+# NB: create if statements for if there's a difference between males and females?
+immunity <- demographic_pars %>% pull(imm) # no differene m/f
+# Imm_b immune birth rate is already defined (proportion of offspring born with maternal immunity)
+
+net_off_F <- demographic_pars %>% pull(net_off_F)
+net_off_M <- demographic_pars %>% pull(net_off_M)
+mort <- demographic_pars %>% pull(mort) # no m/f difference
+# mort_M <- age_pars_M %>% pull(mort)
+ppr_mort <- demographic_pars %>% pull(ppr_mort)
+# ppr_mort_M <- age_pars_M %>% pull(ppr_mort)
+birth <- demographic_pars %>% pull(birth)
+# ------------------------------------------
+
+## INITIAL POPULATION STATES ##
+
 pR <- 0.5 # proportion initially immune (due to prior infection)
 # define SEIR vectors for male and female age groups
 fIm_init <- rep(0,max_age_F); mIm_init <- rep(0,max_age_F)
@@ -49,71 +68,31 @@ if(pR>0){
   mR_init <- demographic_pars %>% pull(pop_init_M) *pR
 }
 
-## SUMMARY STATS DF
-# create summary data frame to store summary stats for each timestep
 
+f_list <- list("fIm"=fIm_init,
+               "fS"=fS_init,
+               "fE"=fE_init,
+               "fI"=fI_init,
+               "fR"=fR_init)
+m_list <- list("mIm"=mIm_init,
+               "mS"=mS_init,
+               "mE"=mE_init,
+               "mI"=mI_init,
+               "mR"=mR_init)
+
+## SUMMARY STATS ## This goes in main text...
+# create summary data frame to store summary stats for each timestep
 if(output == "summary"){
   sum_stats <-  c("w", "sum_pop", "prop_immune", "prop_inf", "pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")
-  summary_df <- as.data.frame(matrix(0,
-                                     nrow=TimeStop_dynamics, 
-                                     ncol = length(sum_stats)))
+  summary_df <- as.data.frame(matrix(0,nrow = TimeStop_dynamics,ncol = length(sum_stats)))
   colnames(summary_df) <- sum_stats
 }else if(output == "counts"){
   # make df
 }
 
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1,f_list,m_list, output)
 
-## INITIAL POPULATION STATES ## tweak this >>>> (01/03/23)
-
-# total population size
-fpop <- fIm_init+fS_init+fE_init+fI_init+fR_init
-mpop <- mIm_init+mS_init+mE_init+mI_init+mR_init
-# mpop <- c(mpop, rep(0,max_age_F-max_age_M))
-pop_tot <- fpop+mpop
-sum_pop <- sum(fpop)+sum(mpop)
-
-# population growth (yearly calculation)
-# proportion immune
-fimmune <- fIm_init+fR_init
-mimmune <- mIm_init+mR_init
-sum_immune <- sum(fimmune)+sum(mimmune)
-prop_immune <- sum_immune / sum_pop
-
-# proportion infectious
-sum_inf <- sum(fI_init)+sum(mI_init)
-prop_inf <- sum_inf/sum_pop
-
-# proportion in each age-group
-Kid_tot <- pop_tot[Kid] ; sum_Kid <- sum(Kid_tot) ; pKid <- sum_Kid/sum_pop
-You_tot <- pop_tot[You] ; sum_You <- sum(You_tot) ; pYou <- sum_You/sum_pop
-# KidYou_tot <- Kid_tot+You_tot ; sum_KidYou <- sumKid+sumYou ; pKidYou <- sumKidYou/sum_pop
-Juv_tot <- pop_tot[Juv] ; sum_Juv <- sum(Juv_tot) ; pJuv <- sum_Juv/sum_pop
-Sub_tot <- pop_tot[Sub] ; sum_Sub <- sum(Sub_tot) ; pSub <- sum_Sub/sum_pop
-Adu_tot <- pop_tot[Adu_F] ; sum_Adu <- sum(Adu_tot) ; pAdu <- sum_Adu/sum_pop
-# also add for female and male stratification (of adults/all) ??
-
-# proportion female
-F_tot <- fIm_init+fS_init+fE_init+fI_init+fR_init
-F_sum <- sum(F_tot)
-pF <- F_sum/sum_pop
-
-summary_df[1,] <- c(1, sum_pop, prop_immune, prop_inf, pKid,pYou,pJuv,pSub,pAdu,pF)
-
-###########################
-
-## DEMOGRAPHIC PARAMS
-# Pull demographic rates as vectors from data-frames (for vectorised equations)
-# NB: create if statements for if there's a difference between males and females?
-immunity <- demographic_pars %>% pull(imm) # no differene m/f
-# Imm_b immune birth rate is already defined (proportion of offspring born with maternal immunity)
-
-net_off_F <- demographic_pars %>% pull(net_off_F)
-net_off_M <- demographic_pars %>% pull(net_off_M)
-mort <- demographic_pars %>% pull(mort) # no m/f difference
-# mort_M <- age_pars_M %>% pull(mort)
-ppr_mort <- demographic_pars %>% pull(ppr_mort)
-# ppr_mort_M <- age_pars_M %>% pull(ppr_mort)
-birth <- demographic_pars %>% pull(birth)
 
 ###############################
 ## DEMOGRAPHICS LOOP ##
@@ -183,71 +162,32 @@ for(w in 2:TimeStop_dynamics){
   fR_cur <- c(0.5*R_births,fR_new[1:max_age_F-1]) # F add births (R_births = 0) and remove last age group
   mR_cur <- c(0.5*R_births,mR_new[1:max_age_F-1]) # M add births (R_births = 0) and remove last age group
   
+  
+  # -----------------------
   ## TRANSMISSION LOOP ##
+  #
+  #
+  #
+  # ----------------------
   
   
   
-  ## OUTPUT....CREATE OUTPUTS THAT DON'T DEPEND ON TRACKING MATRIX >>>>
-  # reduce output so that rather than storing entire matrices we just produce summary statistics: need to decide what stats are of interest (06/02/23)
+  ## OUTPUT ##
   
-  # summary stats (for sensitivity analysis)
-  if(output=="summary"){
-    
-    # total population 
-    fpop <- fIm_cur+fS_cur+fE_cur+fI_cur+fR_cur
-    mpop <- mIm_cur+mS_cur+mE_cur+mI_cur+mR_cur
-    pop_tot <- fpop+mpop
-    sum_pop <- sum(fpop)+sum(mpop)
-    
-    # proportion immune
-    fimmune <- fIm_cur+fR_cur
-    mimmune <- mIm_cur+mR_cur
-    sum_immune <- sum(fimmune)+sum(mimmune)
-    prop_immune <- sum_immune / sum_pop
-    
-    # proportion infectious
-    sum_inf <- sum(fI_cur)+sum(mI_cur)
-    prop_inf <- sum_inf/sum_pop
-    
-    # proportion in each age-group
-    Kid_tot <- pop_tot[Kid] ; sum_Kid <- sum(Kid_tot) ; pKid <- sum_Kid/sum_pop
-    You_tot <- pop_tot[You] ; sum_You <- sum(You_tot) ; pYou <- sum_You/sum_pop
-    Juv_tot <- pop_tot[Juv] ; sum_Juv <- sum(Juv_tot) ; pJuv <- sum_Juv/sum_pop
-    Sub_tot <- pop_tot[Sub] ; sum_Sub <- sum(Sub_tot) ; pSub <- sum_Sub/sum_pop
-    Adu_tot <- pop_tot[Adu_F] ; sum_Adu <- sum(Adu_tot) ; pAdu <- sum_Adu/sum_pop
-    
-    # sex-age group
-    fKid_tot <- fpop[Kid] ; sum_fKid <- sum(fKid_tot) ; pfKid <- sum_fKid/sum(fpop)
-    mKid_tot <- mpop[Kid] ; sum_mKid <- sum(mKid_tot) ; pmKid <- sum_mKid/sum(mpop)
-    fYou_tot <- fpop[You] ; sum_fYou <- sum(fYou_tot) ; pfYou <- sum_fYou/sum(fpop)
-    mYou_tot <- mpop[You] ; sum_mYou <- sum(mYou_tot) ; pmYou <- sum_mYou/sum(mpop)
-    fJuv_tot <- fpop[Juv] ; sum_fJuv <- sum(fJuv_tot) ; pfJuv <- sum_fJuv/sum(fpop)
-    mJuv_tot <- mpop[Juv] ; sum_mJuv <- sum(mJuv_tot) ; pmJuv <- sum_mJuv/sum(mpop)
-    fSub_tot <- fpop[Sub] ; sum_fSub <- sum(fSub_tot) ; pfSub <- sum_fSub/sum(fpop)
-    mSub_tot <- mpop[Sub] ; sum_mSub <- sum(mSub_tot) ; pmSub <- sum_mSub/sum(mpop)
-    fAdu_tot <- fpop[Adu_F] ; sum_fAdu <- sum(fAdu_tot) ; pfAdu <- sum_fAdu/sum(fpop)
-    mAdu_tot <- mpop[Adu_F] ; sum_mAdu <- sum(mAdu_tot) ; pmAdu <- sum_mAdu/sum(mpop)
-    
-    # proportion female
-    pF <- sum(fpop)/sum(pop_tot)
-    
-    summary_df[w,] <- c(w, sum_pop, prop_immune, prop_inf, pKid,pYou,pJuv,pSub,pAdu,pF)
-    
-  }else if(output=="counts"){
-    # matrix storing total pop in each disease state.
-    # totals <- data.frame(
-    #   "Im" = apply(fIm_mat, 2, sum)+apply(mIm_mat, 2, sum),
-    #   "S" = apply(fS_mat, 2, sum)+apply(mS_mat, 2, sum),
-    #   "E" = apply(fE_mat, 2, sum)+apply(mE_mat, 2, sum),
-    #   "I" = apply(fI_mat, 2, sum)+apply(mI_mat, 2, sum),
-    #   "R" = apply(fR_mat, 2, sum)+apply(mR_mat, 2, sum)
-    # ) %>%
-    #   mutate("all" = apply(.,1,sum), # total population size
-    #          "imm_frac" = (R+Im)/all, # immune proportion of population
-    #          "time" = 1:TimeStop_dynamics) # timestep
-  }
+  f_list <- list("fIm"=fIm_cur,
+                 "fS"=fS_cur,
+                 "fE"=fE_cur,
+                 "fI"=fI_cur,
+                 "fR"=fR_cur)
+  m_list <- list("mIm"=mIm_cur,
+                 "mS"=mS_cur,
+                 "mE"=mE_cur,
+                 "mI"=mI_cur,
+                 "mR"=mR_cur)
   
-  # update time and state vectors: 
+  summary_df <- summary_demos(w,f_list,m_list,output)
+  
+  ## UPDATE STATES ##
   
   fIm_prev <- fIm_cur ; mIm_prev <- mIm_cur
   fS_prev <- fS_cur ; mS_prev <- mS_cur
@@ -256,6 +196,8 @@ for(w in 2:TimeStop_dynamics){
   fR_prev <- fR_cur ; mR_prev <- mR_cur
   
 }
+
+## plotting and analysis
 
 summary_df <- summary_df %>%
   mutate(w = as.numeric(w))
