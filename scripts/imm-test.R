@@ -1,30 +1,26 @@
-## Flock Dynamics Model Code v1.1 (19/01/23)
 
-# 08/03/23
-# -- Clean up scripts: run-model, set-pars, set-pars-transmission, plot-output (test)
-# -- merge model dev into master 
-# -- test model functionality: population growth based on individual parameters (mortality rate)
+## Tests of Flock Dynamics Model 08/03/23
 
-# 20/02/23
-# outputs_dev branch has been deleted following merge into model_dev_1 (08/03/23)
-# -- outputs_dev branch: switch from tracker matrix to vectors and summary stats as output
+# 1) Offspring Immunity Dynamics (08/03/23)
 
-# 30/01/23 
-# -- think about use of apply and functions for creating the M/F vectors, and for updating population (demographic) states within the model
+# Run model with conditions to replicate Bodjo et al paper where offspring immunity dynamics are drawn from.
+# •	Tested duration of maternal immunity in 112 lambs up to 150 days after birth, born to ewes vaccinated with the homologous PPR vaccine “Nigeria 75/1" at day 90 and day 120 of pregnancy.
 
-######################################################################################################
+# Parameters: 
+# - set 112 lambs to immune compartment 
+# - set rest of population to 0
+# - set mortality, offtake, to 0
+
+#####################################################################################################
 
 ## SETUP ##
 # Load libraries etc
 library(tidyverse)
 source("functions/demos_summary.R")
 
-######################################################################################################
 ## MODEL SETUP ##
-# potentially reconfigure this stuff as lists and use apply?
 
-
-TimeStop_dynamics <- 5*52 # 1 year, weekly timestep for demographic component
+TimeStop_dynamics <- 0.5*52 # 6 months enough for immunity test
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
 output <- "summary" # define output type "summary" or "count"
 
@@ -33,7 +29,7 @@ transmission <- F # include transmission? T = Yes, F = No
 
 ## DEMOGRAPHIC PARAMETERS ##
 # define parameter set to use: "fixed", "baobab"...
-flock_profile <- "fixed" # "baobab"
+flock_profile <- "imm-test" # "baobab"
 pars_filepath <- paste0("scripts/set-pars-",flock_profile,".R")
 source(pars_filepath)
 
@@ -54,11 +50,12 @@ birth <- demographic_pars %>% pull(birth)
 
 ## INITIAL POPULATION STATES ##
 
-pR <- 0.5 # proportion initially immune (due to prior infection)
+pR <- 0 # proportion initially immune (due to prior infection)
 # define SEIR vectors for male and female age groups
 fIm_init <- rep(0,max_age_F); mIm_init <- rep(0,max_age_F)
-fS_init <- demographic_pars %>% pull(pop_init_F) *(1-pR) # all S except already recovered
-mS_init <- demographic_pars %>% pull(pop_init_M) *(1-pR) # all S except already recovered
+fIm_init[1] <- 0.5*N_tot; mIm_init[1] <- 0.5*N_tot; 
+fS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
+mS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
 fE_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F)
 fI_init <- rep(0,max_age_F); mI_init <- rep(0,max_age_F)
 fR_init <- rep(0,max_age_F); mR_init <- rep(0,max_age_F)
@@ -89,6 +86,7 @@ if(output == "summary"){
 }else if(output == "counts"){
   # make df
 }
+
 
 # nb need to add if statement to summary (if output == summary, if output == counts)
 summary_df <- summary_demos(w=1,f_list,m_list, output)
@@ -240,4 +238,7 @@ ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
 
 # immunity
 ggplot(summary_df, aes(x=w, y=prop_immune))+
-  geom_line()
+  geom_line()+
+  geom_line(data = imm_decay_corrected, aes(x=week_corrected, y=imm_old), col = "red")+
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+  coord_cartesian(xlim=c(0,15))

@@ -68,6 +68,22 @@ imm_decay_corrected <- imm_decay %>%
   distinct() %>%
   mutate(week_corrected = wk-1) %>%
   select(-c(wk))
+
+imm_corrected <- c(1)
+for(i in 2:nrow(imm_decay_corrected)){
+  imm_prop <- imm_decay_corrected[i,"imm"]/imm_decay_corrected[i-1,"imm"]
+  
+  if(is.na(imm_prop)){
+    imm_prop <- 0
+  }
+  imm_corrected <- c(imm_corrected, imm_prop)
+}
+
+imm_decay_corrected <- as.data.frame(cbind(imm_decay_corrected,imm_corrected)) %>%
+  rename(imm_old = imm,
+         imm = imm_corrected)
+
+
 # plot of empirical data - red points - from Bodjo, against computed decay - black line + points - for model.
 ggplot(imm_decay, aes(x=wk, y=imm))+
   geom_line()+
