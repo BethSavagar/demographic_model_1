@@ -1,4 +1,7 @@
 ## Flock Dynamics Model Code v1.1 (19/01/23)
+# 09/03/23
+# -- clean_model branch to tidy script - split out run_model script into separate scripts & functions?
+
 
 # 08/03/23
 # -- Clean up scripts: run-model, set-pars, set-pars-transmission, plot-output (test)
