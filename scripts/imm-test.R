@@ -239,6 +239,8 @@ ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
 # immunity
 ggplot(summary_df, aes(x=w, y=prop_immune))+
   geom_line()+
-  geom_line(data = imm_decay_corrected, aes(x=week_corrected, y=imm_old), col = "red")+
+  geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))
   # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
-  coord_cartesian(xlim=c(0,15))
+  

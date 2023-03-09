@@ -46,7 +46,7 @@ Adu_M <- (age_cuts_wk[4]+1):max_age_M # Adult M (18m-3y) = 79w-261w
 
 # waning of maternal immunity for first 4months (17 wk)
 # data from Bodjo et al. (following Hammami, El Arbi)
-imm_decay_corrected <- read_csv("data/imm_decay_bodjo.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
 Imm_b <- imm_decay_corrected %>% 
   filter(week_corrected ==0) %>% 
   pull(imm) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies

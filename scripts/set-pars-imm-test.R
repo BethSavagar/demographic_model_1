@@ -46,11 +46,10 @@ Adu_M <- (age_cuts_wk[4]+1):max_age_M # Adult M (18m-3y) = 79w-261w
 
 # waning of maternal immunity for first 4months (17 wk)
 # data from Bodjo et al. (following Hammami, El Arbi)
-imm_decay_corrected <- read_csv("data/imm_decay_bodjo.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
 Imm_b <- imm_decay_corrected %>% 
-  filter(week_corrected ==0) %>% 
-  pull(imm) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies
-
+  filter(wk ==0) %>% 
+  pull(imm_corrected) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies
 
 # Demographic Rates ##
 
@@ -93,7 +92,7 @@ demographic_pars <- data.frame(
               rep("Sub",length(Sub)),
               rep("Adu",length(Adu_F)))) %>%
   # fill in maternal immunity
-  left_join(imm_decay_corrected, c("age_weeks" = "week_corrected")) %>%
+  left_join(imm_decay_corrected %>% select(wk, "imm" = imm_corrected), c("age_weeks" = "wk")) %>%
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   # Join demographics (Female)
   left_join(demos, by = "age_cat") %>%
