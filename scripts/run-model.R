@@ -2,7 +2,6 @@
 # 09/03/23
 # -- clean_model branch to tidy script - split out run_model script into separate scripts & functions?
 
-
 # 08/03/23
 # -- Clean up scripts: run-model, set-pars, set-pars-transmission, plot-output (test)
 # -- merge model dev into master 
@@ -94,7 +93,7 @@ if(output == "summary"){
 }
 
 # nb need to add if statement to summary (if output == summary, if output == counts)
-summary_df <- summary_demos(w=1,f_list,m_list, output)
+summary_df <- summary_demos(w=1,f_list,m_list,output)
 
 
 ###############################

@@ -1,8 +1,7 @@
-﻿Parameter,test_1
+﻿parameter,zeros
 N_tot,1700
 max_age_F,7
 max_age_M,5
-age_cuts_mnth,"4,6,12,18"
 intake_y,0
 intake_m,0
 intake_f,0
@@ -14,4 +13,7 @@ NET_offtake_m,0
 NET_offtake_f,0
 mortality_y,0
 mortality_a,0
+mortality_end,0
 birth_rate,0
+ppr_mortality_y,0
+ppr_mortality_a,0

@@ -31,7 +31,8 @@ summary_demos <- function(
     w,
     f_list,
     m_list,
-    output
+    output,
+    summary_df
 ){
   
   fIm <- f_list[["fIm"]]
