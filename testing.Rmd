@@ -37,7 +37,8 @@ source("functions/dynmod.R")
   - set mortality, offtake, and all demographic rates (except immune decay) to 0
   - plot proportion immune for first 6 months of simulation
   - plot should mirror the immune decay from Bodjo raw data
-
+  
+  
 
 ```{r maternal-immunity-decay, include = FALSE}
 # -----------------------
@@ -134,19 +135,303 @@ p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
   geom_line(size=1)+
   # scale_color_brewer(palette = "Set1")+
   scale_color_manual(values = colors_agesex)+
-  labs(x = "weeks", y = "Proportion of total population", col = "age-sex cat")+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
   theme_bw()
 
 # immunity
 p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
   geom_line()+
-  geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+coord_cartesian(xlim=c(0,20))+
+  geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+
+  coord_cartesian(xlim=c(0,20))+
   scale_x_continuous(breaks = seq(0,20,1))+
-  scale_y_continuous(breaks = seq(0,1,0.1))
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
   # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
 
-p1
-p2
+ggarrange(p1,p2,nrow=1)
 p3
 ```
+
+### Basic Model
+- With all other parameters set to 0
+- Set population to 100 animals
+- All animals begin in S1 age group (susceptible offspring)
+- With a life-span of 5 years for males and females
+- Animals should move through age groups until 5 years.
+
+NB: NaN values due to dividing by 0 when population dies out (fix this in `demos_summary.R`)
+
+
+```{r basic-model, include = FALSE}
+# -----------------------
+## PARAMETERS ##
+
+TimeStop_dynamics <- 6*52 # 6 years to review 5 year age span
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
+output <- "summary" # define output type "summary" or "count"
+
+# test_1 dataset, all aprameters set to 0 and all animals in age group 1 (susceptible)
+dataset1 <- "test_1" # select dataset for test data
+dataset2 <- "test_1" # select dataset for age data
+
+source(here("scripts","parameters","set-pars-test.R"))
+
+## Transmission Parameters ##
+transmission <- F # include transmission? T = Yes, F = No
+
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
+
+## Clean Parameters Environment? ##
+clean_environment <- T
+if(clean_environment == T){
+  rm(test_data,test_age_data, kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop,
+     kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop,kid_max, you_max,juv_max,sub_max,max_age_F,max_age_M,
+     fIm_init, fS_init, fE_init, fI_init, fR_init,mIm_init, mS_init, mE_init, mI_init, mR_init, off_1,off_F, off_M,mort_1,mort_2,mort_end,birth_r,ppr_mort_1, ppr_mort_2)
+}
+
+# -----------------------
+## SUMMARY STATS ## 
+
+# create summary data frame to store summary stats for each timestep
+summary_df <- output_func(TimeStop_dynamics,output)
+
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
+
+
+# -----------------------
+## MODEL
+
+output_df <- dynmod_func(
+  f_list, # initial state of female population
+  m_list, # initial state of male population
+  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+  TimeStop_transmission, # 1 day, hourly timestep for transission component
+  output, # model output: tracker or summary stats
+  demographic_pars,
+  summary_df
+)
+```
+
+```{r plotting-2, echo = FALSE, warning = FALSE}
+## plotting and analysis
+
+summary_df <- output_df %>%
+  mutate(w = as.numeric(w))
+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
+  geom_line(size = 1.5)+
+  labs(title = "Total Population",
+       x="time (weeks)", 
+       y = "total population")+
+  theme_bw()
+
+
+## melt summary_df to long format
+summary_long <- summary_df %>%
+  gather(key="stat", value="prop", -w)
+
+
+## create df for different stats:
+
+colors_agesex <- RColorBrewer::brewer.pal(6,"Set1")
+colors_agesex[6] <- "black"
+  
+# age-sex
+summary_agesex <- summary_long %>%
+  filter(!stat %in% c("sum_pop",
+                      "prop_inf",
+                      "prop_immune")) %>%
+  mutate(stat = ordered(stat, 
+                        levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
+
+
+## Plots:
+# age-sex proportions
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+  geom_line(size=1)+
+  # scale_color_brewer(palette = "Set1")+
+  scale_color_manual(values = colors_agesex)+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
+  theme_bw()
+
+# immunity
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+
+ggarrange(p1,p2,nrow=1)
+# p3 - don't need immune dynamics to be plotted
+```
+
+
+### Mortality 
+- With all other parameters set to 0
+- Set population to 100 animals
+- All animals begin in S1 age group (susceptible offspring)
+- With a life-span of 5 years for males and females
+- Set **mortality rate** to 0.01 per week
+- Animals should move through age groups until 5 years.
+- ...
+- ...
+- Parameters: 
+  - set ...
+  - set ...
+  - set ...
+  
+*Test validation: what is the gradient of the curve?*
+
+- Briefly: 
+  - mortality rate is 0.01/week in all age groups
+  - survival is 0.99/wk
+  - 1 year survival = $0.99^52 = 0.59$ 
+  - 5 year survival = $0.99^ (52*5) = 0.07$
+  - compare these figure to `output_df` ...
+
+```{r mortality, include = FALSE}
+# -----------------------
+## PARAMETERS ##
+
+TimeStop_dynamics <- 6*52 # 6 years to review 5 year age span
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
+output <- "summary" # define output type "summary" or "count"
+
+# test_1 dataset, all aprameters set to 0 and all animals in age group 1 (susceptible)
+dataset1 <- "test_mortality" # select dataset for test data
+dataset2 <- "test_1" # test_1 age data sets all animals to first age group
+
+source(here("scripts","parameters","set-pars-test.R"))
+
+## Transmission Parameters ##
+transmission <- F # include transmission? T = Yes, F = No
+
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
+
+## Clean Parameters Environment? ##
+clean_environment <- T
+if(clean_environment == T){
+  rm(test_data,test_age_data, kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop,
+     kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop,kid_max, you_max,juv_max,sub_max,max_age_F,max_age_M,
+     fIm_init, fS_init, fE_init, fI_init, fR_init,mIm_init, mS_init, mE_init, mI_init, mR_init, off_1,off_F, off_M,mort_1,mort_2,mort_end,birth_r,ppr_mort_1, ppr_mort_2)
+}
+
+# -----------------------
+## SUMMARY STATS ## 
+
+# create summary data frame to store summary stats for each timestep
+summary_df <- output_func(TimeStop_dynamics,output)
+
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
+
+
+# -----------------------
+## MODEL
+
+output_df <- dynmod_func(
+  f_list, # initial state of female population
+  m_list, # initial state of male population
+  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+  TimeStop_transmission, # 1 day, hourly timestep for transission component
+  output, # model output: tracker or summary stats
+  demographic_pars,
+  summary_df
+)
+```
+
+```{r plotting-3, echo = FALSE, warning = FALSE}
+## plotting and analysis
+
+summary_df <- output_df %>%
+  mutate(w = as.numeric(w))
+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
+  geom_line(size = 1.5)+
+  labs(title = "Total Population",
+       x="time (weeks)", 
+       y = "total population")+
+  theme_bw()
+
+
+## melt summary_df to long format
+summary_long <- summary_df %>%
+  gather(key="stat", value="prop", -w)
+
+
+## create df for different stats:
+
+colors_agesex <- RColorBrewer::brewer.pal(6,"Set1")
+colors_agesex[6] <- "black"
+  
+# age-sex
+summary_agesex <- summary_long %>%
+  filter(!stat %in% c("sum_pop",
+                      "prop_inf",
+                      "prop_immune")) %>%
+  mutate(stat = ordered(stat, 
+                        levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
+
+
+## Plots:
+# age-sex proportions
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+  geom_line(size=1)+
+  # scale_color_brewer(palette = "Set1")+
+  scale_color_manual(values = colors_agesex)+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
+  theme_bw()
+
+# immunity
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+
+
+surv <- output_df %>% filter(w %in% c(53,260)) %>% select(w, sum_pop) %>% knitr::kable()
+
+surv
+ggarrange(p1,p2,nrow=1)
+# p3 - don't need immune dynamics to be plotted
+```
+  
+### Births
+
+
+### Population Size
+
+
+### Population Structure
+
 
