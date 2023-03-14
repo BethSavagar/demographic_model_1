@@ -4,19 +4,6 @@
 # see .csv files for parameters
 
 ######################################################################################
-## TRANSMISSION PARAMETERS ## (new script, transmission branch - 01/03/23)
-
-# does model include transmission or not?
-# separate this into new script/function. 
-if(transmission == T){
-  beta <- NA # transmission rate, S-E (per hour)
-  sigma <- NA # rate of becoming infectious , E-I (per hour)
-  gamma <- NA # rate of becoming recovery, I-R (per hour)
-  pR <- 0.5
-}
-
-######################################################################################
-
 ## DEMOGRAPHIC PARAMETERS ##
 
 # test_data <- read_csv("data/test_data/test-parameters_immune-decay.csv", col_names=T)
@@ -67,11 +54,13 @@ age_p_m <- c(0,0,0,0,0)
 ppr_mort_1 <- 0 # ppr mortality rate <6M (per week)
 ppr_mort_2 <- 0 # ppr mortality rate >6M  (per week)
 
+
 # Dataframe of demographic parameters for age-sex group
 demos <- data.frame(age_cat = c("Kid","You","Juv","Sub","Adu"), # age group
                     net_off_F = c(off_1,off_1,off_1,off_F,off_F), # female offtake
                     net_off_M = c(off_1,off_1,off_1,off_M,off_M), # male offtake
-                    mort = c(mort_1,mort_1,mort_2,mort_2,mort_2), # natural mortality
+                    mort_F = c(mort_1,mort_1,mort_2,mort_2,mort_2),
+                    mort_M = c(mort_1,mort_1,mort_2,mort_2,mort_2), # natural mortality
                     ppr_mort = c(ppr_mort_1,ppr_mort_1,ppr_mort_2,ppr_mort_2,ppr_mort_2), # ppr_mortality
                     birth = c(0,0,0,0,birth_r), # birth rate (only Adu_F)
                     age_p_F = age_p_f, # proportion of population in each age group F
@@ -93,21 +82,23 @@ demographic_pars <- data.frame(
               rep("Adu",length(Adu_F)))) %>%
   # fill in maternal immunity
   left_join(imm_decay_corrected %>% select(wk, "imm" = imm_corrected), c("age_weeks" = "wk")) %>%
+  
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   # Join demographics (Female)
   left_join(demos, by = "age_cat") %>%
   # divide initial population between age groups according to proportions in age_p_F
   mutate(pop_init_F = (age_p_F*N_tot)/n_weeks_F,
-         mort = ifelse(age_weeks == max_age_F, 1, mort)) %>%
+         mort_F = ifelse(age_weeks == max_age_F, 1, mort_F)) %>%
   mutate(age_p_M = ifelse(age_weeks>max_age_M,0,age_p_M),
          pop_init_M = (age_p_M*N_tot)/n_weeks_M,
-         mort = ifelse(age_weeks >= max_age_M, 1, mort)) %>%
+         mort_M = ifelse(age_weeks >= max_age_M, 1, mort_M)) %>%
   # select relevant variables   
   select(age_weeks,
          age_cat,
          imm,
          birth,
-         mort,
+         mort_F,
+         mort_M,
          ppr_mort,
          net_off_F,
          net_off_M,
@@ -116,4 +107,34 @@ demographic_pars <- data.frame(
   )
 
 # Delete interim parameters to clean up environment?
+
+
+## INITIAL POPULATION STATES ##
+
+pR <- 0 # proportion initially immune (due to prior infection)
+# define SEIR vectors for male and female age groups
+fIm_init <- rep(0,max_age_F); mIm_init <- rep(0,max_age_F)
+fIm_init[1] <- 0.5*N_tot; mIm_init[1] <- 0.5*N_tot; 
+fS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
+mS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
+fE_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F)
+fI_init <- rep(0,max_age_F); mI_init <- rep(0,max_age_F)
+fR_init <- rep(0,max_age_F); mR_init <- rep(0,max_age_F)
+
+if(pR>0){
+  fR_init <- demographic_pars %>% pull(pop_init_F) *pR
+  mR_init <- demographic_pars %>% pull(pop_init_M) *pR
+}
+
+
+f_list <- list("fIm"=fIm_init,
+               "fS"=fS_init,
+               "fE"=fE_init,
+               "fI"=fI_init,
+               "fR"=fR_init)
+m_list <- list("mIm"=mIm_init,
+               "mS"=mS_init,
+               "mE"=mE_init,
+               "mI"=mI_init,
+               "mR"=mR_init)
 

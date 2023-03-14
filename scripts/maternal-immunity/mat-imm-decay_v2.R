@@ -70,4 +70,4 @@ ggplot(imm_decay, aes(x=wk, y=imm))+
   geom_point()+
   geom_point(data = bodjo_wk, aes(x=wk, y = imm_data), col="red")
 
-write.csv(imm_decay_corrected, "data/imm_decay_bodjo_v2.csv", row.names = F)
+# write.csv(imm_decay_corrected, "data/imm_decay_bodjo_v2.csv", row.names = F)

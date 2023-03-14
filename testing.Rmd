@@ -1,38 +1,67 @@
-###############################
-## RUN MODEL SCRIPT ##
-###############################
-# 13/03/23
+---
+title: "Dynamics testing"
+author: "Beth Savagar"
+date: "2023-03-14"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
 # -----------------------
 ## SETUP ##
 # Load libraries, functions etc
 library(tidyverse)
 library(readr)
+library(here)
+library(ggpubr)
+here()
 source("functions/demos_summary.R")
 source("functions/output.R")
 source("functions/dynmod.R")
 
 
+```
+
+## Dynamics Model Testing
+
+### Maternal Immunity
+
+- Run model with conditions to replicate Bodjo et al paper where offspring immunity dynamics are drawn from.
+- Tested duration of maternal immunity in 112 lambs up to 150 days after birth, born to ewes vaccinated with the homologous PPR vaccine “Nigeria 75/1" at day 90 and day 120 of pregnancy.
+- Parameters: 
+  - set 112 lambs to immune compartment 
+  - set rest of population to 0
+  - set mortality, offtake, and all demographic rates (except immune decay) to 0
+  - plot proportion immune for first 6 months of simulation
+  - plot should mirror the immune decay from Bodjo raw data
+
+
+```{r maternal-immunity-decay, include = FALSE}
 # -----------------------
 ## PARAMETERS ##
 
-TimeStop_dynamics <- 25*52 # 1 year, weekly timestep for demographic component
+TimeStop_dynamics <- 0.5*52 # 6 months enough for immunity test
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
 output <- "summary" # define output type "summary" or "count"
 
-## Demographic Parameters ##
+# flock_profile <- "imm_test" # "baobab"
+# pars_filepath <- paste0("scripts/parameters/set-pars-",flock_profile,".R")
+# pars_filepath <- paste0("set-pars-",flock_profile,".R")
 
-# define parameter set to use: "fixed", "baobab"...
-flock_profile <- "script" # "baobab" # imm_test ()
-pars_filepath <- paste0("scripts/parameters/set-pars-",flock_profile,".R")
-source(pars_filepath) # within demographics script load in csvs for each set of parameters?
+# source(pars_filepath)
+# source(here("scripts/parameters/set-pars-imm-test.R"))
+source(here("scripts","parameters","set-pars-imm-test.R"))
 
 ## Transmission Parameters ##
 transmission <- F # include transmission? T = Yes, F = No
 
-transmission_pars <- "fixed"
-transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
-source(transmission_filepath)
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
 
 ## Clean Parameters Environment? ##
 clean_environment <- T
@@ -63,15 +92,16 @@ output_df <- dynmod_func(
   output, # model output: tracker or summary stats
   demographic_pars,
   summary_df
-  )
+)
+```
 
-
+```{r plotting-1, echo = FALSE, warning = FALSE}
 ## plotting and analysis
 
 summary_df <- output_df %>%
   mutate(w = as.numeric(w))
 
-ggplot(summary_df,aes(x=w,y=sum_pop))+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
   geom_line(size = 1.5)+
   labs(title = "Total Population",
        x="time (weeks)", 
@@ -97,43 +127,26 @@ summary_agesex <- summary_long %>%
   mutate(stat = ordered(stat, 
                         levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
 
+
 ## Plots:
 # age-sex proportions
-ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
   geom_line(size=1)+
   # scale_color_brewer(palette = "Set1")+
   scale_color_manual(values = colors_agesex)+
   labs(x = "weeks", y = "Proportion of total population", col = "age-sex cat")+
   theme_bw()
 
-# age_sex numbers:
-
-numbers_long <- summary_df %>%
-  mutate(nKid = pKid*sum_pop,
-         nYou = pYou*sum_pop,
-         nJuv = pJuv*sum_pop,
-         nSub = pSub*sum_pop,
-         nAdu = pAdu*sum_pop,
-         nF = pF*sum_pop) %>%
-  select(w,sum_pop,nKid, nYou, nJuv, nSub, nAdu, nF) %>%
-  gather(key="stat", value="prop", -w)
-
-agesex_total <- numbers_long %>%
-  mutate(stat = ordered(stat, 
-                        levels = c("nKid", "nYou", "nJuv", "nSub", "nAdu", "nF", "sum_pop")))
-
-colors_Nagesex <- RColorBrewer::brewer.pal(7,"Set1")
-colors_Nagesex[7] <- "black"
-
-ggplot(agesex_total, aes(x=w, y=prop, group=stat, col=stat))+
-  geom_line(size=1)+
-  # scale_color_brewer(palette = "Set1")+
-  scale_color_manual(values = colors_Nagesex)+
-  labs(x = "weeks", y = "total population", col = "age-sex cat")+
-  theme_bw()
-
-
 # immunity
-ggplot(summary_df, aes(x=w, y=prop_immune))+
-  geom_line()
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+
+p1
+p2
+p3
+```
 
