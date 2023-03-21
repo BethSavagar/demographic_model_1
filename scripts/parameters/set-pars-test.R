@@ -154,8 +154,8 @@ demographic_pars <- data.frame(
 pR <- 0 # proportion initially immune (due to prior infection)
 # define SEIR vectors for male and female age groups
 fIm_init <- rep(0,max_age_F); mIm_init <- rep(0,max_age_F)
-fS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
-mS_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F) # all S except already recovered
+fS_init <- demographic_pars %>% pull(pop_init_F) *(1-pR) # all S except already recovered
+mS_init <- demographic_pars %>% pull(pop_init_M) *(1-pR) # all S except already recovered
 fE_init <- rep(0,max_age_F); mE_init <- rep(0,max_age_F)
 fI_init <- rep(0,max_age_F); mI_init <- rep(0,max_age_F)
 fR_init <- rep(0,max_age_F); mR_init <- rep(0,max_age_F)

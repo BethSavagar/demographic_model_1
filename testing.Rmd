@@ -1,5 +1,5 @@
 ---
-title: "Dynamics testing"
+title: "Dynamics Model Testing"
 author: "Beth Savagar"
 date: "2023-03-14"
 output:
@@ -25,20 +25,19 @@ source("functions/dynmod.R")
 
 ```
 
-## Dynamics Model Testing
+## Maternal Immunity
 
-### Maternal Immunity
-
-- Run model with conditions to replicate Bodjo et al paper where offspring immunity dynamics are drawn from.
-- Tested duration of maternal immunity in 112 lambs up to 150 days after birth, born to ewes vaccinated with the homologous PPR vaccine “Nigeria 75/1" at day 90 and day 120 of pregnancy.
+- Check implementation of maternal immunity decay by comparing model output to empirical data (from Bodjo *et al*)
+- Run model with conditions to replicate Bodjo *et al*
+- Bodjo *et al* tested the duration of maternal immunity in 112 lambs up to 150 days after birth, born to ewes vaccinated with the homologous PPR vaccine “Nigeria 75/1" at day 90 and day 120 of pregnancy.
 - Parameters: 
-  - set 112 lambs to immune compartment 
+  - set 112 lambs to immune offspring compartment 
   - set rest of population to 0
-  - set mortality, offtake, and all demographic rates (except immune decay) to 0
+  - set mortality, offtake, and all demographic rates (except maternal immune decay) to 0
+  - set M:F ratio to 1:1
   - plot proportion immune for first 6 months of simulation
-  - plot should mirror the immune decay from Bodjo raw data
-  
-  
+  - plot should mirror the immune decay from Bodjo raw data.  
+  <br>
 
 ```{r maternal-immunity-decay, include = FALSE}
 # -----------------------
@@ -96,7 +95,7 @@ output_df <- dynmod_func(
 )
 ```
 
-```{r plotting-1, echo = FALSE, warning = FALSE}
+```{r mat_imm_plots, echo = FALSE, warning = FALSE}
 ## plotting and analysis
 
 summary_df <- output_df %>%
@@ -135,6 +134,7 @@ p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
   geom_line(size=1)+
   # scale_color_brewer(palette = "Set1")+
   scale_color_manual(values = colors_agesex)+
+  # facet_wrap(~stat,ncol=1)+
   labs(title = "Population Proportion",
        x = "weeks", 
        y = "Proportion of total population", 
@@ -142,31 +142,60 @@ p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
   theme_bw()
 
 # immunity
-p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
-  geom_line()+
-  geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+
+
+imm_data <- summary_df %>%
+  select(w, imm = prop_immune) %>% 
+  mutate(source = "model") %>%
+  rbind(imm_decay_corrected %>% select("w"=wk, imm) %>% mutate(source = "bodjo"))
+
+p3 <- ggplot(imm_data, aes(x=w, y=imm))+
+  geom_line(aes(col = source))+
+  # geom_line(data = imm_decay_corrected, aes(x=wk, y=imm), col = "red")+
   coord_cartesian(xlim=c(0,20))+
   scale_x_continuous(breaks = seq(0,20,1))+
   scale_y_continuous(breaks = seq(0,1,0.1))+
+  scale_color_manual(values = c("model" = "black", "bodjo" = "red"))+
   labs(title = "Immune Dynamics",
        x = "Weeks",
        y = " Proportion Immune")+
   theme_bw()
-  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
 
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+```
+
+
+```{r immplot1, echo = FALSE, warning = FALSE, fig.height = 2.5}
 ggarrange(p1,p2,nrow=1)
+```
+
+*Maternal Immunity Interpretation*
+
+- The population remains constants at 112 animals for the duration of the simulation
+- All animals begin in the `pKid` compartment, and move into the `pYou` compartment at week 18
+
+```{r immplot2, echo = FALSE, warning = FALSE, fig.width = 6, fig.height = 3}
 p3
 ```
 
-### Basic Model
-- With all other parameters set to 0
-- Set population to 100 animals
-- All animals begin in S1 age group (susceptible offspring)
-- With a life-span of 5 years for males and females
-- Animals should move through age groups until 5 years.
+*Maternal Immunity Interpretation*
 
-NB: NaN values due to dividing by 0 when population dies out (fix this in `demos_summary.R`)
+- The model exactly replicates immune decay from Bodjo data
+- The apparent 1 week lapse is because the model starts at week 1 with 100% offspring in the immune compartment
+<br>
 
+## Demographic Processes: Basic Model
+
+1) Do animals move through age compartments as expected?
+- Parameters:
+  - Set the population to 100 animals
+  - Assign all animals to S1 age group (first age-group, susceptible offspring)
+  - Set all demographic parameters (births, deaths, intake, offtake, maternal immunity) to 0
+  - Set the max life-span of males and females to 5years
+  - Set M:F ratio as 1:1
+  - Animals should move through age compartments uniformly, at 5 years population will die out.
+
+*NB: NaN values due to dividing by 0 when population dies out (fix this in `demos_summary.R`)*
+<br>
 
 ```{r basic-model, include = FALSE}
 # -----------------------
@@ -265,6 +294,7 @@ p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
        x = "weeks", 
        y = "Proportion of total population", 
        col = "age-sex cat")+
+  facet_wrap(~stat)+
   theme_bw()
 
 # immunity
@@ -278,34 +308,47 @@ p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
        y = " Proportion Immune")+
   theme_bw()
   # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+```
 
-ggarrange(p1,p2,nrow=1)
+```{r test1plot1, echo = FALSE, warning = FALSE, fig.height = 2.5, fig.width = 3}
+p1
 # p3 - don't need immune dynamics to be plotted
 ```
 
+```{r test1plot2, echo = FALSE, warning = FALSE}
+p2
 
-### Mortality 
-- With all other parameters set to 0
-- Set population to 100 animals
-- All animals begin in S1 age group (susceptible offspring)
-- With a life-span of 5 years for males and females
-- Set **mortality rate** to 0.01 per week
-- Animals should move through age groups until 5 years.
-- ...
-- ...
-- Parameters: 
-  - set ...
-  - set ...
-  - set ...
+```
+
+*Basic Model Interpretation* 
+
+- The population remains constant up to 5 years (week 260)
+- Animals move through discrete age groups uniformly as expected
+<br>
   
-*Test validation: what is the gradient of the curve?*
 
+## Mortality 
+2) Check that model with mortality functions as expected i.e. should be able to analytically solve population decline?
+- Parameters:
+  - Set the population to 100 animals
+  - Assign all animals to S1 age group (first age-group, susceptible offspring)
+  - Set **mortality rate** to 0.01 per week
+  - Set all other demographic parameters (births, intake, offtake, maternal immunity) to 0
+  - Set the max life-span of males and females to 5years
+  - Set M:F ratio as 1:1
+  - Animals should move through age groups, with constant mortality rate, until 5 years
+  
+**Test validation: what is the gradient of the curve?**
+
+- *Limited time to run tests so this is basic validation...*
 - Briefly: 
-  - mortality rate is 0.01/week in all age groups
-  - survival is 0.99/wk
-  - 1 year survival = $0.99^52 = 0.59$ 
-  - 5 year survival = $0.99^ (52*5) = 0.07$
-  - compare these figure to `output_df` ...
+  - The mortality rate is 0.01/week in all age groups
+  - Therefore survival is 0.99/week
+  - Given survival we can calculate the expected population size after e.g. 1year, 5 years, and compare this to model output.
+  - Expected 1 year survival = $0.99^{52} = 0.59$ 
+  - Expected 5 year survival = $0.99^{(52*5)} = 0.07$
+  - Compare these figures to model output (`output_df`) below...
+  - *Calculate gradient of the curve..?*
 
 ```{r mortality, include = FALSE}
 # -----------------------
@@ -419,13 +462,178 @@ p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
   # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
 
 
-surv <- output_df %>% filter(w %in% c(53,260)) %>% select(w, sum_pop) %>% knitr::kable()
+surv <- output_df %>% 
+  filter(w %in% c(53,260)) %>% 
+  select("weeks" = w, "Population" = sum_pop) %>% 
+  mutate(Population = round(Population, 2)) %>%
+  knitr::kable()
+```
+<br>
+
+- Model population output: 
+```{r mort_output, echo = F, fig.width = 3, fig.height = 3}
 
 surv
-ggarrange(p1,p2,nrow=1)
+
+p1
+# p2 - don't need to plot sex-age structure
 # p3 - don't need immune dynamics to be plotted
 ```
+
+*Mortality Interpretation*
+
+- Model output for population size at years 1 (N = 59.3) and year 5 (N = 7.4) equal to expected population size based on mortality of 0.01 (survival of 0.99)
+
+\newpage
+
+## BAOBAB data
+
+- Test model using demographic rates from (simple) BAOBAB dataset
+- Parameters calculated from data supplied by Andrea from Louga & Kolda (Senegal) Sheep & Goats
+- Here use Kolga Goats data
+  - Data provided as monthly rates
+  - For testing calculate median monthly rates 
+  - Convert to weekly rate by dividing median monthly rate by 4.345 (av. wk/mnth)
+  - See `'~/OneDrive - Royal Veterinary College/PPR Collaborations/Data Bank/Baobab_data (Apr2021)/look-at-data.R'` for details
+
+- Parameters:
+  - mortality: 0.00537 (constant for all youth, adult, m, f)
+  - births: 0.023 (adult F only)
+  - intake: 0.0121
+  - offtake: 0.0121
+  - NET offtake: 0
+  - Population: 100
+  - M:F ratio (0.25:0.75)
+  - Population proportions: 
+    - `Kid` (0.05), 
+    - `You` (0.05), 
+    - `Juv` (0.2), 
+    - `Sub_M` (0.05), `Sub_F` (0.15), 
+    - `Adu_M` (0.05), `Adu_F` (0.45)
+    
+- *NB: data for population size, M:F ratio and population proportions are estimates, not provided in Baobab dataset*
+<br>
+
+```{r baobab, include = FALSE}
+# see source("~/OneDrive - Royal Veterinary College/PPR Collaborations/Data Bank/Baobab_data (Apr2021)/look-at-data.R")
+# -----------------------
+## PARAMETERS ##
+
+TimeStop_dynamics <- 10*52 # 6 years to review 5 year age span
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
+output <- "summary" # define output type "summary" or "count"
+
+# test_1 dataset, all aprameters set to 0 and all animals in age group 1 (susceptible)
+dataset1 <- "test_baobab" # select dataset for test data
+dataset2 <- "test_baobab" # select dataset for age data
+
+source(here("scripts","parameters","set-pars-test.R"))
+
+## Transmission Parameters ##
+transmission <- F # include transmission? T = Yes, F = No
+
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
+
+## Clean Parameters Environment? ##
+clean_environment <- T
+if(clean_environment == T){
+  rm(test_data,test_age_data, kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop,
+     kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop,kid_max, you_max,juv_max,sub_max,max_age_F,max_age_M,
+     fIm_init, fS_init, fE_init, fI_init, fR_init,mIm_init, mS_init, mE_init, mI_init, mR_init, off_1,off_F, off_M,mort_1,mort_2,mort_end,birth_r,ppr_mort_1, ppr_mort_2)
+}
+
+# -----------------------
+## SUMMARY STATS ## 
+
+# create summary data frame to store summary stats for each timestep
+summary_df <- output_func(TimeStop_dynamics,output)
+
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
+
+
+# -----------------------
+## MODEL
+
+output_df <- dynmod_func(
+  f_list, # initial state of female population
+  m_list, # initial state of male population
+  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+  TimeStop_transmission, # 1 day, hourly timestep for transission component
+  output, # model output: tracker or summary stats
+  demographic_pars,
+  summary_df
+)
+```
+
+```{r baobabplot, echo = FALSE, warning = FALSE}
+## plotting and analysis
+
+summary_df <- output_df %>%
+  mutate(w = as.numeric(w))
+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
+  geom_line(size = 1.5)+
+  labs(title = "Total Population",
+       x="time (weeks)", 
+       y = "total population")+
+  theme_bw()
+
+
+## melt summary_df to long format
+summary_long <- summary_df %>%
+  gather(key="stat", value="prop", -w)
+
+
+## create df for different stats:
+
+colors_agesex <- RColorBrewer::brewer.pal(6,"Set1")
+colors_agesex[6] <- "black"
   
+# age-sex
+summary_agesex <- summary_long %>%
+  filter(!stat %in% c("sum_pop",
+                      "prop_inf",
+                      "prop_immune")) %>%
+  mutate(stat = ordered(stat, 
+                        levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
+
+
+## Plots:
+# age-sex proportions
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+  geom_line(size=1)+
+  # scale_color_brewer(palette = "Set1")+
+  scale_color_manual(values = colors_agesex)+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
+  theme_bw()
+
+# immunity
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+```
+
+```{r bbplot1, echo = FALSE, warning = FALSE, fig.height = 2.5}
+ggarrange(p1,p2,nrow=1)
+```
+
+## Further Tests - to be completed
+
+
 ### Births
 
 
