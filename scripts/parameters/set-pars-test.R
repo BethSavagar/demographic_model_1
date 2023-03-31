@@ -49,6 +49,9 @@ adu_m_prop <- test_age_data %>% filter(parameter=="adu_m_prop") %>% pull(value)
 age_p_f <- c(kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop) # proportion of population in each age group (initial)
 age_p_m <- c(kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop)
 
+# proportion immune:
+pR <- test_age_data %>% filter(parameter=="pR") %>% pull(value) 
+
 ## Flock Structure - age groups ##
 
 kid_max <- test_age_data %>% filter(parameter=="kid_max") %>% pull(value) 
@@ -151,7 +154,7 @@ demographic_pars <- data.frame(
 
 ## INITIAL POPULATION STATES ##
 
-pR <- 0 # proportion initially immune (due to prior infection)
+# pR = proportion initially immune (due to prior infection)
 # define SEIR vectors for male and female age groups
 fIm_init <- rep(0,max_age_F); mIm_init <- rep(0,max_age_F)
 fS_init <- demographic_pars %>% pull(pop_init_F) *(1-pR) # all S except already recovered
@@ -167,6 +170,12 @@ if(dataset2=="test_1"){
   mS_init[1] <- 0.5*N_tot # all S1
 }
 
+if(dataset2=="test_birth"){
+  fS_init <- rep(0,max_age_F)
+  fS_init[min(Adu_F)] <- 0.5*N_tot # all S1
+  mS_init <- rep(0,max_age_F)
+  mS_init[min(Adu_M)] <- 0.5*N_tot # all S1
+}
 
 if(pR>0){
   fR_init <- demographic_pars %>% pull(pop_init_F) *pR

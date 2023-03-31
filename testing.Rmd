@@ -17,6 +17,7 @@ library(tidyverse)
 library(readr)
 library(here)
 library(ggpubr)
+library(knitr)
 here()
 source("functions/demos_summary.R")
 source("functions/output.R")
@@ -486,6 +487,333 @@ p1
 
 \newpage
 
+## Further Tests - to be completed
+
+## Births 
+
+3) Check model function with birth rate - slightly tricky as rate is per adult F
+- Parameters:
+  - Set the population to 100 animals
+  - Assign all animals to S59 - first adult age category, 50:50 M:F
+  - Set **birth rate** to 0.02 per week (2*0.01, pop birth rate of 0.01, f birth rate of 0.02)
+  - Set all other demographic parameters (deaths, intake, offtake, maternal immunity) to 0
+  - Set the max life-span of males and females to 10 years
+  - Set M:F ratio as 1:1
+  - Expect exponential growth, initially with rate of 0.01 (for population), this will change as young reach maturity
+  
+**Test validation: what is the gradient of the curve?**
+  
+  
+```{r birth, include = FALSE}
+# -----------------------
+## PARAMETERS ##
+
+TimeStop_dynamics <- 6*52 # 6 years to review 5 year age span
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
+output <- "summary" # define output type "summary" or "count"
+
+# test_birth dataset, all aprameters set to 0 and all animals in first adult age group 1 (susceptible)
+dataset1 <- "test_birth" # select dataset for test data
+dataset2 <- "test_birth" # test_birth age data sets all animals to first adult age group
+
+source(here("scripts","parameters","set-pars-test.R"))
+
+## Transmission Parameters ##
+transmission <- F # include transmission? T = Yes, F = No
+
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
+
+## Clean Parameters Environment? ##
+clean_environment <- T
+if(clean_environment == T){
+  rm(test_data,test_age_data, kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop,
+     kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop,kid_max, you_max,juv_max,sub_max,max_age_F,max_age_M,
+     fIm_init, fS_init, fE_init, fI_init, fR_init,mIm_init, mS_init, mE_init, mI_init, mR_init, off_1,off_F, off_M,mort_1,mort_2,mort_end,birth_r,ppr_mort_1, ppr_mort_2)
+}
+
+# -----------------------
+## SUMMARY STATS ## 
+
+# create summary data frame to store summary stats for each timestep
+summary_df <- output_func(TimeStop_dynamics,output)
+
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
+
+
+# -----------------------
+## MODEL
+
+output_df <- dynmod_func(
+  f_list, # initial state of female population
+  m_list, # initial state of male population
+  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+  TimeStop_transmission, # 1 day, hourly timestep for transission component
+  output, # model output: tracker or summary stats
+  demographic_pars,
+  summary_df
+)
+```
+
+```{r plotting-birth, echo = FALSE, warning = FALSE}
+## plotting and analysis
+
+summary_df <- output_df %>%
+  mutate(w = as.numeric(w))
+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
+  geom_line(size = 1.5)+
+  labs(title = "Total Population",
+       x="time (weeks)", 
+       y = "total population")+
+  theme_bw()
+
+
+## melt summary_df to long format
+summary_long <- summary_df %>%
+  gather(key="stat", value="prop", -w)
+
+
+## create df for different stats:
+
+colors_agesex <- RColorBrewer::brewer.pal(6,"Set1")
+colors_agesex[6] <- "black"
+  
+# age-sex
+summary_agesex <- summary_long %>%
+  filter(!stat %in% c("sum_pop",
+                      "prop_inf",
+                      "prop_immune")) %>%
+  mutate(stat = ordered(stat, 
+                        levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
+
+
+## Plots:
+# age-sex proportions
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+  geom_line(size=1)+
+  # scale_color_brewer(palette = "Set1")+
+  scale_color_manual(values = colors_agesex)+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
+  theme_bw()
+
+# immunity
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+```
+<br>
+
+```{r birth_output, echo = F, fig.width = 3, fig.height = 3}
+
+p1
+p2
+# p3 - don't need immune dynamics to be plotted
+```
+
+*Birth Interpretation*
+
+- How do I calculate overall birth rate, especially given that my input parameter is the adult female birth rate
+- For timesteps 1-78 there should be a constant population growth: 
+  - the adult female population remains constant at 50 individuals (as all start in 1st adult age cat + no mortality)
+  - the birth rate remains constant at 0.02
+  - At each timestep $rN_f$ new offspring are born ($r$ is birth rate per adult female - 0.02 - and $N_f$ is the female population - 50 -)
+  - For timesteps 1-71 (i.e. 70 timesteps): $B = t(rN_f) = 70*(0.02*50)$, hence $B=70$
+  - Expect 70 new births, with initial population of 100, population at timestep 71 should be 170, as below
+- beyond timestep 78 this becomes more confusing since new animals start to join the Adu_F age cat + reproduce
+  
+```{r birth_validation, echo = F, fig.width = 3, fig.height = 3}
+  
+summary_df %>% filter(w %in% c(1,71)) %>% select(w,sum_pop) %>% kable()
+
+```
+
+
+
+## Births-Deaths Test: Stable Population
+
+4) Attempt to find conditions under which population is stable (this is the closest I managed)
+- Parameters:
+  - Set the population to 100 animals
+  - Proportion of animals in each age cat - defined based on stable state output of this simulation:
+    - Kid: 0.1592371, You:0.07376386, Juv: 0.1787116, Sub: 0.1370716, Adu: 0.4512159
+  - **Mortality Rate** set at 0.01 for all animals (Young + Adult)
+  - Attempted to match this defining **Birth Rate** for adult females at 0.02 initially
+    - through trial and error **Birth Rate** of 0.045 gave the below result...
+  - All other demographic parameters (intake, offtake, maternal immunity) set to 0
+  - Set the max life-span of males and females to 50 years
+    - Obviously unrealistic but meant I avoided contending with slaughter of all animals at max_age and could observe population trend over longer simulation time.
+  - Set M:F ratio as 1:1
+  - See test_parameters.csv : births_deaths for details
+  - *Attempt to find a solution where the population is stable*
+
+
+```{r birth_death, include = FALSE}
+# -----------------------
+## PARAMETERS ##
+
+TimeStop_dynamics <- 25*52 # 6 years to review 5 year age span
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
+output <- "summary" # define output type "summary" or "count"
+
+# test_birth dataset, all aprameters set to 0 and all animals in first adult age group 1 (susceptible)
+dataset1 <- "test_birth_death" # select dataset for test data
+dataset2 <- "test_birth_death" # test_birth age data sets all animals to first adult age group
+
+source(here("scripts","parameters","set-pars-test.R"))
+
+## Transmission Parameters ##
+transmission <- F # include transmission? T = Yes, F = No
+
+# transmission_pars <- "fixed"
+# transmission_filepath <- paste0("scripts/parameters/set-pars-transmission-",transmission_pars,".R")
+# source(transmission_filepath)
+source(here("scripts","parameters","set-pars-transmission-fixed.R"))
+
+## Clean Parameters Environment? ##
+clean_environment <- T
+if(clean_environment == T){
+  rm(test_data,test_age_data, kid_f_prop,you_f_prop,juv_f_prop,sub_f_prop,adu_f_prop,
+     kid_m_prop,you_m_prop,juv_m_prop,sub_m_prop,adu_m_prop,kid_max, you_max,juv_max,sub_max,max_age_F,max_age_M,
+     fIm_init, fS_init, fE_init, fI_init, fR_init,mIm_init, mS_init, mE_init, mI_init, mR_init, off_1,off_F, off_M,mort_1,mort_2,mort_end,birth_r,ppr_mort_1, ppr_mort_2)
+}
+
+# -----------------------
+## SUMMARY STATS ## 
+
+# create summary data frame to store summary stats for each timestep
+summary_df <- output_func(TimeStop_dynamics,output)
+
+# nb need to add if statement to summary (if output == summary, if output == counts)
+summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
+
+
+# -----------------------
+## MODEL
+
+output_df <- dynmod_func(
+  f_list, # initial state of female population
+  m_list, # initial state of male population
+  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+  TimeStop_transmission, # 1 day, hourly timestep for transission component
+  output, # model output: tracker or summary stats
+  demographic_pars,
+  summary_df
+)
+```
+
+```{r plotting-birth_death, echo = FALSE, warning = FALSE}
+## plotting and analysis
+
+summary_df <- output_df %>%
+  mutate(w = as.numeric(w))
+
+p1 <- ggplot(summary_df,aes(x=w,y=sum_pop))+
+  geom_line(size = 1.5)+
+  labs(title = "Total Population",
+       x="time (weeks)", 
+       y = "total population")+
+  coord_cartesian(ylim=c(0,NA))+
+  theme_bw()
+
+
+## melt summary_df to long format
+summary_long <- summary_df %>%
+  gather(key="stat", value="prop", -w)
+
+
+## create df for different stats:
+
+colors_agesex <- RColorBrewer::brewer.pal(6,"Set1")
+colors_agesex[6] <- "black"
+  
+# age-sex
+summary_agesex <- summary_long %>%
+  filter(!stat %in% c("sum_pop",
+                      "prop_inf",
+                      "prop_immune")) %>%
+  mutate(stat = ordered(stat, 
+                        levels = c("pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")))
+
+
+## Plots:
+# age-sex proportions
+p2 <- ggplot(summary_agesex, aes(x=w, y=prop, group=stat, col=stat))+
+  geom_line(size=1)+
+  # scale_color_brewer(palette = "Set1")+
+  scale_color_manual(values = colors_agesex)+
+  labs(title = "Population Proportion",
+       x = "weeks", 
+       y = "Proportion of total population", 
+       col = "age-sex cat")+
+  theme_bw()
+
+# immunity
+p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
+  geom_line()+
+  coord_cartesian(xlim=c(0,20))+
+  scale_x_continuous(breaks = seq(0,20,1))+
+  scale_y_continuous(breaks = seq(0,1,0.1))+
+  labs(title = "Immune Dynamics",
+       x = "Weeks",
+       y = " Proportion Immune")+
+  theme_bw()
+  # geom_point(data = data.frame("w"=1:length(immunity),"imm"=immunity), aes(x=w, y=imm), col ="blue")+
+```
+<br>
+
+```{r birthdeath_output, echo = F, fig.width = 3, fig.height = 3}
+
+p1
+p2
+# p3 - don't need immune dynamics to be plotted
+```
+
+*Births - Deaths Interpretation*
+
+Crude validation:  
+
+- Given death rate of 0.01 for all age groups
+- Mature female birth rate of 0.045
+- To get a fixed population size of which the above is an approximation we need an overall birth rate of 0.01
+- Here we have a pop of 100...
+- The proportion in each age group is stable at: 
+  - Kid: 0.1592371 You:0.07376386 Juv: 0.1787116 Sub: 0.1370716 Adu: 0.4512159
+- Hence the adult female proportion is: adu_f ~ 0.225
+- To calculate overall birth rate from female birth rate: 
+  - $ B_{total} =  ( B_f * p_{aduF}  *N) /N = B_f * p_{aduF} $
+- So: 
+  - $ B_{total} = 0.045 * 0.225 = 0.010125 $ approx equal to the birth rate of 0.01
+  
+- *Reversing this: given population birth rate and stable age-sex structure ($p_{aduF}$):*
+  - $ B_{total} / p_{aduF}  = B_f $. 
+  
+- **Whilst this is not a tidy proof it satisfies me that a constant population size can be approximated if the birth and death rates are equal**
+ 
+  
+  
+
+### Population Size
+
+
+### Population Structure
+
+
+\newpage
+
 ## BAOBAB data
 
 - Test model using demographic rates from (simple) BAOBAB dataset
@@ -631,15 +959,6 @@ p3 <- ggplot(summary_df, aes(x=w, y=prop_immune))+
 ggarrange(p1,p2,nrow=1)
 ```
 
-## Further Tests - to be completed
 
-
-### Births
-
-
-### Population Size
-
-
-### Population Structure
 
 
