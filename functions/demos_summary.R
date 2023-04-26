@@ -47,7 +47,7 @@ summary_demos <- function(
   mI <- m_list[["mI"]]
   mR <- m_list[["mR"]]
   
-  if(output == "summary"){
+  if(output %in% c("summary", "summary_all")){
     # total population size
     fpop <- fIm+fS+fE+fI+fR
     mpop <- mIm+mS+mE+mI+mR
@@ -72,39 +72,45 @@ summary_demos <- function(
     Adu_tot <- pop_tot[Adu_F] ; sum_Adu <- sum(Adu_tot) ; pAdu <- sum_Adu/sum_pop
     
     # sex-age group
-    fKid_tot <- fpop[Kid] ; sum_fKid <- sum(fKid_tot) ; pfKid <- sum_fKid/sum(fpop)
-    mKid_tot <- mpop[Kid] ; sum_mKid <- sum(mKid_tot) ; pmKid <- sum_mKid/sum(mpop)
-    fYou_tot <- fpop[You] ; sum_fYou <- sum(fYou_tot) ; pfYou <- sum_fYou/sum(fpop)
-    mYou_tot <- mpop[You] ; sum_mYou <- sum(mYou_tot) ; pmYou <- sum_mYou/sum(mpop)
-    fJuv_tot <- fpop[Juv] ; sum_fJuv <- sum(fJuv_tot) ; pfJuv <- sum_fJuv/sum(fpop)
-    mJuv_tot <- mpop[Juv] ; sum_mJuv <- sum(mJuv_tot) ; pmJuv <- sum_mJuv/sum(mpop)
-    fSub_tot <- fpop[Sub] ; sum_fSub <- sum(fSub_tot) ; pfSub <- sum_fSub/sum(fpop)
-    mSub_tot <- mpop[Sub] ; sum_mSub <- sum(mSub_tot) ; pmSub <- sum_mSub/sum(mpop)
-    fAdu_tot <- fpop[Adu_F] ; sum_fAdu <- sum(fAdu_tot) ; pfAdu <- sum_fAdu/sum(fpop)
-    mAdu_tot <- mpop[Adu_F] ; sum_mAdu <- sum(mAdu_tot) ; pmAdu <- sum_mAdu/sum(mpop)
+    fKid_tot <- fpop[Kid] ; sum_fKid <- sum(fKid_tot) ; pfKid <- sum_fKid/sum_pop
+    mKid_tot <- mpop[Kid] ; sum_mKid <- sum(mKid_tot) ; pmKid <- sum_mKid/sum_pop
+    fYou_tot <- fpop[You] ; sum_fYou <- sum(fYou_tot) ; pfYou <- sum_fYou/sum_pop
+    mYou_tot <- mpop[You] ; sum_mYou <- sum(mYou_tot) ; pmYou <- sum_mYou/sum_pop
+    fJuv_tot <- fpop[Juv] ; sum_fJuv <- sum(fJuv_tot) ; pfJuv <- sum_fJuv/sum_pop
+    mJuv_tot <- mpop[Juv] ; sum_mJuv <- sum(mJuv_tot) ; pmJuv <- sum_mJuv/sum_pop
+    fSub_tot <- fpop[Sub] ; sum_fSub <- sum(fSub_tot) ; pfSub <- sum_fSub/sum_pop
+    mSub_tot <- mpop[Sub] ; sum_mSub <- sum(mSub_tot) ; pmSub <- sum_mSub/sum_pop
+    fAdu_tot <- fpop[Adu_F] ; sum_fAdu <- sum(fAdu_tot) ; pfAdu <- sum_fAdu/sum_pop
+    mAdu_tot <- mpop[Adu_F] ; sum_mAdu <- sum(mAdu_tot) ; pmAdu <- sum_mAdu/sum_pop
     
     # proportion female
     pF <- sum(fpop)/sum(pop_tot)
+  }
+  
+  # add row to summary stats dataframe
+  if (output == "summary") {
+    summary_df[w, ] <-
+      c(w,sum_pop,prop_immune,prop_inf,pF,pKid, pYou,pJuv,pSub,pAdu)
     
-    # add row to summary stats dataframe
-    summary_df[w,] <- c(w, sum_pop, prop_immune, prop_inf, pKid,pYou,pJuv,pSub,pAdu,pF)
-    
-  }else if(output == "counts"){
+  } else if (output == "summary_all") {
+    summary_df[w, ] <-
+      c(w,sum_pop,prop_immune,prop_inf,pF,pfKid,pfYou,pfJuv,pfSub,pfAdu,pmKid, pmYou,pmJuv,pmSub,pmAdu)
+  } else if (output == "counts") {
     # tracking matrix...
     #...
     #...
     count_df <- c()
   }
-  
-  
   # Output of Model: 
   if(output == "summary"){
+    return(summary_df)
+  }else if(output == "summary_all"){
     return(summary_df)
   }else if(output == "counts"){
     return(count_df)
   }
-  
-  
 }
+  
+  
 
 

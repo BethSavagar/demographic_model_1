@@ -19,6 +19,9 @@ source("functions/dynmod.R")
 TimeStop_dynamics <- 25*52 # 1 year, weekly timestep for demographic component
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transission component
 output <- "summary" # define output type "summary" or "count"
+# if output is summary then we get a dataframe with: 
+# week (w), sum_pop,"prop_immune","prop_inf","pKid","pYou","pJuv","pSub","pAdu","pF" 
+# if output is summary_all we get a data frame with proportion in each sex-age-hroup
 
 ## Demographic Parameters ##
 
