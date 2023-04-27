@@ -1,0 +1,10 @@
+﻿parameter,sim.1,min.1,max.1
+NET_offtake_y,0,,
+NET_offtake_m,0.2,,
+NET_offtake_f,0.2,,
+mortality_y,0.3,,
+mortality_a,0.1,,
+mortality_end,1,,
+birth_rate,1,,
+ppr_mortality_y,0,,
+ppr_mortality_a,0,,
