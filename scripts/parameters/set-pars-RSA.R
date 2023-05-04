@@ -4,8 +4,8 @@
 # ---------------------------
 ## DATASETS ##
 
-fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input.csv",col_names=T)
-var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_names=T)
+# fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input.csv",col_names=T)
+# var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_names=T)
 
 if(!exists("dataset1")){
   dataset1 <- "sim.1" # select dataset for test data
@@ -65,7 +65,7 @@ Adu_M <- (sub_max_wks+1):max_age_M # Adult M: 12m+
 
 # - Bodjo et al (following ElArbi)
 # - waning of maternal immunity for first 4months (17 wk)
-imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
+# imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
 Imm_b <- imm_decay_corrected %>% 
   filter(wk ==0) %>% 
   pull(imm_corrected) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies
@@ -91,6 +91,32 @@ birth_r <- var_demo_data %>% filter(parameter=="birth_rate") %>% pull(value) # o
 # # PPR mortality in transmission script?
 ppr_mort_1 <- var_demo_data %>% filter(parameter=="ppr_mortality_y") %>% pull(value) # ppr mortality rate <6M (per week)
 ppr_mort_2 <- var_demo_data %>% filter(parameter=="ppr_mortality_a") %>% pull(value) # ppr mortality rate >6M  (per week)
+
+
+##### RSA params
+if(SA==T){
+  off_F <- var_input_set[i,"NET_offtake_f"] 
+  off_M <- var_input_set[i,"NET_offtake_m"] 
+  mort_1 <- var_input_set[i,"mortality_y"]
+  mort_2 <- var_input_set[i,"mortality_a"]
+  # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
+  birth_r <- var_input_set[i,"birth_rate"]
+}
+
+
+
+
+# convert dynamics to weekly rates:
+
+off_1 <- 1-((1-off_1)^(1/52))
+off_F <- 1-((1-off_F)^(1/52))
+off_M <- 1-((1-off_M)^(1/52))
+mort_1 <- 1-((1-mort_1)^(1/52))
+mort_2 <- 1-((1-mort_2)^(1/52))
+birth_r <- birth_r / 52
+
+ppr_mort_1 <- 1-((1-ppr_mort_1)^(1/52))
+ppr_mort_2 <- 1-((1-ppr_mort_2)^(1/52))
 
 #####################################
 
