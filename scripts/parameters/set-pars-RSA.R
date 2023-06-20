@@ -96,6 +96,7 @@ ppr_mort_2 <- var_demo_data %>% filter(parameter=="ppr_mortality_a") %>% pull(va
 ##### RSA params
 if(SA==T){
   off_F <- var_input_set[i,"NET_offtake_f"] 
+  off_MY <- var_input_set[i,"NET_offtake_my"] # young male offtake
   off_M <- var_input_set[i,"NET_offtake_m"] 
   mort_1 <- var_input_set[i,"mortality_y"]
   mort_2 <- var_input_set[i,"mortality_a"]
@@ -110,6 +111,7 @@ if(SA==T){
 
 off_1 <- 1-((1-off_1)^(1/52))
 off_F <- 1-((1-off_F)^(1/52))
+off_MY <- 1-((1-off_MY)^(1/52))
 off_M <- 1-((1-off_M)^(1/52))
 mort_1 <- 1-((1-mort_1)^(1/52))
 mort_2 <- 1-((1-mort_2)^(1/52))
@@ -130,7 +132,8 @@ demographic_pars <- data.frame(
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   ## Join Demographics Data >>>
   mutate(net_off_F = ifelse(age_weeks<min_offtake_wks, off_1, off_F),
-         net_off_M = ifelse(age_weeks<min_offtake_wks, off_1, off_M),
+         net_off_M = ifelse(age_weeks<min_offtake_wks, off_1, # add in higher offtake of young adult males
+                            ifelse(age_weeks<2*52, off_MY, off_M)),
          # mort_F = ifelse(age_weeks<=kid_max, mort_1, mort_2),
          # mort_F = ifelse(age_weeks == max_age_F, 1, mort_F),
          mort_F = ifelse(age_weeks<=kid_max_wks, mort_1, 
