@@ -34,6 +34,7 @@ imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demogr
 
 Run the Regional Sensitivity Analysis for 25 years over 10000 lhs parameter sets. 
 - NB: Run with broad prior parameters, RSA_var_input - min.3, max.3 on 20/06/2023 - this is example 4 on the presentation and links with the relaxed conditions in RSA_analysis_2 with adult_male proportion = 20%
+- Also try with sim.2 fix pars: adult female age = 12, male adult age = 2
 
 ```{r model-setup}
 
@@ -65,6 +66,7 @@ source("scripts/RSA/RSA_lhs.R")
 dataset1 <- "sim.1" # select dataset for test data
 dataset2 <- "sim.1" # select dataset for age data
 }
+#  dataset2 <- "sim.2"
 
 ```
 

@@ -123,5 +123,5 @@ valid_as_pars_df <-  var_input_set[valid_as_pars,]
 pairs(valid_as_pars_df)
 
 
-plot_map <- gather(as.data.frame(valid_as_pars_df) %>% mutate(set=1:7), key="par", value = "val", -set)
-ggplot(plot_map, aes(x=par, y=val))+geom_point(aes(col = as.factor(set)))+geom_line(aes(group = set, col = as.factor(set)))
+plot_map <- gather(as.data.frame(valid_as_pars_df) %>% mutate(set=1:nrow(valid_as_pars_df)), key="par", value = "val", -set)
+ggplot(plot_map, aes(x=par, y=val))+geom_point(aes(col = as.factor(set)))#+geom_line(aes(group = set, col = as.factor(set)))
