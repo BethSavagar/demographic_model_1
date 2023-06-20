@@ -1,4 +1,8 @@
-set <- validRSA2 %>% pull(set)
+
+if(!exists(set)){
+  set <- validRSA2 %>% pull(set)
+}
+
 validpop <- c()
 for(i in set){
   source("scripts/parameters/set-pars-RSA.R")
@@ -44,7 +48,7 @@ for(i in set){
   
   res <- output_df %>%
     pull(sum_pop)
-  plot(res)
+  # plot(res)
 
   validpop <- validpop %>%
     rbind(res)
@@ -59,6 +63,6 @@ validpop_long <- validpop %>%
   mutate(w = str_remove(w,"V"), 
          w = as.numeric(w))
 
-ggplot(validpop_long, aes(x=w, y=pop, col = as.factor(set)))+geom_line()
+# ggplot(validpop_long, aes(x=w, y=pop, col = as.factor(set)))+geom_line()+theme(legend.position = "none")
 
        
