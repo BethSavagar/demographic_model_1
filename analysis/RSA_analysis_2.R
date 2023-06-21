@@ -69,7 +69,7 @@ tenyr_agesex <- tenyr_growth %>%
   mutate(sex = ifelse(stat %in% c("pmKid","pmSub","pmAdu"), "M", "F"))
 
 ggplot(tenyr_agesex, aes(x=stat, y=prop, col = sex))+geom_boxplot()
-
+tenyr_agesex %>% group_by(sex, stat) %>% summarise(mean=mean(prop))
 
 ### population dynamics ###
 
@@ -103,7 +103,7 @@ pfAdu.min <- 0.24; pfAdu.max <- 0.42
 pmKid.min <- 0.08; pmKid.max <- 0.16
 pmSub.min <- 0.09; pmSub.max <- 0.14
 pmAdu.min <- 0.08; pmAdu.max <- 0.15
-
+#pmAdu.min <- 0.1; pmAdu.max <- 0.25
 
 
 valid_agesex <- tenyr_growth %>%
@@ -121,3 +121,8 @@ valid_as_pars <- valid_agesex %>%
 valid_as_pars_df <-  var_input_set[valid_as_pars,]
 
 pairs(valid_as_pars_df)
+set <- 1:nrow(valid_as_pars_df)
+pairs(valid_as_pars_df, pch = 8, bg = hcl.colors(length(set), "Temps")[set], col = hcl.colors(length(set), "Temps")[set])
+
+plot_map <- gather(as.data.frame(valid_as_pars_df) %>% mutate(set=1:nrow(valid_as_pars_df)), key="par", value = "val", -set)
+ggplot(plot_map, aes(x=par, y=val))+geom_point(aes(col = as.factor(set)))#+geom_line(aes(group = set, col = as.factor(set)))
