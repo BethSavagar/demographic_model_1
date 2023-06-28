@@ -8,7 +8,7 @@ library(tidyverse)
 
 # LOAD DATASET
 RSAoutput <- read.csv("output/RSA_output/RSAoutput_20220510.csv")
-var_input_set <- ###
+# var_input_set <- ###
 ### Analysis 1 - Population Growth Condition ###
 
 # I: Overall population growth

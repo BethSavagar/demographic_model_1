@@ -49,7 +49,8 @@ Run the Regional Sensitivity Analysis for 25 years over 10000 lhs parameter sets
   - **Example 2**: as 1 previous but with 10,000 parameter sets
   - **Example 3**: as 2 with 10,00 parameter sets and with 25year simulation, measuring population growth in last 10 years. RSA_1 and RSA_2 scripts can be used for analysis incl. population age-sex conditions
   - **Example 4**: 10,000 parameter sets, 25 year simulation run with broad prior parameters, `RSA_var_input` of `min.3`, `max.3` on 20/06/2023. The fixed demographic parameters are still as in `sim.1`. In RSA_analysis_2 with population conditions relaxed such that adult_male proportion ~ 20% is acceptable, SOME behavioural parameters were found. 
-  - **Example 5**: Revert to use of original parameter boundaries `min.1` and `max.1` but update fixed_demographic parameter to `sim.2` i.e. adult female age = 12, male adult age = 2. Thihs produces population output much closer to the specified conditions.
+  - **Example 5**: Revert to use of original parameter boundaries `min.1` and `max.1` but update fixed_demographic parameter to `sim.2` i.e. adult female age = 12, male adult age = 2. This produces population output much closer to the specified conditions.
+  - **Example 5**:  parameter boundaries `min.3` and `max.3` with additional variable parameters added (This produces population output much closer to the specified conditions.(27/06/2023)
 
 ```{r model-setup}
 
@@ -60,7 +61,7 @@ TimeStop_dynamics <- 25*52 # 10 years
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
-pars_filename <- "set_pars_RSA.R"
+pars_filename <- "set_pars_RSA2.R"
 lhs_n <- 1e4
 
 # ---------------------------------
@@ -70,12 +71,12 @@ SA <- TRUE
 set.seed(1)
 if(SA == TRUE){
   # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.1"
-pars_max <- "max.1"
+pars_min <- "min.3"
+pars_max <- "max.3"
 
 # latin hypercube sampling of parameter space:
 # output is var_input_set dataframe with sampled parameter sets for each variable input (demographic) parameter
-source("scripts/RSA/RSA_lhs.R")
+source("scripts/RSA/RSA_lhs2.R")
 }else{
 # test_1 dataset, all aprameters set to 0 and all animals in age group 1 (susceptible)
 dataset1 <- "sim.1" # select dataset for test data
@@ -97,7 +98,7 @@ t1 <- TimeStop_dynamics
 
 for(i in 1:lhs_n){
   # print(i)
-  source("scripts/parameters/set-pars-RSA.R")
+  source("scripts/parameters/set-pars-RSA2.R")
   # output is demographic pars dataframe (for sex-age-groupings) and starting population m_list, f_list
   
   
