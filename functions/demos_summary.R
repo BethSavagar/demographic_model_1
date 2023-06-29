@@ -60,6 +60,10 @@ summary_demos <- function(
     sum_immune <- sum(fimmune)+sum(mimmune)
     prop_immune <- sum_immune / sum_pop
     
+    # proportion immune excluding offspring
+    sumR <- sum(fR)+sum(mR)
+    pR_noIm <- sumR/sum_pop
+    
     # proportion infectious
     sum_inf <- sum(fI)+sum(mI)
     prop_inf <- sum_inf/sum_pop
@@ -84,11 +88,11 @@ summary_demos <- function(
   # add row to summary stats dataframe
   if (output == "summary") {
     summary_df[w, ] <-
-      c(w,sum_pop,prop_immune,prop_inf,pF,pKid,pSub,pAdu)
+      c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pKid,pSub,pAdu)
     
   } else if (output == "summary_all") {
     summary_df[w, ] <-
-      c(w,sum_pop,prop_immune,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
+      c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
   } else if (output == "counts") {
     # tracking matrix...
     #...
