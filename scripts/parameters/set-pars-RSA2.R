@@ -51,8 +51,13 @@ kid_max <- fix_age_data %>% filter(parameter=="kid_max") %>% pull(value)
 kid_max_wks <- round(kid_max*wk2mnth)
 sub_max <- fix_age_data %>% filter(parameter=="sub_max") %>% pull(value) 
 sub_max_wks <- round(sub_max*wk2mnth)
-max_age_F <- fix_age_data %>% filter(parameter=="adu_f_max_yrs") %>% pull(value)*52 
-max_age_M <- fix_age_data %>% filter(parameter=="adu_m_max_yrs") %>% pull(value)*52 
+
+if(SA == T){
+  max_age_F <- var_input_set[i,"adu_f_max_yrs"]*52
+  max_age_M <- var_input_set[i,"adu_m_max_yrs"]*52  
+  
+}
+
 # 
 
 Kid <- 1:kid_max_wks # Kid: 1-6m (1-26w)
@@ -96,12 +101,15 @@ ppr_mort_2 <- var_demo_data %>% filter(parameter=="ppr_mortality_a") %>% pull(va
 ##### RSA params
 if(SA==T){
   off_F <- var_input_set[i,"NET_offtake_f"] 
-  off_MY <- var_input_set[i,"NET_offtake_my"] # young male offtake
   off_M <- var_input_set[i,"NET_offtake_m"] 
   mort_1 <- var_input_set[i,"mortality_y"]
   mort_2 <- var_input_set[i,"mortality_a"]
   # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
   birth_r <- var_input_set[i,"birth_rate"]
+  
+  min_age_offtake <- var_input_set[i,"min_age_offtake"]
+  min_age_repro <- var_input_set[i,"min_age_repro"]
+  
 }
 
 
@@ -111,11 +119,12 @@ if(SA==T){
 
 off_1 <- 1-((1-off_1)^(1/52))
 off_F <- 1-((1-off_F)^(1/52))
-off_MY <- 1-((1-off_MY)^(1/52))
 off_M <- 1-((1-off_M)^(1/52))
 mort_1 <- 1-((1-mort_1)^(1/52))
 mort_2 <- 1-((1-mort_2)^(1/52))
 birth_r <- birth_r / 52
+min_offtake_wks <- round(min_age_offtake*wk2mnth)
+min_repro_wks <- round(min_age_repro*wk2mnth)
 
 ppr_mort_1 <- 1-((1-ppr_mort_1)^(1/52))
 ppr_mort_2 <- 1-((1-ppr_mort_2)^(1/52))
@@ -132,8 +141,7 @@ demographic_pars <- data.frame(
   mutate(imm = ifelse(is.na(imm),0,imm)) %>%
   ## Join Demographics Data >>>
   mutate(net_off_F = ifelse(age_weeks<min_offtake_wks, off_1, off_F),
-         net_off_M = ifelse(age_weeks<min_offtake_wks, off_1, # add in higher offtake of young adult males
-                            ifelse(age_weeks<2*52, off_MY, off_M)),
+         net_off_M = ifelse(age_weeks<min_offtake_wks, off_1,off_M),
          # mort_F = ifelse(age_weeks<=kid_max, mort_1, mort_2),
          # mort_F = ifelse(age_weeks == max_age_F, 1, mort_F),
          mort_F = ifelse(age_weeks<=kid_max_wks, mort_1, 
