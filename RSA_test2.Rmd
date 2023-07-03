@@ -52,6 +52,7 @@ Run the Regional Sensitivity Analysis for 25 years over 10000 lhs parameter sets
   - **Example 5**: Revert to use of original parameter boundaries `min.1` and `max.1` but update fixed_demographic parameter to `sim.2` i.e. adult female age = 12, male adult age = 2. This produces population output much closer to the specified conditions.
   - **Example 5**:  parameter boundaries `min.3` and `max.3` with additional variable parameters added (This produces population output much closer to the specified conditions.(27/06/2023)
   - **Example 6**:  parameter boundaries `min.3` and `max.3` with fix_input `sim.2` from fix_input_2, such that pR (recovered units) = 1. To measure turnover rate. 28/06/2023.
+  - **Age-Sex Str Dynamics**: `var_input_set <- read.csv("output/RSAoutput_morevars_220623.csv")` load parameters with behavioural 10 year growth to assess age-sex dynamics and overall pop dynamics in last 5-10 years.
 
 ```{r model-setup}
 
@@ -86,13 +87,18 @@ dataset2 <- "sim.1" # select dataset for age data
 
 dataset2 <- "sim.2" # fix_input_2 : sim.2 for pR=1
 
+# RSA_analysis_2.2 tenyr growth set:
+# var_input_set <- tenyr_pars / valid_as_pars_df
+# lhs_n <- nrow(var_input_set)
+
 ```
 
 ```{r modelrun}
 
 
 ## RSA FOR-LOOP
-RSAoutput <- c(); pR_noIm_df <- c(); turnover <- T
+RSAoutput <- c(); pR_noIm_df <- c(); pop_dynamics <- c()
+turnover <- F; dynamics <- T
 
 # timepoints for the population growth
 t2 <- 15*52
@@ -141,7 +147,7 @@ for(i in 1:lhs_n){
 
   output_df <- output_df %>% replace(is.na(.), 0)
   pR_noIm_temp <- output_df %>% pull(pR_noIm)
-  
+  agesex_dynamics <- output_df %>% mutate(set = i)
   ## output is pop growth from t=0 to end
   
   res <- output_df %>%
@@ -156,6 +162,10 @@ for(i in 1:lhs_n){
   if(turnover == T){
     pR_noIm_df <- pR_noIm_df %>%
       rbind(pR_noIm_temp)
+  }
+  
+  if(dynamics == T){
+    pop_dynamics <- pop_dynamics %>% rbind(agesex_dynamics) %>% as.data.frame()
   }
 }
 

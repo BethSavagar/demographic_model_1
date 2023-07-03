@@ -16,6 +16,9 @@ RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
 # I - Identify valid populations
 ## - stable populations (with TENYR growth +/- 0.5) 
 
+# Subset populations which are maintained
+validRSA <-  RSAoutput %>%
+  filter(pop_growth != 0)
 # - TENYR: subset populations are stable i.e. with TENYR growth of +/- 5% (final pop: ~50)
 tenyr_growth <- validRSA %>%
   filter(tenyr_growth>=0.95, tenyr_growth <=1.05)
@@ -33,6 +36,8 @@ tenyr_pars_long <- gather(as.data.frame(tenyr_pars) %>%
 
 ggplot(tenyr_pars_long, aes(x=val))+geom_density()+facet_wrap(~par, scales="free")
 ggplot(tenyr_pars_long, aes(x=par,y=val))+geom_boxplot()+facet_wrap(~par, scales="free")
+
+var_input_long <- gather(as.data.frame(var_input_set) %>% mutate(set=1:nrow(var_input_set)), key="par", value = "val", -set)
 
 var_input_all <- rbind(var_input_long %>% mutate(stage = "PRE"), 
                        tenyr_pars_long %>% mutate(stage = "10Y")) %>%
