@@ -3,9 +3,10 @@ Repository for first model of population demographics. Including matrix model an
 
 ## Branches
 - Master: master branch with only tested, clean working code on it
-- model_dev_1: updated with coe as of 26/04
+- model_dev_1: updated with code as of 26/04
     - all preliminary demographic model testing is contained on this branch
     - original pop structure: kid, you, juv, sub, adu compartments included
+    - In RSA_dev branches the age-sex structure is reduced to Kid, Sub, Adu, and is sex structured
     
  - RSA : branch for regional sensitivity analysis testing
     - This also contains streamlined model code
