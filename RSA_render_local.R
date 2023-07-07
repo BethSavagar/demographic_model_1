@@ -6,7 +6,8 @@
 # - lhs_n = 1e4
 # - parallel computing with foreach and doPar packages
 
-filepath <- "/storage/users/bsavagar/"
+filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
+# filepath <- "/storage/users/bsavagar/"
 ## Sims script: set up 23 June to run base vaccination simulations
 source(paste0(filepath,"scripts/setup.R"))
 list.files(paste0(filepath,"functions"), full.names = TRUE) %>% map(source)
@@ -35,7 +36,7 @@ output <- "summary_all" # define output type "summary" (age proporiotns), "summa
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 pars_filename <- "set_pars_RSA2.R"
 # lhs_n <- 1e4
-lhs_n <- 1e4
+lhs_n <- 100
 
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
@@ -81,9 +82,10 @@ rm(var_input_set)
 ## PARALLELISATION ##
 
 cores=detectCores()
-cl <- makeCluster(30) # for running locally
+cl <- makeCluster(cores[1]-1) # for running locally
 registerDoParallel(cl)
 
+st <- Sys.time()
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
                    .packages = c("dplyr"),
                    .combine = "rbind") %dopar% {
@@ -118,8 +120,35 @@ RSAout <- foreach (i = 1:nrow(var_input_backup),
                        clean_environment
                      )
                    }
+Sys.time()-st
 stopCluster(cl)
 
-filename <- paste0("RSAoutput_", tdate, ".RData")
-# save RData
-write.csv2(RSAout, paste0(filepath, "outputs/", filename))
+## Practice For-Loop
+
+# 
+# outout <- c()
+# st <- Sys.time()
+# for(i in 1:nrow(var_input_backup)){
+#   var_input_full <- unlist(var_input_backup[i,])
+#   
+#   #var_input_full <- var_input_backup[3,]
+#   
+#   RSAout <- RSA_func(
+#     
+#     imm_decay_corrected,
+#     var_input_full,
+#     # var_input_full = var_input_backup[i,]
+#     fix_age_data_full,
+#     f_list, # initial state of female population
+#     m_list, # initial state of male population
+#     TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+#     TimeStop_transmission, # 1 day, hourly timestep for transission component
+#     output, # model output: tracker or summary stats
+#     summary_df, #
+#     clean_environment
+#   )
+#   
+#   outout <- outout %>%
+#     rbind(RSAout)
+# }
+# Sys.time()-st
