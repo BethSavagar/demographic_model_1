@@ -1,8 +1,7 @@
-# install.packages("lhs")
-library(sensitivity)
-library(lhs)
-
-# var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_names=T)
+###############################################################################################################
+## Generate demographic parameters matrix with LHS sampling - 04/07/23
+###############################################################################################################
+# Script to construct matrix containing lhs_n number of parameter sets ssampled from the paramter space defined for RSA in var_demo_data_full.
 
 var_input <- var_demo_data_full %>%
   filter(parameter %in% c(
@@ -28,13 +27,16 @@ t() %>%
 var_input_set <- randomLHS(lhs_n, ncol(var_input))
 dim(var_input_set)
 
-for(i in 1:ncol(var_input)){
-  var_input_set[,i] <- qunif(var_input_set[,i],var_input[1,i],var_input[2,i])
+for(j in 1:ncol(var_input)){
+  var_input_set[,j] <- qunif(var_input_set[,j],var_input[1,j],var_input[2,j])
 }
 
 colnames(var_input_set) <- colnames(var_input)
 
 
 # just a plot of each variable combination - i think the fact it is all black shows good coverage of the parameter space?
+if(pairs_plot == T){
 pairs(var_input_set)
+}
+
 

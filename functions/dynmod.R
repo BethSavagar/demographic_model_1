@@ -7,7 +7,8 @@ dynmod_func <- function(
     TimeStop_transmission, # 1 day, hourly timestep for transission component
     output, # model output: tracker or summary stats
     demographic_pars,
-    summary_df
+    summary_df,
+    Imm_b
 ){
   
   fIm <- f_list[["fIm"]]
@@ -168,6 +169,9 @@ dynmod_func <- function(
     fR_prev <- fR_cur ; mR_prev <- mR_cur
     
   }
+  
+  
+  summary_df <- summary_df %>% replace(is.na(.), 0)
   return(summary_df)
 }
 

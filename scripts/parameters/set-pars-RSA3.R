@@ -4,28 +4,20 @@
 # Input is matrix containing upper & lower bounds for demographic parameters for RSA
 # this may be run as SCC parallel computation or with for-loop
 
+## INPUTS are fix_age_data_full, imm_decay_corrected, var_input_set and clean_environment
 
-if(!exists("dataset1")){
-  dataset1 <- "sim.1" # select dataset for test data
-  message(paste("Using default demographics dataset -", dataset1, "- for simulation"))
-}
-if(!exists("dataset2")){
-  dataset2 <- "sim.1" # select dataset for test data
-  message(paste("Using default age dataset -", dataset2, "- for simulation"))
-}
-
-var_demo_data <- var_demo_data_full %>% select(parameter, "value" = `dataset1`)
-
-fix_age_data <- fix_age_data_full %>% select(parameter, "value" = `dataset2`)
+# var_demo_data <- var_demo_data_full %>% select(parameter, "value" = `dataset1`)
+# var_input_set <- var_input_full
+fix_age_data <- fix_age_data_full %>% select(parameter, "value" = all_of(`fixdata`))
 
 
 # ---------------------------
-## DEMOGRAPHIC PARAMETERS ##
+## FIXED PARAMETERS ## Flock size, initial pop state
 
 ## Flock Size ##
 N_tot <- fix_age_data %>% filter(parameter=="N_tot") %>% pull(value) # number of animals in population (flock or village)?
 
-## Flock Structure - proportions ##
+## Flock Structure ##
 # set proportion of male/female: kid (<6m), sub (<12m), adu (12m+)
 
 kid_f_prop <- fix_age_data %>% filter(parameter=="kid_f_prop") %>% pull(value) 
@@ -39,10 +31,11 @@ adu_m_prop <- fix_age_data %>% filter(parameter=="adu_m_prop") %>% pull(value)
 age_p_f <- c("kid_f_p"=kid_f_prop,"sub_f_p"=sub_f_prop,"adu_f_p"=adu_f_prop) # sex-age group proportions (INITIAL)
 age_p_m <- c("kid_m_p"=kid_m_prop,"sub_m_p"=sub_m_prop,"adu_m_p"=adu_m_prop)
 
-# proportion immune initially:
+## Immune Fraction ##
+# proportion initially in R state
 pR <- fix_age_data %>% filter(parameter=="pR") %>% pull(value) 
 
-## Flock Structure - age groups ##
+## Age Group (limits) ##
 wk2mnth <- 4.345 # weeks per month
 
 kid_max <- fix_age_data %>% filter(parameter=="kid_max") %>% pull(value) 
@@ -50,67 +43,74 @@ kid_max_wks <- round(kid_max*wk2mnth)
 sub_max <- fix_age_data %>% filter(parameter=="sub_max") %>% pull(value) 
 sub_max_wks <- round(sub_max*wk2mnth)
 
+# if(SA == T){
+#   max_age_F <- var_input_set %>% pull(adu_f_max_yrs)*52
+#   max_age_M <- var_input_set %>% pull(adu_m_max_yrs)*52
+# }
+
 if(SA == T){
-  max_age_F <- var_input_set[i,"adu_f_max_yrs"]*52
-  max_age_M <- var_input_set[i,"adu_m_max_yrs"]*52  
-  
+  max_age_F <- var_input_set["adu_f_max_yrs"]*52
+  max_age_M <- var_input_set["adu_m_max_yrs"]*52
 }
 
 # 
+# if (SA) {
+#   if (is.data.frame(var_input_set) && !is.null(var_input_set)) {
+#     if ("adu_f_max_yrs" %in% colnames(var_input_set) && "adu_m_max_yrs" %in% colnames(var_input_set)) {
+#       max_age_F <- var_input_set["adu_f_max_yrs"] * 52
+#       max_age_M <- var_input_set %>% pull(adu_m_max_yrs) * 52
+#     } else {
+#       stop("Columns adu_f_max_yrs and adu_m_max_yrs not found in var_input_set")
+#     }
+#   } else {
+#     stop("var_input_set is not a valid data frame")
+#   }
+# }
 
 Kid <- 1:kid_max_wks # Kid: 1-6m (1-26w)
 Sub <- (kid_max_wks+1):sub_max_wks # Sub: 6-12m (26-52w)
 Adu_F <- (sub_max_wks+1):max_age_F # Adult F: 12m+
 Adu_M <- (sub_max_wks+1):max_age_M # Adult M: 12m+
 
-
 ## Maternal Immunity ##
 
 # - Bodjo et al (following ElArbi)
 # - waning of maternal immunity for first 4months (17 wk)
-# imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
+# see imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
 Imm_b <- imm_decay_corrected %>% 
   filter(wk ==0) %>% 
   pull(imm_corrected) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies
 
-
-############################
-# other dataset... >> stremalining this code (27/04/23)
-## Dynamics ##
-
-min_age_offtake <- fix_age_data %>% filter(parameter=="min_age_offtake") %>% pull(value)
-min_offtake_wks <- round(min_age_offtake*wk2mnth)
-min_age_repro <- fix_age_data %>% filter(parameter=="min_age_repro") %>% pull(value)
-min_repro_wks <- round(min_age_repro*wk2mnth)
-# 
-off_1 <- var_demo_data %>% filter(parameter=="NET_offtake_y") %>% pull(value) # NET offtake rate <12M (per week) - NO trade of animals <12m
-off_F <- var_demo_data %>% filter(parameter=="NET_offtake_f") %>% pull(value) # NET offtake rate FEMALE >12M (per week)
-off_M <- var_demo_data %>% filter(parameter=="NET_offtake_m") %>% pull(value) # NET offtake rate MALE >12M (per week)
-mort_1 <- var_demo_data %>% filter(parameter=="mortality_y") %>% pull(value) # natural mortality rate <6M (per week)
-mort_2 <- var_demo_data %>% filter(parameter=="mortality_a") %>% pull(value) # natural mortality rate >6M  (per week)
-# mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
-birth_r <- var_demo_data %>% filter(parameter=="birth_rate") %>% pull(value) # only animals >18M
-# 
-# # PPR mortality in transmission script?
-ppr_mort_1 <- var_demo_data %>% filter(parameter=="ppr_mortality_y") %>% pull(value) # ppr mortality rate <6M (per week)
-ppr_mort_2 <- var_demo_data %>% filter(parameter=="ppr_mortality_a") %>% pull(value) # ppr mortality rate >6M  (per week)
-
+# ---------------------------
+# ## VARIABLE PARAMETERS ## demographic rates
 
 ##### RSA params
+off_1 <- 0
+ppr_mort_1 <- 0
+ppr_mort_2 <- 0
+# if(SA==T){
+#   off_F <- var_input_set %>% pull("NET_offtake_f")
+#   off_M <- var_input_set %>% pull("NET_offtake_m")
+#   mort_1 <- var_input_set %>% pull("mortality_y")
+#   mort_2 <- var_input_set %>% pull("mortality_a")
+#   # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
+#   birth_r <- var_input_set %>% pull("birth_rate")
+#   
+#   min_age_offtake <- var_input_set %>% pull("min_age_offtake")
+#   min_age_repro <- var_input_set %>% pull("min_age_repro")
+# }
+
 if(SA==T){
-  off_F <- var_input_set[i,"NET_offtake_f"] 
-  off_M <- var_input_set[i,"NET_offtake_m"] 
-  mort_1 <- var_input_set[i,"mortality_y"]
-  mort_2 <- var_input_set[i,"mortality_a"]
+  off_F <- var_input_set["NET_offtake_f"]
+  off_M <- var_input_set["NET_offtake_m"]
+  mort_1 <- var_input_set["mortality_y"]
+  mort_2 <- var_input_set["mortality_a"]
   # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
-  birth_r <- var_input_set[i,"birth_rate"]
-  
-  min_age_offtake <- var_input_set[i,"min_age_offtake"]
-  min_age_repro <- var_input_set[i,"min_age_repro"]
-  
+  birth_r <- var_input_set["birth_rate"]
+
+  min_age_offtake <- var_input_set["min_age_offtake"]
+  min_age_repro <- var_input_set["min_age_repro"]
 }
-
-
 
 
 # convert dynamics to weekly rates:
@@ -124,8 +124,8 @@ birth_r <- birth_r / 52
 min_offtake_wks <- round(min_age_offtake*wk2mnth)
 min_repro_wks <- round(min_age_repro*wk2mnth)
 
-ppr_mort_1 <- 1-((1-ppr_mort_1)^(1/52))
-ppr_mort_2 <- 1-((1-ppr_mort_2)^(1/52))
+#ppr_mort_1 <- 1-((1-ppr_mort_1)^(1/52))
+#ppr_mort_2 <- 1-((1-ppr_mort_2)^(1/52))
 
 #####################################
 
@@ -181,9 +181,6 @@ demographic_pars <- data.frame(
   )
 
 
-# Delete interim parameters to clean up environment?
-
-
 ################################
 ## INITIAL POPULATION STATES ##
 ################################
@@ -217,3 +214,29 @@ m_list <- list("mIm"=mIm_init,
                "mI"=mI_init,
                "mR"=mR_init)
 
+
+
+
+if (clean_environment == T) {
+  rm(fix_age_data,kid_f_prop,sub_f_prop,adu_f_prop,kid_m_prop,sub_m_prop,adu_m_prop,kid_max,sub_max, max_age_F,max_age_M,fIm_init,fS_init,fE_init,fI_init,fR_init,mIm_init,mS_init,mE_init,mI_init,mR_init,off_1,off_F,off_M,mort_1,mort_2,birth_r,ppr_mort_1,ppr_mort_2)
+}
+#------------------------------------------------------------------------------------
+
+## IF NOT RSA ##
+
+# min_age_offtake <- fix_age_data %>% filter(parameter=="min_age_offtake") %>% pull(value)
+# min_offtake_wks <- round(min_age_offtake*wk2mnth)
+# min_age_repro <- fix_age_data %>% filter(parameter=="min_age_repro") %>% pull(value)
+# min_repro_wks <- round(min_age_repro*wk2mnth)
+# # 
+# off_1 <- var_demo_data %>% filter(parameter=="NET_offtake_y") %>% pull(value) # NET offtake rate <12M (per week) - NO trade of animals <12m
+# off_F <- var_demo_data %>% filter(parameter=="NET_offtake_f") %>% pull(value) # NET offtake rate FEMALE >12M (per week)
+# off_M <- var_demo_data %>% filter(parameter=="NET_offtake_m") %>% pull(value) # NET offtake rate MALE >12M (per week)
+# mort_1 <- var_demo_data %>% filter(parameter=="mortality_y") %>% pull(value) # natural mortality rate <6M (per week)
+# mort_2 <- var_demo_data %>% filter(parameter=="mortality_a") %>% pull(value) # natural mortality rate >6M  (per week)
+# # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
+# birth_r <- var_demo_data %>% filter(parameter=="birth_rate") %>% pull(value) # only animals >18M
+# # 
+# # # PPR mortality in transmission script?
+# ppr_mort_1 <- var_demo_data %>% filter(parameter=="ppr_mortality_y") %>% pull(value) # ppr mortality rate <6M (per week)
+# ppr_mort_2 <- var_demo_data %>% filter(parameter=="ppr_mortality_a") %>% pull(value) # ppr mortality rate >6M  (per week)
