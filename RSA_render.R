@@ -24,7 +24,7 @@ source(paste0(filepath, "scripts/load_data.R"))
 
 tdate <- Sys.Date()
 filename1 <- paste0("RSA_output_", tdate, ".csv")
-
+filename2 <- paste0("RSA_pars-set_", tdate, ".csv")
 
 # -----------------------
 ## MODEL PARAMETERS ##
@@ -75,6 +75,7 @@ t1 <- TimeStop_dynamics
 # insert model from RSA_test2.Rmd
 
 var_input_backup <- var_input_set %>% as.data.frame()
+write.csv2(var_input_set, paste0(filepath, "output/", filename2)) # save paramter set
 rm(var_input_set)
 
 
@@ -101,7 +102,7 @@ RSAout <- foreach (i = 1:nrow(var_input_backup),
                      # .GlobalEnv$clean_environment <- clean_environment
                      # .GlobalEnv$fixdata <- fixdata
                      # .GlobalEnv$SA <- SA
-                     
+                     print(i)
                      var_input_full <- unlist(var_input_backup[i,])
                      
                      RSA_func(
@@ -120,6 +121,9 @@ RSAout <- foreach (i = 1:nrow(var_input_backup),
                    }
 stopCluster(cl)
 
-filename <- paste0("RSAoutput_", tdate, ".RData")
-# save RData
-write.csv2(RSAout, paste0(filepath, "outputs/", filename))
+# filename <- paste0("RSAoutput_", tdate, ".RData")
+# # save RData
+# write.csv2(RSAout, paste0(filepath, "output/", filename))
+write.csv2(RSAout, paste0(filepath, "output/", filename1)) # save output
+
+
