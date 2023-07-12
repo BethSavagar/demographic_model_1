@@ -8,7 +8,10 @@ dynmod_func <- function(
     output, # model output: tracker or summary stats
     demographic_pars,
     summary_df,
-    Imm_b
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 ){
   
   fIm <- f_list[["fIm"]]
