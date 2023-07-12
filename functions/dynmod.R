@@ -138,7 +138,10 @@ dynmod_func <- function(
                                  f_list,
                                  m_list,
                                  output,
-                                 summary_df)
+                                 summary_df,
+                                 Kid,
+                                 Sub,
+                                 Adu_F)
     
     
     if(summary_df[w,"sum_pop"]<min_pop){
@@ -157,7 +160,10 @@ dynmod_func <- function(
                                    f_list,
                                    m_list,
                                    output,
-                                   summary_df)
+                                   summary_df,
+                                   Kid,
+                                   Sub,
+                                   Adu_F)
     }
     
     ## UPDATE STATES ##

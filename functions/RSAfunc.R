@@ -240,9 +240,7 @@ RSA_func <- function(
   ## SUMMARY STATS ##
   
   # f_list/m_list is initial state for Females and Males, output defines what stats are provided in output, sumamry_df is a df to keep output in.
-  summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df, Kid,
-                              Sub,
-                              Adu_F)
+  summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df, Kid, Sub, Adu_F)
   
   output_df <- dynmod_func(
     f_list, # initial state of female population
@@ -252,7 +250,10 @@ RSA_func <- function(
     output, # model output: tracker or summary stats
     demographic_pars, # df containing demographic rates (birth rate, mortality etc) for every week-long age group
     summary_df, #
-    Imm_b
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
   )
   
   # output_df contains system dynamics from week 1 - TimeStop_dynamics

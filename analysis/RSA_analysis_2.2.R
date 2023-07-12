@@ -15,7 +15,8 @@ RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
 
 # I - Identify valid populations
 ## - stable populations (with TENYR growth +/- 0.5) 
-
+RSAoutput <- RSAoutput %>%
+  mutate(set = 1:nrow(RSAoutput))
 # Subset populations which are maintained
 validRSA <-  RSAoutput %>%
   filter(pop_growth != 0)

@@ -35,13 +35,13 @@ output <- "summary_all" # define output type "summary" (age proporiotns), "summa
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 pars_filename <- "set_pars_RSA2.R"
 # lhs_n <- 1e4
-lhs_n <- 1e4
+lhs_n <- 1e5
 
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
 pairs_plot <- F
 SA <- TRUE
-# set.seed(1)
+set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
 pars_min <- "min.3"
@@ -75,33 +75,20 @@ t1 <- TimeStop_dynamics
 # insert model from RSA_test2.Rmd
 
 var_input_backup <- var_input_set %>% as.data.frame()
-write.csv2(var_input_set, paste0(filepath, "output/", filename2)) # save paramter set
+write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
 rm(var_input_set)
 
 
 ## PARALLELISATION ##
 
 cores=detectCores()
-cl <- makeCluster(30) # for running locally
+cl <- makeCluster(60) # for running locally
 registerDoParallel(cl)
 
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
                    .packages = c("dplyr"),
                    .combine = "rbind") %dopar% {
-                     
-                     # tried defining all objects so accessible in global environment and environment of each foreach loop
-                     # .GlobalEnv$imm_decay_corrected <- imm_decay_corrected
-                     # .GlobalEnv$var_input_backup <- var_input_backup
-                     # .GlobalEnv$fix_age_data_full <- fix_age_data_full
-                     # .GlobalEnv$f_list <- f_list # initial state of female population
-                     # .GlobalEnv$m_list <- m_list # initial state of male population
-                     # .GlobalEnv$TimeStop_dynamics <- TimeStop_dynamics # 1 year, weekly timestep for demographic component
-                     # .GlobalEnv$TimeStop_transmission <- TimeStop_transmission # 1 day, hourly timestep for transission component
-                     # .GlobalEnv$output <- output # model output: tracker or summary stats
-                     # .GlobalEnv$summary_df <- summary_df #
-                     # .GlobalEnv$clean_environment <- clean_environment
-                     # .GlobalEnv$fixdata <- fixdata
-                     # .GlobalEnv$SA <- SA
+                   
                      print(i)
                      var_input_full <- unlist(var_input_backup[i,])
                      
@@ -124,6 +111,6 @@ stopCluster(cl)
 # filename <- paste0("RSAoutput_", tdate, ".RData")
 # # save RData
 # write.csv2(RSAout, paste0(filepath, "output/", filename))
-write.csv2(RSAout, paste0(filepath, "output/", filename1)) # save output
+write_csv(RSAout, paste0(filepath, "output/", filename1)) # save output
 
 
