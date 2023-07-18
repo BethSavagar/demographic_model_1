@@ -1,5 +1,6 @@
 ### Analysis 2 - Conditional on final ten year pop growth ###
-
+library(tidyverse)
+library(knitr)
 # RSA analysis_2 
 # Similar to analysis_1 but which additional analysis of pop growth over final 10yrs
 # Running RSA_test.Rmd on 01-06-2023 with 10'000 lhs parameter sets and 25 year simulations
