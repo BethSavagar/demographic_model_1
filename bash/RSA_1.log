@@ -174,12 +174,12 @@ function (f_list, m_list, TimeStop_dynamics, TimeStop_transmission,
         m_list <- list(mIm = mIm_cur, mS = mS_cur, mE = mE_cur, 
             mI = mI_cur, mR = mR_cur)
         summary_df <- summary_demos(w, f_list, m_list, output, 
-            summary_df)
+            summary_df, Kid, Sub, Adu_F)
         if (summary_df[w, "sum_pop"] < min_pop) {
             f_list <- list(fIm = 0, fS = 0, fE = 0, fI = 0, fR = 0)
             m_list <- list(mIm = 0, mS = 0, mE = 0, mI = 0, mR = 0)
             summary_df <- summary_demos(w, f_list, m_list, output, 
-                summary_df)
+                summary_df, Kid, Sub, Adu_F)
         }
         fIm_prev <- fIm_cur
         mIm_prev <- mIm_cur
@@ -347,7 +347,7 @@ function (imm_decay_corrected, var_input_full, fix_age_data_full,
         summary_df, Kid, Sub, Adu_F)
     output_df <- dynmod_func(f_list, m_list, TimeStop_dynamics, 
         TimeStop_transmission, output, demographic_pars, summary_df, 
-        Imm_b)
+        Imm_b, Kid, Sub, Adu_F)
     pR_noIm_temp <- output_df %>% pull(pR_noIm)
     agesex_dynamics <- output_df
     if (output %in% c("summary", "summary_all")) {
@@ -394,3 +394,6 @@ Note: Using an external vector in selections is ambiguous.
 ℹ Use `all_of(pars_max)` instead of `pars_max` to silence this message.
 ℹ See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
 This message is displayed once per session.
+Error in { : task 1 failed - "unused arguments (Kid, Sub, Adu_F)"
+Calls: %dopar% -> <Anonymous>
+Execution halted

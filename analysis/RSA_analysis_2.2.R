@@ -9,7 +9,7 @@
 # 2) Sex-age structure on population.
 # 3) Population dynamics
 
-RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
+## RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
 ## var_input_set <- parameter boundaries `min.3` and `max.3`
 #############################
 

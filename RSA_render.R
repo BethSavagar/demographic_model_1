@@ -46,7 +46,8 @@ set.seed(1)
 # select parameter min-max pair (see RSA_var_input.csv)
 pars_min <- "min.3"
 pars_max <- "max.3"
-fixdata <- "sim.1" # fix_input_2 : sim.2 for pR=1
+fixdata <- "sim.1" # fix_input_2 : sim.2 for pR=1... 
+# fixdata <- "sim.3" # sim.3 for N = 100 (14-07-2023)
 vardata <- "sim.1" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
 
 if(SA == TRUE){
@@ -82,7 +83,7 @@ rm(var_input_set)
 ## PARALLELISATION ##
 
 cores=detectCores()
-cl <- makeCluster(60) # for running locally
+cl <- makeCluster(30) # for running locally
 registerDoParallel(cl)
 
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
