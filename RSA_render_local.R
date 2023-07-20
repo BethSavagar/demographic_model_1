@@ -25,7 +25,7 @@ filename2 <- paste0("RSA_pars-set_", tdate, ".csv")
 
 TimeStop_dynamics <- 25*52 # 10 years
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
-output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
+output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "dynamics"
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 lhs_n <- 1e4
 #lhs_n <- 1e5
@@ -55,8 +55,9 @@ if(SA == TRUE){
   source("scripts/RSA/RSA_lhs2.R")
 }
 
+# If testing age-sex dynamics for 
 # var_input_set <- tenyr_pars
-
+# var_input_set <- valid_as_pars2_df ## from RSA_analysis-2.2.R
 #################################
 ################################
 ## MODEL ##
