@@ -61,7 +61,7 @@ RSA_func <- function(
     max_age_F <- var_input_set["adu_f_max_yrs"]*52
     max_age_M <- var_input_set["adu_m_max_yrs"]*52
   }
-  
+
   # 
   # if (SA) {
   #   if (is.data.frame(var_input_set) && !is.null(var_input_set)) {
@@ -260,6 +260,7 @@ RSA_func <- function(
   # output_df contains system dynamics from week 1 - TimeStop_dynamics
   pR_noIm_temp <- output_df %>% pull(pR_noIm)
   agesex_dynamics <- output_df # %>% mutate(set = i)
+
   ## output is pop growth from t=0 to end
   
   if(output %in% c("summary", "summary_all")){
@@ -270,11 +271,20 @@ RSA_func <- function(
              )
   }
   
+  # if(dynamics == T){
+  #  res <- output_df
+  # }
+  # 
   
   return(res)
   
   
   # below not required as output for RSA - only pop growth & age-sex structure in first instance.
+  
+  # # 
+  # if(dynamics == T){
+  #   pop_dynamics <- pop_dynamics %>% rbind(agesex_dynamics) %>% as.data.frame()
+  # }
   
   # RSAoutput <- RSAoutput %>%
   #   rbind(res)
@@ -283,9 +293,6 @@ RSA_func <- function(
   #   pR_noIm_df <- pR_noIm_df %>%
   #     rbind(pR_noIm_temp)
   # }
-  # 
-  # if(dynamics == T){
-  #   pop_dynamics <- pop_dynamics %>% rbind(agesex_dynamics) %>% as.data.frame()
-  # }
   
+
 }

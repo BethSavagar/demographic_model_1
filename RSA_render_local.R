@@ -12,17 +12,10 @@ filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCol
 source(paste0(filepath,"scripts/setup.R"))
 list.files(paste0(filepath,"functions"), full.names = TRUE) %>% map(source)
 source(paste0(filepath, "scripts/load_data.R"))
-# #
-# ###############################################################################################################
-# ## PARALLEL COMPUTATION ##
-# # 
-# cores=detectCores()
-# cl <- makeCluster(cores[1]-1) # for running locally
-# registerDoParallel(cl)
-# stopCluster(cl)
-# -----------------------
-## SET FILENAMES ##
 
+
+## SET FILENAMES ##
+filesave <- F
 tdate <- Sys.Date()
 filename1 <- paste0("RSA_output_", tdate, ".csv")
 filename2 <- paste0("RSA_pars-set_", tdate, ".csv")
@@ -34,7 +27,6 @@ TimeStop_dynamics <- 25*52 # 10 years
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
-pars_filename <- "set_pars_RSA2.R"
 lhs_n <- 1e4
 #lhs_n <- 1e5
 
@@ -42,7 +34,7 @@ lhs_n <- 1e4
 ## SENSITIVITY ANALYSIS PARAMETERS:
 pairs_plot <- F
 SA <- TRUE
-rates <- "wkly"
+rates <- "yrly" # wkly
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
@@ -56,11 +48,14 @@ fixdata <- "sim.1" # fix_input_2 : sim.2 for pR=1...
 # fixdata <- "sim.3" # sim.3 for N = 100 (14-07-2023)
 vardata <- "sim.1" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
 
+# SA <- F
 if(SA == TRUE){
   # latin hypercube sampling of parameter space:
   # output is var_input_set dataframe with sampled parameter sets for each variable input (demographic) parameter
   source("scripts/RSA/RSA_lhs2.R")
 }
+
+# var_input_set <- tenyr_pars
 
 #################################
 ################################
@@ -82,14 +77,17 @@ t1 <- TimeStop_dynamics
 # insert model from RSA_test2.Rmd
 
 var_input_backup <- var_input_set %>% as.data.frame()
-write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
+if(filesave == T){
+  write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
+}
+   
 rm(var_input_set)
 
 
 ## PARALLELISATION ##
 
 cores=detectCores()
-cl <- makeCluster(30) # for running locally
+cl <- makeCluster(cores[1]-1) # for running locally
 registerDoParallel(cl)
 
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
