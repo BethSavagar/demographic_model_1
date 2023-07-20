@@ -1,38 +1,14 @@
 # summary stats function for demographics model
 
-# ## SUMMARY STATS ## This goes in main text...
-# # create summary data frame to store summary stats for each timestep
-# if(output == "summary"){
-#   sum_stats <-  c("w", "sum_pop", "prop_immune", "prop_inf", "pKid", "pYou", "pJuv", "pSub", "pAdu", "pF")
-#   summary_df <- as.data.frame(matrix(0,
-#                                      nrow = TimeStop_dynamics, 
-#                                      ncol = length(sum_stats)))
-#   colnames(summary_df) <- sum_stats
-# }else if(output == "counts"){
-#   # make df
-# }
-# 
-# 
-# f_list <- list("fIm"=fIm_init,
-#                "fS"=fS_init,
-#                "fE"=fE_init,
-#                "fI"=fI_init,
-#                "fR"=fR_init)
-# m_list <- list("mIm"=mIm_init,
-#                "mS"=mS_init,
-#                "mE"=mE_init,
-#                "mI"=mI_init,
-#                "mR"=mR_init)
-# 
-# 
-# 
-
 summary_demos <- function(
     w,
     f_list,
     m_list,
     output,
-    summary_df
+    summary_df,
+    Kid,
+    Sub,
+    Adu_F
 ){
   
   fIm <- f_list[["fIm"]]

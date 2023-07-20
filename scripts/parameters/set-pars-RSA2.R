@@ -1,11 +1,9 @@
-## RSA parameters 
-# review 26/04/23 - need to figure out parameterisation of age groups etc - make as simple as possible. 
+###############################################################################################################
+## Script for generating parameters for RSA - 04/07/23
+###############################################################################################################
+# Input is matrix containing upper & lower bounds for demographic parameters for RSA
+# this may be run as SCC parallel computation or with for-loop
 
-# ---------------------------
-## DATASETS ##
-
-# fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input.csv",col_names=T)
-# var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_names=T)
 
 if(!exists("dataset1")){
   dataset1 <- "sim.1" # select dataset for test data

@@ -7,7 +7,11 @@ dynmod_func <- function(
     TimeStop_transmission, # 1 day, hourly timestep for transission component
     output, # model output: tracker or summary stats
     demographic_pars,
-    summary_df
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 ){
   
   fIm <- f_list[["fIm"]]
@@ -137,7 +141,10 @@ dynmod_func <- function(
                                  f_list,
                                  m_list,
                                  output,
-                                 summary_df)
+                                 summary_df,
+                                 Kid,
+                                 Sub,
+                                 Adu_F)
     
     
     if(summary_df[w,"sum_pop"]<min_pop){
@@ -156,7 +163,10 @@ dynmod_func <- function(
                                    f_list,
                                    m_list,
                                    output,
-                                   summary_df)
+                                   summary_df,
+                                   Kid,
+                                   Sub,
+                                   Adu_F)
     }
     
     ## UPDATE STATES ##
@@ -168,6 +178,9 @@ dynmod_func <- function(
     fR_prev <- fR_cur ; mR_prev <- mR_cur
     
   }
+  
+  
+  summary_df <- summary_df %>% replace(is.na(.), 0)
   return(summary_df)
 }
 

@@ -1,5 +1,6 @@
 ### Analysis 2 - Conditional on final ten year pop growth ###
-
+library(tidyverse)
+library(knitr)
 # RSA analysis_2 
 # Similar to analysis_1 but which additional analysis of pop growth over final 10yrs
 # Running RSA_test.Rmd on 01-06-2023 with 10'000 lhs parameter sets and 25 year simulations
@@ -9,13 +10,14 @@
 # 2) Sex-age structure on population.
 # 3) Population dynamics
 
-RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
+## RSAoutput <- read.csv("output/RSAoutput_morevars_220623.csv")
 ## var_input_set <- parameter boundaries `min.3` and `max.3`
 #############################
 
 # I - Identify valid populations
 ## - stable populations (with TENYR growth +/- 0.5) 
-
+RSAoutput <- RSAoutput %>%
+  mutate(set = 1:nrow(RSAoutput))
 # Subset populations which are maintained
 validRSA <-  RSAoutput %>%
   filter(pop_growth != 0)

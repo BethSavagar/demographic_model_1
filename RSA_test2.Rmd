@@ -18,6 +18,7 @@ library(readr)
 library(here)
 library(ggpubr)
 library(knitr)
+library(lhs)
 here()
 source("functions/demos_summary.R")
 source("functions/output.R")
@@ -65,7 +66,7 @@ output <- "summary_all" # define output type "summary" (age proporiotns), "summa
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 pars_filename <- "set_pars_RSA2.R"
 lhs_n <- 1e4
-
+pairs_plot <- F
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
 
@@ -136,13 +137,13 @@ for(i in 1:lhs_n){
   summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df)
   
   output_df <- dynmod_func(
-    f_list,# initial state of female population
-    m_list,# initial state of male population
-    TimeStop_dynamics,# 1 year, weekly timestep for demographic component
-    TimeStop_transmission,# 1 day, hourly timestep for transission component
-    output,# model output: tracker or summary stats
-    demographic_pars,
-    summary_df
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars, # df containing demographic rates (birth rate, mortality etc) for every week-long age group
+    summary_df #
   )
 
   output_df <- output_df %>% replace(is.na(.), 0)
