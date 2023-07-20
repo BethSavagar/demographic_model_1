@@ -123,18 +123,19 @@ RSA_func <- function(
   
   
   # convert dynamics to weekly rates:
-  
-  off_1 <- 1-((1-off_1)^(1/52))
-  off_F <- 1-((1-off_F)^(1/52))
-  off_M <- 1-((1-off_M)^(1/52))
-  mort_1 <- 1-((1-mort_1)^(1/52))
-  mort_2 <- 1-((1-mort_2)^(1/52))
-  birth_r <- birth_r / 52
+  if(rates == "yrly"){
+    off_1 <- 1-((1-off_1)^(1/52))
+    off_F <- 1-((1-off_F)^(1/52))
+    off_M <- 1-((1-off_M)^(1/52))
+    mort_1 <- 1-((1-mort_1)^(1/52))
+    mort_2 <- 1-((1-mort_2)^(1/52))
+    birth_r <- birth_r / 52
+  }
+
   min_offtake_wks <- round(min_age_offtake*wk2mnth)
   min_repro_wks <- round(min_age_repro*wk2mnth)
   
-  #ppr_mort_1 <- 1-((1-ppr_mort_1)^(1/52))
-  #ppr_mort_2 <- 1-((1-ppr_mort_2)^(1/52))
+ 
   
   #####################################
   
