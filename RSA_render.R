@@ -41,7 +41,7 @@ lhs_n <- 1e5
 ## SENSITIVITY ANALYSIS PARAMETERS:
 pairs_plot <- F
 SA <- TRUE
-rates <- "wkly"
+rates <- "yrly"
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
