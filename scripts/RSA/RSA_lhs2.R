@@ -6,7 +6,7 @@
 var_input <- var_demo_data_full %>%
   filter(parameter %in% c(
     "NET_offtake_m",
-    "NET_offtake_m2",
+    # "NET_offtake_m2",
     "NET_offtake_f",
     "mortality_y",
     "mortality_a",
