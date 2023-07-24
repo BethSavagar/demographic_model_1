@@ -23,7 +23,9 @@ validRSA <-  RSAoutput %>%
   filter(pop_growth != 0)
 # - TENYR: subset populations are stable i.e. with TENYR growth of +/- 5% (final pop: ~50)
 tenyr_growth <- validRSA %>%
-  filter(tenyr_growth>=0.95, tenyr_growth <=1.05)
+  #filter(tenyr_growth>=0.95, tenyr_growth <=1.05)
+# try with much wider range of growth:
+filter(tenyr_growth>=0.85, tenyr_growth <=1.15)
 
 tenyr_set <- tenyr_growth %>%
   pull(set)
@@ -89,6 +91,7 @@ pfAdu.min <- 0.24; pfAdu.max <- 0.42
 pmKid.min <- 0.08; pmKid.max <- 0.16
 pmSub.min <- 0.09; pmSub.max <- 0.14
 pmAdu.min <- 0.08; pmAdu.max <- 0.15
+#pmAdu.min <- 0.05; pmAdu.max <- 0.15
 pmAdu.min2 <- 0.08; pmAdu.max2 <- 0.25
 
 #######################################################
