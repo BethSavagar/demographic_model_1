@@ -112,6 +112,7 @@ RSA_func <- function(
   if(SA==T){
     off_F <- var_input_set["NET_offtake_f"]
     off_M <- var_input_set["NET_offtake_m"]
+    off_M2 <- var_input_set["NET_offtake_m2"]
     mort_1 <- var_input_set["mortality_y"]
     mort_2 <- var_input_set["mortality_a"]
     # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
@@ -127,12 +128,14 @@ RSA_func <- function(
     off_1 <- 1-((1-off_1)^(1/52))
     off_F <- 1-((1-off_F)^(1/52))
     off_M <- 1-((1-off_M)^(1/52))
+    off_M2 <- 1-((1-off_M2)^(1/52))
     mort_1 <- 1-((1-mort_1)^(1/52))
     mort_2 <- 1-((1-mort_2)^(1/52))
     birth_r <- birth_r / 52
   }
 
   min_offtake_wks <- round(min_age_offtake*wk2mnth)
+  max_M2off_wks <- round(24*wk2mnth) # most male offtake before 12-18months 
   min_repro_wks <- round(min_age_repro*wk2mnth)
   
  
@@ -149,7 +152,8 @@ RSA_func <- function(
     mutate(imm = ifelse(is.na(imm),0,imm)) %>%
     ## Join Demographics Data >>>
     mutate(net_off_F = ifelse(age_weeks<min_offtake_wks, off_1, off_F),
-           net_off_M = ifelse(age_weeks<min_offtake_wks, off_1,off_M),
+           net_off_M = ifelse(age_weeks<min_offtake_wks, off_1,
+                              ifelse(age_weeks<max_M2off_wks, off_M2, off_M)), # add additional offtake rate for males <2y 
            # mort_F = ifelse(age_weeks<=kid_max, mort_1, mort_2),
            # mort_F = ifelse(age_weeks == max_age_F, 1, mort_F),
            mort_F = ifelse(age_weeks<=kid_max_wks, mort_1, 
@@ -296,3 +300,4 @@ RSA_func <- function(
   
 
 }
+

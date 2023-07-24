@@ -34,8 +34,8 @@ TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 pars_filename <- "set_pars_RSA2.R"
-lhs_n <- 1e4
-#lhs_n <- 1e5
+#lhs_n <- 1e4
+lhs_n <- 1e5
 
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
@@ -45,8 +45,8 @@ rates <- "wkly"
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.3"
-pars_max <- "max.3"
+pars_min <- "min.4" # min.3 & max.3 for all sims pre 24/07/23)
+pars_max <- "max.4" # min.4, max.4 include young male offtake and increase age of males
 if(rates == "wkly"){
   pars_min <- "wkly.min.1"
   pars_max <- "wkly.max.1"
@@ -88,7 +88,7 @@ rm(var_input_set)
 ## PARALLELISATION ##
 
 cores=detectCores()
-cl <- makeCluster(30) # for running locally
+cl <- makeCluster(50) # for running locally
 registerDoParallel(cl)
 
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
