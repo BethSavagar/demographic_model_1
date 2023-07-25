@@ -13,6 +13,8 @@ var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-12.csv")
 # RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-18.csv")
 # var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-18.csv")
 
-# 100,000 parameter sets from SCC with new young-male offtake parameter and increased max male age see min.4 max.4 on var_input spreadsheet
+# 100,000 parameter sets from SCC with new young-male offtake parameter and increased max male age see min.4 max.4 on var_input spreadsheet: (a) - accidentally ran with weekly pars, (b) - with min.4,max.4 yrly pars.
 # RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-24.csv")
 # var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-24.csv")
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-24b.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-24b.csv")
