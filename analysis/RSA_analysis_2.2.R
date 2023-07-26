@@ -26,7 +26,7 @@ tenyr_growth <- validRSA %>%
   filter(tenyr_growth>=0.95, tenyr_growth <=1.05)
 # try with much wider range of growth:
 # filter(tenyr_growth>=0.85, tenyr_growth <=1.15)
-
+# 
 # var_input_set <- var_input_set %>%
 #   select(NET_offtake_m, NET_offtake_m2, NET_offtake_f, everything()) %>%
 #   rename(off_mA = NET_offtake_m,
@@ -130,14 +130,14 @@ pairs(valid_as_pars2_df, pch = 18)
 AS_pars2_long <- gather(as.data.frame(valid_as_pars2_df) %>% 
                             mutate(set=1:nrow(valid_as_pars2_df)), key="par", value = "val", -set)
 
-ggplot(AS_pars2_long, aes(x=val))+geom_density()+facet_wrap(~par, scales="free")
-ggplot(AS_pars2_long, aes(x=par,y=val))+geom_boxplot()+facet_wrap(~par, scales="free")
+# ggplot(AS_pars2_long, aes(x=val))+geom_density()+facet_wrap(~par, scales="free")
+# ggplot(AS_pars2_long, aes(x=par,y=val))+geom_boxplot()+facet_wrap(~par, scales="free")
 
 var_input_all <- var_input_all %>% rbind(AS_pars2_long %>% mutate(stage = "relaxed")) %>%
   mutate(stage = ordered(stage, levels = c("PRE", "10Y", "relaxed")))
 
-ggplot(var_input_all, aes(x=val))+geom_density(aes(col=stage), linewidth = 1)+facet_wrap(~par, scales="free")
-ggplot(var_input_all, aes(x=par,y=val))+geom_boxplot(aes(col=stage))+facet_wrap(~par, scales="free")
+# ggplot(var_input_all, aes(x=val))+geom_density(aes(col=stage), linewidth = 1)+facet_wrap(~par, scales="free")
+# ggplot(var_input_all, aes(x=par,y=val))+geom_boxplot(aes(col=stage))+facet_wrap(~par, scales="free")
 
 #######################################################
 # FOR STRICT AGE-SEX PARS #
@@ -248,8 +248,8 @@ pairs(valid_as_pars3_df, pch = 18)
 AS_pars3_long <- gather(as.data.frame(valid_as_pars3_df) %>% 
                           mutate(set=1:nrow(valid_as_pars3_df)), key="par", value = "val", -set)
 
-ggplot(AS_pars3_long, aes(x=val))+geom_density()+facet_wrap(~par, scales="free")
-ggplot(AS_pars3_long, aes(x=par,y=val))+geom_boxplot()+facet_wrap(~par, scales="free")
+# ggplot(AS_pars3_long, aes(x=val))+geom_density()+facet_wrap(~par, scales="free")
+# ggplot(AS_pars3_long, aes(x=par,y=val))+geom_boxplot()+facet_wrap(~par, scales="free")
 
 var_input_all <- var_input_all %>% rbind(AS_pars3_long %>% mutate(stage = "strict_15%")) %>%
   mutate(stage = ordered(stage, levels = c("PRE", "10Y", "relaxed", "strict", "strict_15%")))
