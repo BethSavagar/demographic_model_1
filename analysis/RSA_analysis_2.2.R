@@ -256,3 +256,50 @@ var_input_all <- var_input_all %>% rbind(AS_pars3_long %>% mutate(stage = "stric
 
 ggplot(var_input_all, aes(x=val))+geom_density(aes(col=stage), linewidth = 1)+facet_wrap(~par, scales="free")
 ggplot(var_input_all, aes(x=par,y=val))+geom_boxplot(aes(col=stage))+facet_wrap(~par, scales="free")
+
+
+
+## ===============================================
+## CORRELATIONS ##
+library(ggpubr)
+
+# original data: 
+
+RSAoutput <- RSAoutput %>% mutate(tenyr_growth = replace_na(tenyr_growth, 0))
+
+# join input parameters with output of interest
+RCC <- cbind(var_input_set, 
+             "tenyr_growth" = RSAoutput %>% 
+               pull(tenyr_growth)) %>% 
+  as.data.frame()
+
+RCC_long <- RCC %>% gather(key = "par", value = "par_val", -tenyr_growth)
+
+
+ggplot(RCC_long, aes(x=par_val, y=tenyr_growth))+geom_point()+facet_wrap(~par, scales = "free")+
+  # stat_cor(method = "pearson")+
+  stat_cor(method = "spearman", col = "blue", geom="label", aes(size = 8))+
+  theme(legend.position='none')
+
+#############################
+# with age-sex conditional data
+
+# join input parameters with output of interest
+RCC_valid <- cbind(valid_as_pars3_df, 
+             "tenyr_growth" = agesex3_growth %>% 
+               pull(tenyr_growth)) %>% 
+  as.data.frame()
+
+RCC_valid <- RCC_valid %>% mutate(tenyr_growth = replace_na(tenyr_growth, 0))
+
+
+RCC_valid_long <- RCC_valid %>% gather(key = "par", value = "par_val", -tenyr_growth)
+RCC_valid_long %>% group_by(par) %>% summarise(corr = cor(par_val, tenyr_growth, method = "spearman")) %>% knitr::kable()
+
+ggplot(RCC_valid_long, aes(x=par_val, y=tenyr_growth))+geom_point()+facet_wrap(~par, scales = "free")+
+  # stat_cor(method = "pearson")+
+  stat_cor(method = "spearman", col = "blue", geom="label", aes(size = 8))+
+  theme(legend.position='none')
+
+
+
