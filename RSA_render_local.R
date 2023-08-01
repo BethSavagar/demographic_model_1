@@ -74,7 +74,7 @@ t2 <- 15*52
 t1 <- TimeStop_dynamics
 
 # insert model from RSA_test2.Rmd
-
+# see sensobol script - GSA_pars-sobol-set
 var_input_backup <- var_input_set %>% as.data.frame()
 if(filesave == T){
   write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
