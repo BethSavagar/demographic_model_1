@@ -130,3 +130,50 @@ RSApars_15ageX <- RSAparameters %>%
             tenyr_15age,
             tenyr_05age,
             set))
+
+
+KStest_df <- data.frame(par=character(10), D=numeric(10), p=numeric(10), stringsAsFactors=F)
+for(j in 1:10){  
+  k <- ks.test(RSApars_15age[,j], RSApars_15ageX[,j])
+  KStest_df$par[j] <- names(RSApars_15age)[j]
+  KStest_df$D[j]       <- k$statistic
+  KStest_df$p[j]       <- k$p.value
+} 
+
+kable(KStest_df)
+
+# Density Plot
+
+RSApars_long <- gather(as.data.frame(RSAparameters) %>% 
+                               mutate(set=1:nrow(RSAparameters)) %>% 
+                               select(-c(starts_with("tenyr"))), key="par", value = "val", -set) %>%
+  mutate(condition = "PRE")
+
+RSApars_15age_long <- gather(as.data.frame(RSApars_15age) %>% 
+                          mutate(set=1:nrow(RSApars_15age)) %>% 
+                            select(-c(tenyr_growth)), key="par", value = "val", -set) %>%
+  mutate(condition = "POST")
+
+RSA_long_comparison <- as.data.frame(rbind(RSApars_long, RSApars_15age_long)) %>%
+  mutate(
+    condition = factor(condition, levels = c("PRE", "POST")),
+    par = factor(par, levels = c("max_yrs_F",
+                                  "max_yrs_M",
+                                  "min_off", 
+                                  "min_repro",
+                                  "birth_rate",
+                                  "mort_Y",
+                                  "mort_A", 
+                                  "off_mY",
+                                  "off_mA",
+                                  "off_f")))
+
+ggplot(RSA_long_comparison, aes(x=val))+
+  geom_density(aes(col=condition), linewidth = 1)+
+  facet_wrap(~par, scales="free")
+
+ggplot(RSA_long_comparison, aes(x=par,y=val))+
+  geom_boxplot(aes(col=condition))+
+  facet_wrap(~par, scales="free")+
+  coord_flip()
+
