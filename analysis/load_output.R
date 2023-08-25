@@ -22,3 +22,10 @@ var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-12.csv")
 # RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-25.csv")
 # var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-25.csv")
 
+##############
+# 24 Aug 2023: 
+# RSA simulations with var_input_2: min.5, max.5 and fix_input_2: sim.4
+
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-08-24.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
+

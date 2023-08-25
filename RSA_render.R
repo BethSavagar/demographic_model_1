@@ -35,7 +35,7 @@ output <- "summary_all" # define output type "summary" (age proporiotns), "summa
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 pars_filename <- "set_pars_RSA2.R"
 #lhs_n <- 1e4
-lhs_n <- 1e5
+lhs_n <- 2e5
 
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
@@ -45,15 +45,15 @@ rates <- "yrly"
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.4" # min.3 & max.3 for all sims pre 24/07/23)
-pars_max <- "max.4" # min.4, max.4 include young male offtake and increase age of males
+pars_min <- "min.5" # min.3 & max.3 for all sims pre 24/07/23)
+pars_max <- "max.5" # min.4, max.4 include young male offtake and increase age of males
 if(rates == "wkly"){
   pars_min <- "wkly.min.1"
   pars_max <- "wkly.max.1"
 }
-fixdata <- "sim.1" # fix_input_2 : sim.2 for pR=1... 
+fixdata <- "sim.4" # fix_input_2 : sim.2 for pR=1... 
 # fixdata <- "sim.3" # sim.3 for N = 100 (14-07-2023)
-vardata <- "sim.1" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
+vardata <- "sim.4" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
 
 if(SA == TRUE){
   # latin hypercube sampling of parameter space:
