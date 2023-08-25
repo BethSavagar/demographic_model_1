@@ -120,7 +120,11 @@ RSApars_15age <- RSAparameters %>%
             tenyr_05age,
             set))
 
+# pairs plot:
+
 pairs(RSApars_15age, pch = 18)
+ggpairs(RSApars_15age)
+ggplot(RSApars_15age, aes(x=off_mA, y=tenyr_growth))+geom_point()
 
 RSApars_15ageX <- RSAparameters %>% 
   filter(tenyr_15age==0)  %>%
@@ -142,7 +146,7 @@ for(j in 1:10){
 
 kable(KStest_df)
 
-# Density Plot
+# Density Plot & Boxplot comparing pre & post condition distributions. 
 
 RSApars_long <- gather(as.data.frame(RSAparameters) %>% 
                                mutate(set=1:nrow(RSAparameters)) %>% 
@@ -168,12 +172,26 @@ RSA_long_comparison <- as.data.frame(rbind(RSApars_long, RSApars_15age_long)) %>
                                   "off_mA",
                                   "off_f")))
 
+# Density plot
 ggplot(RSA_long_comparison, aes(x=val))+
   geom_density(aes(col=condition), linewidth = 1)+
   facet_wrap(~par, scales="free")
-
+# Box plot
 ggplot(RSA_long_comparison, aes(x=par,y=val))+
   geom_boxplot(aes(col=condition))+
-  facet_wrap(~par, scales="free")+
-  coord_flip()
+  facet_wrap(~par, scales="free")
+
+
+# Age-Sex structure
+
+
+# for parameters where population is stable over final 10 years
+agesex_structure <- RSAoutput_ext %>% 
+  filter(tenyr_15age==1) %>%
+  select(starts_with("pf")|starts_with("pm")|starts_with(("pF"))) %>%
+  gather(key=stat, value=prop) %>%
+  mutate(sex = ifelse(stat %in% c("pmKid","pmSub","pmAdu"), "M", "F"))
+
+ggplot(agesex_structure, aes(x=stat, y=prop, col = sex))+geom_boxplot()
+agesex_structure %>% group_by(sex, stat) %>% summarise(mean=mean(prop)) %>% kable()
 
