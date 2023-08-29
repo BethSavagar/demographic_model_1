@@ -1,10 +1,8 @@
 ###############################################################################################################
 ## Script for RSA locally - 04/07/23
 ###############################################################################################################
-# this code needs modifying for cluster
-# - makeCluster with 30cores
-# - lhs_n = 1e4
-# - parallel computing with foreach and doPar packages
+
+# add group for young male offtake & raise max age of males in flock
 
 filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/3. Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
 
@@ -38,8 +36,8 @@ rates <- "yrly" # wkly
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.3"
-pars_max <- "max.3"
+pars_min <- "min.4"
+pars_max <- "max.4"
 if(rates == "wkly"){
   pars_min <- "wkly.min.1"
   pars_max <- "wkly.max.1"
@@ -76,7 +74,7 @@ t2 <- 15*52
 t1 <- TimeStop_dynamics
 
 # insert model from RSA_test2.Rmd
-
+# see sensobol script - GSA_pars-sobol-set
 var_input_backup <- var_input_set %>% as.data.frame()
 if(filesave == T){
   write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
@@ -117,6 +115,9 @@ stopCluster(cl)
 # filename <- paste0("RSAoutput_", tdate, ".RData")
 # # save RData
 # write.csv2(RSAout, paste0(filepath, "output/", filename))
-write_csv(RSAout, paste0(filepath, "output/", filename1)) # save output
+if(filesave == T){
+  write_csv(RSAout, paste0(filepath, "output/", filename1)) # save output
+  
+}
 
 

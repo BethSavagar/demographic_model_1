@@ -12,3 +12,20 @@ var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-12.csv")
 # 10,000 parameter sets from SCC with N=150 --> WEEKLY RATES (wkly.min.1 / wkly.max.1 - from bryony's thesis)
 # RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-18.csv")
 # var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-18.csv")
+
+# 100,000 parameter sets from SCC with new young-male offtake parameter and increased max male age see min.4 max.4 on var_input spreadsheet: (a) - accidentally ran with weekly pars, (b) - with min.4,max.4 yrly pars.
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-24.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-24.csv")
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-24b.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-24b.csv")
+
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-07-25.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-07-25.csv")
+
+##############
+# 24 Aug 2023: 
+# RSA simulations with var_input_2: min.5, max.5 and fix_input_2: sim.4
+
+# RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-08-24.csv")
+# var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
+
