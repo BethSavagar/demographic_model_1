@@ -36,15 +36,15 @@ rates <- "yrly" # wkly
 set.seed(1)
 
 # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.4"
-pars_max <- "max.4"
+pars_min <- "min.5"
+pars_max <- "max.5"
 if(rates == "wkly"){
   pars_min <- "wkly.min.1"
   pars_max <- "wkly.max.1"
 }
-fixdata <- "sim.1" # fix_input_2 : sim.2 for pR=1... 
+fixdata <- "sim.4" # fix_input_2 : sim.2 for pR=1... 
 # fixdata <- "sim.3" # sim.3 for N = 100 (14-07-2023)
-vardata <- "sim.1" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
+vardata <- "sim.4" # select dataset for test data, # test_1 dataset, all pars set to 0 and all animals in age group 1 (susceptible)
 
 # SA <- F
 if(SA == TRUE){
