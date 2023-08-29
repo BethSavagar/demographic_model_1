@@ -1,0 +1,4 @@
+*** R 4.2.1 MODULE LOADED ***
+Error in library(tidyverse) : there is no package called ‘tidyverse’
+Calls: source -> withVisible -> eval -> eval -> library
+Execution halted
