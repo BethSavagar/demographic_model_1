@@ -14,6 +14,7 @@ library(tidyverse)
 RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-08-24.csv")
 # parameter sets:
 var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
+# behavioural parameters with +/- 15% growth saved as GSA_var_input-PRCC in data folder for GSA analysis with PRCC
 
 # take a look at the data: 
 str(RSAoutput)

@@ -1,0 +1,15 @@
+﻿parameter,min.1,max.1
+NET_offtake_y,0,0
+NET_offtake_m,0,0.3
+NET_offtake_f,0,0.3
+mortality_y,0.15,0.55
+mortality_a,0.05,0.33
+mortality_end,1,1
+birth_rate,1,2.5
+ppr_mortality_y,0,0
+ppr_mortality_a,0,0
+adu_f_max_yrs,7,12
+adu_m_max_yrs,3,5
+min_age_offtake,9,14
+min_age_repro,10,18
+NET_offtake_m2,0.4,0.99

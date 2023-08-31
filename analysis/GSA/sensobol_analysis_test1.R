@@ -1,5 +1,5 @@
 library(sensobol)
-
+# See GSA pars sobol test.R 
 ## Define the base sample size and the parameters
 N <- lhs_n
 params <- colnames(var_input)
