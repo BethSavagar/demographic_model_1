@@ -153,11 +153,16 @@ ggplot(prcc.all, aes(x=var, y=est, group = output, fill = output))+
   labs(x="par", y="prcc")+
   theme_bw()
 
+##########################################################################
 ####################
 ## GSA ANALYSIS 2 ##
 ####################
+##########################################################################
 
-# Analysis on 
+
+## SETUP ##
+
+# Analysis on only behavioural parameter sets
 
 GSAoutput_ext <- GSAoutput %>%
   mutate(tenyr_growth = replace_na(tenyr_growth, 0),
@@ -198,4 +203,82 @@ GSAoutput_ext %>% group_by(tenyr_05age) %>% count()
 
 sobol_par_subset <- sobol_input %>% left_join(GSAoutput_ext %>% select(c(pop_growth,tenyr_growth,imm_6m,imm_12m,imm70_w,tenyr_15age,GSAset)), by = c("GSAset")) %>% filter(tenyr_15age==1) 
 
+# Sobol
+# - I don't think it's possible because sobol_indices requires arguments of N which is the original sampling frame size and and outputs (which aren't the same rows)
+
+# params for sobol matrices
+N <- nrow(sobol_par_subset) # scaling factor, set to at least 1000
+params <- colnames(sobol_input %>% select(-GSAset))
+order <- "first"
+
+# # (i) imm6m
+# ind_popgrowth <- sobol_indices(Y = sobol_par_subset$imm_6m, N = N, params = params) # compute indices
+# plot(ind_popgrowth) # first and total order indices
+# 
+
+
+
+
+
+## ANALYSIS ##
+
+# PRCC on subset
+
+# 6m Imm
+dat.1 <- sobol_par_subset %>% select(-c(GSAset,
+                                        "pop_growth",
+                                        "tenyr_growth",
+                                        "imm_12m",
+                                        "imm70_w",
+                                        "tenyr_15age"))
+
+prcc_imm6m <- epi.prcc(dat.1, sided.test = 2, conf.level = 0.95)
+
+ggplot(prcc_imm6m, aes(x=var, y=est))+
+  geom_col()+
+  labs(x="par", y="prcc")+
+  theme_bw()
+
+dat.2 <- sobol_par_subset %>% select(-c(GSAset,
+                                        "pop_growth",
+                                        "tenyr_growth",
+                                        "imm_6m",
+                                        "imm70_w",
+                                        "tenyr_15age"))
+
+prcc_imm12m <- epi.prcc(dat.2, sided.test = 2, conf.level = 0.95)
+
+ggplot(prcc_imm12m, aes(x=var, y=est))+
+  geom_col()+
+  labs(x="par", y="prcc")+
+  theme_bw()
+
+
+
+dat.3 <- sobol_par_subset %>% select(-c(GSAset,
+                                        "pop_growth",
+                                        "tenyr_growth",
+                                        "imm_6m",
+                                        "imm_12m",
+                                        "tenyr_15age"))
+
+prcc_imm70 <- epi.prcc(dat.3, sided.test = 2, conf.level = 0.95)
+
+ggplot(prcc_imm70, aes(x=var, y=est))+
+  geom_col()+
+  labs(x="par", y="prcc")+
+  theme_bw()
+
+
+
+
+# Bar plot comparing prcc for each output
+prcc.all <- rbind(prcc_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
+                  prcc_imm12m %>% select(var,est) %>% mutate(output = "imm12m"),
+                  prcc_imm70 %>% select(var,est) %>% mutate(output = "imm70")    )
+
+ggplot(prcc.all, aes(x=var, y=est, group = output, fill = output))+
+  geom_col(position = "dodge")+
+  labs(x="par", y="prcc")+
+  theme_bw()
 
