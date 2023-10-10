@@ -33,7 +33,7 @@ dynmod_func <- function(
   
   # Pull demographic rates as vectors from data-frames (for vectorised equations)
   # NB: create if statements for if there's a difference between males and females?
-  immunity <- demographic_pars %>% pull(imm) # no differene m/f
+  immunity <- demographic_pars %>% pull(imm) # no difference m/f
   # Imm_b immune birth rate is already defined (proportion of offspring born with maternal immunity)
   
   net_off_F <- demographic_pars %>% pull(net_off_F)

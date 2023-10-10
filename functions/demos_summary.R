@@ -23,7 +23,7 @@ summary_demos <- function(
   mI <- m_list[["mI"]]
   mR <- m_list[["mR"]]
   
-  if(output %in% c("summary", "summary_all")){
+  if(output %in% c("summary", "summary_all", "dynamics")){
     # total population size
     fpop <- fIm+fS+fE+fI+fR
     mpop <- mIm+mS+mE+mI+mR
@@ -66,7 +66,7 @@ summary_demos <- function(
     summary_df[w, ] <-
       c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pKid,pSub,pAdu)
     
-  } else if (output == "summary_all") {
+  } else if (output %in% c("summary_all","dynamics")) {
     summary_df[w, ] <-
       c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
   } else if (output == "counts") {
@@ -80,8 +80,8 @@ summary_demos <- function(
     return(summary_df)
   }else if(output == "summary_all"){
     return(summary_df)
-  }else if(output == "counts"){
-    return(count_df)
+  }else if(output == "dynamics"){
+    return(summary_df)
   }
 }
   
