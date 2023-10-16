@@ -1,4 +1,4 @@
-
+# only works for summary_all at the moment - need to update for "summary"
 GSA_output <- function(output_df, Vstart){
   
   pop_growth <- output_df[nrow(output_df),"sum_pop"] / output_df[1,"sum_pop"]
@@ -21,7 +21,7 @@ GSA_output <- function(output_df, Vstart){
           tenyr_growth = tenyr_growth, 
           imm_6m=Imm_6m,
           imm_12m=Imm_12m,
-          imm70_w=Imm70_w) %>%
+          imm70_w=Imm70_w-Vstart) %>%
     select(w, 
            sum_pop, 
            pop_growth, 

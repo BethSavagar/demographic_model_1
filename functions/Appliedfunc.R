@@ -1,23 +1,38 @@
 App_func <- function(
-    imm_decay_corrected,
-    var_input_full,
-    fix_age_data_full,
+    imm_decay_corrected, # immunity decay rate
+    var_input_full, # demographics
+    fix_age_data_full, # state vars
     f_list, # initial state of female population
     m_list, # initial state of male population
     TimeStop_dynamics, # 1 year, weekly timestep for demographic component
     TimeStop_transmission, # 1 day, hourly timestep for transission component
     output, # model output: tracker or summary stats
-    summary_df, #
-    clean_environment,
-    Vstart
+    summary_df, # empty output dataframe
+    clean_environment, # cleaning tool
+    Vstart, # time of vaccination
+    fixdata,
+    vardata
 ){
   
+  #########################
+  ## 1. PARAMETERISATION ##
+  #########################
+  # fixdata <- "cgiar.shp"
+  # update state vars and demographics data 
   var_input_set <- var_input_full
-  fix_age_data <- fix_age_data_full %>% select(parameter, "value" = all_of(`fixdata`))
+  fix_age_data <- fix_age_data_full %>% 
+    select(parameter, "value" = all_of(`fixdata`))
   
+  if(lhs & class(var_input_full) == "numeric"){
+    var_input_set <- var_input_full %>%
+      as.data.frame() %>%
+      rownames_to_column(var = "parameter") %>%
+      rename("value"=".")
+    }
   
-  # ---------------------------
-  ## FIXED PARAMETERS ## Flock size, initial pop state
+  # -------------------
+  ## State Variables ##
+  # -------------------
   
   ## Flock Size ##
   N_tot <- fix_age_data %>% filter(parameter=="N_tot") %>% pull(value) # number of animals in population (flock or village)?
@@ -37,57 +52,72 @@ App_func <- function(
   age_p_m <- c("kid_m_p"=kid_m_prop,"sub_m_p"=sub_m_prop,"adu_m_p"=adu_m_prop)
   
   ## Immune Fraction ##
-  # proportion initially in R state
-  pR <- fix_age_data %>% filter(parameter=="pR") %>% pull(value) 
+  pR <- fix_age_data %>% 
+    filter(parameter=="pR") %>% 
+    pull(value)  # proportion initially in R state
   
-  ## Age Group (limits) ##
+  ## Age Group Limits ##
+  
   wk2mnth <- 4.345 # weeks per month
   
+  # kids
   kid_max <- fix_age_data %>% filter(parameter=="kid_max") %>% pull(value) 
   kid_max_wks <- round(kid_max*wk2mnth)
+  # sub-adults
   sub_max <- fix_age_data %>% filter(parameter=="sub_max") %>% pull(value) 
   sub_max_wks <- round(sub_max*wk2mnth)
-  
-
-  max_age_F <- var_input_set %>% filter(parameter == "adu_f_max_yrs") %>% pull(`fixdata`) *52
-  max_age_M <- var_input_set %>% filter(parameter == "adu_m_max_yrs") %>% pull(`fixdata`) *52
-
+  # adults
+  max_age_F <- var_input_set %>% filter(parameter == "adu_f_max_yrs") %>% pull(`vardata`) *52
+  max_age_M <- var_input_set %>% filter(parameter == "adu_m_max_yrs") %>% pull(`vardata`) *52
+  # weeks in age class
   Kid <- 1:kid_max_wks # Kid: 1-6m (1-26w)
   Sub <- (kid_max_wks+1):sub_max_wks # Sub: 6-12m (26-52w)
   Adu_F <- (sub_max_wks+1):max_age_F # Adult F: 12m+
   Adu_M <- (sub_max_wks+1):max_age_M # Adult M: 12m+
   
-  ## Maternal Immunity ##
-  
-  # - Bodjo et al (following ElArbi)
-  # - waning of maternal immunity for first 4months (17 wk)
-  # see imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
+  ## Maternal Immunity ## (Bodjo et al) 
+  # see imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") & "scripts/demographic-data/mat-imm-decay.R" for workings
   Imm_b <- imm_decay_corrected %>% 
     filter(wk ==0) %>% 
     pull(imm_corrected) # Imm_b = # proportion of young born to immune mothers that gain maternal antibodies
   
-  # ---------------------------
-  # ## VARIABLE PARAMETERS ## demographic rates
+  # -------------------
+  ## Demographics ##
+  # -------------------
   
-  ##### RSA params
-  off_1 <- 0
+  ## ppr_mortality not incorporated
   ppr_mort_1 <- 0
   ppr_mort_2 <- 0
+  
+  ## set youth offtake to 0 unless included in demographics set
+  if(!"NET_offtake_y" %in% var_input_set$parameter){
+    off_1 <- 0
+  }
+  
+  # resolve issues with pulling data from var_input_set:
+  if(lhs){
+    fixdata = "value"
+  }
 
-
-    off_F <- var_input_set %>% filter(parameter == "NET_offtake_f") %>% pull(`fixdata`)
-    off_M <- var_input_set  %>% filter(parameter == "NET_offtake_m") %>% pull(`fixdata`)
-    off_M2 <- var_input_set  %>% filter(parameter == "NET_offtake_m2") %>% pull(`fixdata`)
-    mort_1 <- var_input_set  %>% filter(parameter == "mortality_y") %>% pull(`fixdata`)
-    mort_2 <- var_input_set  %>% filter(parameter == "mortality_a") %>% pull(`fixdata`)
+  ## Pull Demographics ##
+  
+    if("NET_offtake_y" %in% var_input_set$parameter){
+      off_1 <- var_input_set %>% filter(parameter == "NET_offtake_y") %>% pull(`vardata`)
+    }
+    off_F <- var_input_set %>% filter(parameter == "NET_offtake_f") %>% pull(`vardata`)
+    off_M <- var_input_set  %>% filter(parameter == "NET_offtake_m") %>% pull(`vardata`)
+    off_M2 <- var_input_set  %>% filter(parameter == "NET_offtake_m2") %>% pull(`vardata`)
+    mort_1 <- var_input_set  %>% filter(parameter == "mortality_y") %>% pull(`vardata`)
+    mort_2 <- var_input_set  %>% filter(parameter == "mortality_a") %>% pull(`vardata`)
     # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
-    birth_r <- var_input_set  %>% filter(parameter == "birth_rate")  %>% pull(`fixdata`)
+    birth_r <- var_input_set  %>% filter(parameter == "birth_rate")  %>% pull(`vardata`)
 
-    min_age_offtake <- var_input_set  %>% filter(parameter == "min_age_offtake") %>% pull(`fixdata`)
-    min_age_repro <- var_input_set  %>% filter(parameter == "min_age_repro") %>% pull(`fixdata`)
+    min_age_offtake <- var_input_set  %>% filter(parameter == "min_age_offtake") %>% pull(`vardata`)
+    min_age_repro <- var_input_set  %>% filter(parameter == "min_age_repro") %>% pull(`vardata`)
 
   
-  # convert dynamics to weekly rates:
+  ## Convert to weekly rates ##
+  # (if yearly):
   if(rates == "yrly"){
     off_1 <- 1-((1-off_1)^(1/52))
     off_F <- 1-((1-off_F)^(1/52))
@@ -98,7 +128,7 @@ App_func <- function(
     birth_r <- birth_r / 52
   }
 
-    # convert dynamics to weekly rates:
+    #(if fortnightly:
     if(rates == "2wkly"){
       off_1 <- 1-((1-off_1)^(1/2))
       off_F <- 1-((1-off_F)^(1/2))
@@ -109,15 +139,13 @@ App_func <- function(
       birth_r <- birth_r / 2
     } 
     
-    
+  # Convert ages to wks
   min_offtake_wks <- round(min_age_offtake*wk2mnth)
   max_M2off_wks <- round(24*wk2mnth) # most male offtake before 12-18months 
   min_repro_wks <- round(min_age_repro*wk2mnth)
   
- 
-  
-  #####################################
-  
+
+  ## Construct Demographics DF ##
   demographic_pars <- data.frame(
     age_weeks = 1:max_age_F) %>% # nrow = age in weeks
     mutate(age_cat = ifelse(age_weeks <= kid_max_wks, "Kid",
@@ -170,10 +198,13 @@ App_func <- function(
            pop_init_M
     )
   
+  #########################
+  ## 2. SIMULATION SETUP ##
+  #########################
   
-  ################################
-  ## INITIAL POPULATION STATES ##
-  ################################
+  #--------------------------
+  ## Initialise Population ##
+  #--------------------------
   
   # pR = proportion initially immune (due to prior infection)
   # define SEIR vectors for male and female age groups
@@ -205,21 +236,27 @@ App_func <- function(
                  "mR"=mR_init)
   
   
-  
+  ## Clean Environment
   
   if (clean_environment == T) {
     rm(fix_age_data,kid_f_prop,sub_f_prop,adu_f_prop,kid_m_prop,sub_m_prop,adu_m_prop,kid_max,sub_max, max_age_F,max_age_M,fIm_init,fS_init,fE_init,fI_init,fR_init,mIm_init,mS_init,mE_init,mI_init,mR_init,off_1,off_F,off_M,mort_1,mort_2,birth_r,ppr_mort_1,ppr_mort_2)
   }
   
-  # ---------------------------------
-  ## TRANSMISSION PARAMETERS:
+  #--------------------------
+  ## Transmission parameters ##
+  #--------------------------
+  
+  # Only if transmission is incorporated
   if(transmission == T){
     source(here("scripts", "parameters", "set-pars-transmission-fixed.R"))
   }
   
-  # -----------------------
-  ## SUMMARY STATS ##
   
+  ###################
+  ## 3. RUN DYNMOD ##
+  ###################
+  
+  ## Update output "summary_df" ##
   # f_list/m_list is initial state for Females and Males, output defines what stats are provided in output, sumamry_df is a df to keep output in.
   summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df, Kid, Sub, Adu_F)
   
@@ -238,12 +275,7 @@ App_func <- function(
     Vstart
   )
   
-  # # output_df contains system dynamics from week 1 - TimeStop_dynamics
-  # pR_noIm_temp <- output_df %>% pull(pR_noIm)
-  # agesex_dynamics <- output_df # %>% mutate(set = i)
-
-  ## output is pop growth from t=0 to end
-  
+  # only works for summary all needs updating for summary (only)
   if(output %in% c("summary", "summary_all")){
     # res <- output_df %>%
     #   filter(w==TimeStop_dynamics) %>%
@@ -258,7 +290,6 @@ App_func <- function(
   }
   
   return(res)
-
 
 }
 
