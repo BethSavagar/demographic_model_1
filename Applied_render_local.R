@@ -180,7 +180,8 @@ dynplot <- dynplot %>%
     "oc.shp.semiaridP",
     "oc.shp.semiaridM",
     "oc.shp.subhumidM",
-    "oc.shp.humidM"
+    "oc.shp.humidM",
+    "oc.shp.humidM.valid"
   )
 ))
 
@@ -189,7 +190,8 @@ dynplot_i <- dynplot %>% filter(prof %in% c("oc.shp.aridP",
                                             "oc.shp.semiaridP",
                                             "oc.shp.semiaridM",
                                             "oc.shp.subhumidM",
-                                            "oc.shp.humidM"))
+                                            "oc.shp.humidM",
+                                            "oc.shp.humidM.valid"))
 
 ## AGE STRUCTURE
 age_struc <- dynplot_i %>%
@@ -199,7 +201,7 @@ age_struc <- dynplot_i %>%
 plot_age <- ggplot(age_struc, aes(x = w, y = prop,col = age_group,group = age_group)) + 
   geom_line() + 
   facet_wrap( ~ prof,nrow=1) +
-  labs(x = "week", y = "population-propotion", title = "Age Structure, 10 years") +
+  labs(x = "week", y = "population-propotion", title = "Age Structure, 5 years") +
   theme_bw()+
   theme(legend.position = "right")
   # theme(legend.position = "bottom") +
@@ -208,19 +210,19 @@ plot_age <- ggplot(age_struc, aes(x = w, y = prop,col = age_group,group = age_gr
 plot_growth <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/75))+
   geom_line()+
   facet_wrap(~prof,nrow=1)+
-  labs(x="week", y="population-growth", title = "Population growth, 10 years")+
+  labs(x="week", y="population-growth", title = "Population growth, 5 years")+
   theme_bw()
 
 plot_growth_free <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/75))+
   geom_line()+
   facet_wrap(~prof, scales = "free",nrow=1)+
-  labs(x="week", y="population-growth", title = "Population growth, 10 years")+
+  labs(x="week", y="population-growth", title = "Population growth, 5 years")+
   theme_bw()
 
 plot_immune <- ggplot(dynplot_i, aes(x=w, y=prop_immune))+
   geom_line()+
   facet_wrap(~prof,nrow=1)+
-  labs(x="week", y="proportion-immune", title = "Immune decay, 10 years")+
+  labs(x="week", y="proportion-immune", title = "Immune decay, 5 years")+
   coord_cartesian(xlim=c(0,500))+
   theme_bw()
 
