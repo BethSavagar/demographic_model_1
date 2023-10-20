@@ -29,6 +29,12 @@ App_func <- function(
       rownames_to_column(var = "parameter") %>%
       rename("value"=".")
     }
+  if(applied_example & class(var_input_full) == "numeric"){
+    var_input_set <- var_input_full %>%
+      as.data.frame() %>%
+      rownames_to_column(var = "parameter") %>%
+      rename("value"=".")
+  }
   
   # -------------------
   ## State Variables ##

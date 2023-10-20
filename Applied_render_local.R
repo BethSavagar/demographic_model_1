@@ -1,179 +1,275 @@
 ###############################################################################################################
-## Script for CGIAR dynamics
+## Flock Dynamics - Applied Profile ~ Baseline/Basic Example
 ###############################################################################################################
+# Script rendering applied-profiles examples
+# Author: Beth Savagar
+# Date: 19.10.23
 
-# add group for young male offtake & raise max age of males in flock
+############
+## SETUP ##
+############
 
 filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/3. Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
 
-## Sims script: set up 23 June to run base vaccination simulations
-source(paste0(filepath,"scripts/setup.R"))
-# list.files(paste0(filepath,"functions"), full.names = TRUE) %>% map(source)
 
-# Functions:
-source(paste0(filepath, "functions/demos_summary.R"))
-source(paste0(filepath, "functions/dynmod-vac.R"))
-source(paste0(filepath, "functions/GSA_outputs.R"))
-source(paste0(filepath, "functions/Appliedfunc.R"))
-source(paste0(filepath, "functions/output.R"))
+## Libraries
+source(paste0(filepath,"scripts/setup.R")) 
 
-source(paste0(filepath, "scripts/applied/load_cgiar.R"))
+## Functions:
+source(paste0(filepath, "functions/Appliedfunc.R")) # wrapper function
+source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
+source(paste0(filepath, "functions/dynmod-vac.R")) # flock dynamics model function
+source(paste0(filepath, "functions/output.R")) # what to include in output df
+source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
-# -----------------------
-## MODEL PARAMETERS ##
+## Load parameters
+applied_example <- T
+source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
 
-TimeStop_dynamics <- 25*52 # 10 years
+## Dataset
+datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
+dataset <- datasets[1]
+data_filename <- gsub("\\.","",dataset)
+
+## Set filenames:
+
+tdate <- Sys.Date()
+filename1 <- paste0("applied_output_eg_", data_filename, "-", tdate, ".csv")
+filename1.rds <- paste0("applied_output_eg_", data_filename, "-", tdate, ".RData")
+filename2 <- paste0("applied_pars_eg_", data_filename, "-",tdate, ".csv")
+filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv")
+
+
+
+######################
+## MODEL SETUP ##
+######################
+
+## Simulation:
+TimeStop_dynamics <- 10*52 # 10 years (based on earlier simulations)
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
-Vstart <- 20*52 # 20 years
-output <- "dynamics" # for parameter testing
+Vstart <- 5*52 # 20 years
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
-#
-rates <- "yrly" # wkly
 
-## RSA FOR-LOOP
-RSAoutput <- c(); pR_noIm_df <- c(); pop_dynamics <- c()
-summary_df <- output_func(TimeStop_dynamics, output) # create summary data frame to store summary stats for each timestep
-turnover <- F; dynamics <- T; transmission <- F; 
+## Model Output
+output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+
+
+############################
+## Demographic parameters ##
+############################
+lhs <- F
+
+
+##################
+## RUN MODEL ##
+##################
+GSAoutput <- c(); 
+Out <- list()
+# pR_noIm_df <- c(); 
+# pop_dynamics <- c()
+
+summary_df <- output_func(TimeStop_dynamics, output) # create empty dataframe to store output
+
+turnover <- F; 
+dynamics <- T; 
+transmission <- F; 
 clean_environment <- T
 
-# timepoints for the population growth
-t2 <- 15*52
+# timepoints for population growth
+t2 <- 5*52 # 5 year pop growth
 t1 <- TimeStop_dynamics
 
-var_input_full <- var_demo_data_full
+# Format demographic parameter sets:
+var_input_backup <- var_demo_data_full %>% column_to_rownames("parameter") %>% t() %>% as.data.frame()
+# fixdata <- dataset
+# vardata <- dataset
+# 
+# if(dataset == "lesnoff.T"){
+#   rates <- "wkly"
+# }else{
+#   rates <- "yrly"
+# }
 
-# cgiar 1 is sheep, cgiar 2 is goats, lesnoff.T for lesnoff total 
-fixdata <- "oc.goat.semiaridP"
 
-if(fixdata == "lesnoff.T"){
-  rates <- "2wkly"
+for(i in 1:length(datasets)){
+  dataset <- datasets[i]
+  data_filename <- gsub("\\.","",dataset)
+  
+  ## Set filenames:
+  
+  tdate <- Sys.Date()
+  filename1 <- paste0("applied_output_eg_", data_filename, "-", tdate, ".csv")
+  filename1.rds <- paste0("applied_output_eg_", data_filename, "-", tdate, ".RData")
+  filename2 <- paste0("applied_pars_eg_", data_filename, "-",tdate, ".csv")
+  filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv")
+  
+  fixdata <- dataset
+  vardata <- dataset
+  if(applied_example){
+      vardata <- "value"
+  }
+  
+  if(dataset == "lesnoff.T"){
+    rates <- "wkly"
+  }else{
+    rates <- "yrly"
+  }
+  
+  var_input_full <- unlist(var_input_backup[i,])
+  
+  Out[[i]] <- 
+    App_func(
+      imm_decay_corrected,
+      var_input_full,
+      # var_input_backup[2,],
+      fix_age_data_full,
+      f_list, # initial state of female population
+      m_list, # initial state of male population
+      TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+      TimeStop_transmission, # 1 day, hourly timestep for transission component
+      output, # model output: tracker or summary stats
+      summary_df, #
+      clean_environment,
+      Vstart,
+      fixdata,
+      vardata
+    )
+  
+  
+  
+  
+  
 }
 
-output_dynamics <- App_func(
-  imm_decay_corrected,
-  var_input_full,
-  # var_input_backup[2,],
-  fix_age_data_full,
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  summary_df, #
-  clean_environment,
-  Vstart
-)
 
+####################
+## OUTPUT SUMMARY ##
+####################
 
-colnames(output_dynamics)
-#ggplot(output_dynamics, aes(x=w, y=sum_pop))+geom_point()
-#ggplot(output_dynamics, aes(x=w, y=prop_immune))+geom_point()
+# Out %>% mutate(set = rep(1:nrow(var_input_backup), each = TimeStop_dynamics))
 
-age_struc <- output_dynamics %>%
-  select(w, starts_with("pf"), starts_with("pm")) %>%
-  gather(key = "age_group", value="prop", -w)
+# Summary statistics: pop growth & immunity metrics
+Out_summary <- sapply(Out, function(x)
+  GSA_output(x,Vstart)
+  ) %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(prof = datasets, 
+         fiveyr_growth = tenyr_growth)
 
-#ggplot(age_struc, aes(x=w, y=prop, col=age_group, group = age_group))+geom_line()
+dynplot <- do.call(rbind, Out) %>% mutate(prof = rep(datasets, each = TimeStop_dynamics))
 
-## Just first 10 years
+##############
+## PLOTTING ##
+##############
 
-colnames(output_dynamics)
-
-A <- ggplot(output_dynamics %>% filter(w<500), aes(x=w, y=sum_pop/75))+
-  geom_line()+
-  facet_wrap(profile)+
-  labs(x="week", y="population-growth", title = "Population growth, 10 years")
-
-B<- ggplot(output_dynamics, aes(x=w, y=prop_immune))+
-  geom_point()+
-  labs(x="week", y="proportion-immune", title = "Immune decay, 10 years")+
-  coord_cartesian(xlim=c(0,500))
-
-age_struc <- output_dynamics %>%
-  select(w, starts_with("pf"), starts_with("pm")) %>%
-  gather(key = "age_group", value="prop", -w)
-
-C<- ggplot(age_struc, aes(x=w, y=prop, col=age_group, group = age_group))+
-  geom_line()+
-  labs(x="week", y="population-proportion", title = "age-sex structure, 10 years")+
-  coord_cartesian(xlim=c(0,500))
-
-ggarrange(A,B,C, ncol = 1)
-
-############################################################
-############################################################
-
-datasource <- fix_age_data_full %>%
-  select(starts_with("oc.goat")) %>%
-  colnames
-
-oc_df <- c()
-for(i in 1:length(datasource)){
-  
-  fixdata <- datasource[i]
-  
-  output_dynamics <- App_func(
-    imm_decay_corrected,
-    var_input_full,
-    # var_input_backup[2,],
-    fix_age_data_full,
-    f_list, # initial state of female population
-    m_list, # initial state of male population
-    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-    TimeStop_transmission, # 1 day, hourly timestep for transission component
-    output, # model output: tracker or summary stats
-    summary_df, #
-    clean_environment,
-    Vstart
+dynplot <- dynplot %>%
+  mutate(prof = factor(
+  prof,
+  levels = c(
+    "cgiar.goat",
+    "cgiar.shp",
+    "lesnoff.T",
+    "oc.goat.aridP",
+    "oc.goat.semiaridP",
+    "oc.goat.semiaridM",
+    "oc.goat.subhumidM",
+    "oc.goat.humidM",
+    "oc.shp.aridP",
+    "oc.shp.semiaridP",
+    "oc.shp.semiaridM",
+    "oc.shp.subhumidM",
+    "oc.shp.humidM"
   )
-  output_df <- output_dynamics %>%
-    mutate("profile" = fixdata)
-  oc_df <- rbind(oc_df, output_df)
-  
-}
-
-colnames(oc_df)
-#ggplot(output_dynamics, aes(x=w, y=sum_pop))+geom_point()
-#ggplot(output_dynamics, aes(x=w, y=prop_immune))+geom_point()
+))
 
 
-## Just first 10 years
+dynplot_i <- dynplot %>% filter(prof %in% c("oc.shp.aridP",
+                                            "oc.shp.semiaridP",
+                                            "oc.shp.semiaridM",
+                                            "oc.shp.subhumidM",
+                                            "oc.shp.humidM"))
 
-# oc_df <- oc_df %>% 
-#   mutate(profile = factor(profile,
-#          levels = c("oc.shp.aridP",
-#            "oc.shp.semiaridP", 
-#            "oc.shp.semiaridM",
-#            "oc.shp.subhumidM",
-#            "oc.shp.humidM")))
+## AGE STRUCTURE
+age_struc <- dynplot_i %>%
+  select(w, prof, starts_with("pf"), starts_with("pm")) %>%
+  gather(key = "age_group", value="prop", -c(w,prof))
 
-oc_df <- oc_df %>% 
-  mutate(profile = factor(profile,
-                          levels = c("oc.goat.aridP",
-                                     "oc.goat.semiaridP", 
-                                     "oc.goat.semiaridM",
-                                     "oc.goat.subhumidM",
-                                     "oc.goat.humidM")))
+plot_age <- ggplot(age_struc, aes(x = w, y = prop,col = age_group,group = age_group)) + 
+  geom_line() + 
+  facet_wrap( ~ prof,nrow=1) +
+  labs(x = "week", y = "population-propotion", title = "Age Structure, 10 years") +
+  theme_bw()+
+  theme(legend.position = "right")
+  # theme(legend.position = "bottom") +
+  # guides(color = guide_legend(nrow = 1))
 
-A <- ggplot(oc_df %>% filter(w<500), aes(x=w, y=sum_pop/75))+
+plot_growth <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/75))+
   geom_line()+
-  facet_wrap(~profile,ncol=5)+
-  labs(x="week", y="population-growth", title = "Population growth, 10 years")
+  facet_wrap(~prof,nrow=1)+
+  labs(x="week", y="population-growth", title = "Population growth, 10 years")+
+  theme_bw()
 
-B<- ggplot(oc_df, aes(x=w, y=prop_immune))+
-  geom_point()+
-  facet_wrap(~profile,ncol=5)+
+plot_growth_free <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/75))+
+  geom_line()+
+  facet_wrap(~prof, scales = "free",nrow=1)+
+  labs(x="week", y="population-growth", title = "Population growth, 10 years")+
+  theme_bw()
+
+plot_immune <- ggplot(dynplot_i, aes(x=w, y=prop_immune))+
+  geom_line()+
+  facet_wrap(~prof,nrow=1)+
   labs(x="week", y="proportion-immune", title = "Immune decay, 10 years")+
-  coord_cartesian(xlim=c(0,500))
+  coord_cartesian(xlim=c(0,500))+
+  theme_bw()
 
-age_struc <- oc_df %>%
-  select(w, starts_with("pf"), starts_with("pm"), profile) %>%
-  gather(key = "age_group", value="prop", -c(w,profile))
+ggarrange(plot_age, plot_growth, plot_immune, ncol=1)
 
-C<- ggplot(age_struc, aes(x=w, y=prop, col=age_group, group = age_group))+
-  geom_line()+
-  facet_wrap(~profile,ncol=5)+
-  labs(x="week", y="population-proportion", title = "age-sex structure, 10 years")+
-  coord_cartesian(xlim=c(0,500))
+
+########################
+## PLOTTING SUMMARIES ##
+########################
+
+Out_summary_long <- Out_summary %>%
+  select(imm_6m, imm_12m, imm70_w, fiveyr_growth, prof) %>%
+  gather(Out_summary, value = "value", -prof) %>% 
+  rename(stat = Out_summary) %>%
+  mutate(stat = factor(stat, levels = c("fiveyr_growth", "imm_6m", "imm_12m", "imm70_w")))
+
+
+ggplot(Out_summary_long, aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+
+my_colors <- RColorBrewer::brewer.pal(4, "Dark2")[1:4]
+
+A <- ggplot(Out_summary_long %>% filter(stat %in% c("fiveyr_growth")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = my_colors[1])+
+  labs(x = "", y = "Population growth")
+
+B <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  coord_cartesian(ylim = c(0,0.9))+
+  scale_fill_manual(values = my_colors[2:3])+
+  labs(x = "", y = "Proportion immune")
+
+
+C <- ggplot(Out_summary_long %>% filter(stat %in% c("imm70_w")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = my_colors[4])+
+  labs(x = "", y = "Weeks to 70%")
 
 ggarrange(A,B,C, ncol = 1)
