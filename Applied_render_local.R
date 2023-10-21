@@ -28,18 +28,6 @@ source(paste0(filepath, "scripts/applied/applied_load_data.R"))
 
 ## Dataset
 datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
-dataset <- datasets[1]
-data_filename <- gsub("\\.","",dataset)
-
-## Set filenames:
-
-tdate <- Sys.Date()
-filename1 <- paste0("applied_output_eg_", data_filename, "-", tdate, ".csv")
-filename1.rds <- paste0("applied_output_eg_", data_filename, "-", tdate, ".RData")
-filename2 <- paste0("applied_pars_eg_", data_filename, "-",tdate, ".csv")
-filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv")
-
-
 
 ######################
 ## MODEL SETUP ##
@@ -48,11 +36,19 @@ filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv
 ## Simulation:
 TimeStop_dynamics <- 10*52 # 10 years (based on earlier simulations)
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
-Vstart <- 5*52 # 20 years
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 
 ## Model Output
 output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+
+source("scripts/applied/applied_vaccination.R")
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
 
 ############################
@@ -132,6 +128,7 @@ for(i in 1:length(datasets)){
       summary_df, #
       clean_environment,
       Vstart,
+      Vprog,
       fixdata,
       vardata
     )
@@ -234,10 +231,10 @@ ggarrange(plot_age, plot_growth, plot_immune, ncol=1)
 ########################
 
 Out_summary_long <- Out_summary %>%
-  select(imm_6m, imm_12m, imm70_w, fiveyr_growth, prof) %>%
+  select(imm_V0, imm_6m, imm_12m, imm70_w, fiveyr_growth, prof) %>%
   gather(Out_summary, value = "value", -prof) %>% 
   rename(stat = Out_summary) %>%
-  mutate(stat = factor(stat, levels = c("fiveyr_growth", "imm_6m", "imm_12m", "imm70_w")))
+  mutate(stat = factor(stat, levels = c("fiveyr_growth", "imm_V0", "imm_6m", "imm_12m", "imm70_w")))
 
 
 ggplot(Out_summary_long, aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
@@ -256,22 +253,54 @@ A <- ggplot(Out_summary_long %>% filter(stat %in% c("fiveyr_growth")), aes(x = p
   scale_fill_manual(values = my_colors[1])+
   labs(x = "", y = "Population growth")
 
-B <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+B <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_V0","imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
   facet_wrap( ~ stat, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "none")+
   coord_cartesian(ylim = c(0,0.9))+
-  scale_fill_manual(values = my_colors[2:3])+
+  # scale_fill_manual(values = my_colors[2:4])+
   labs(x = "", y = "Proportion immune")
 
+B2 <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_V0","imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  coord_cartesian(ylim = c(0,0.9))+
+  scale_fill_manual(values = my_colors[2:4])+
+  labs(x = "", y = "Proportion immune")
 
 C <- ggplot(Out_summary_long %>% filter(stat %in% c("imm70_w")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
   facet_wrap( ~ stat, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "none")+
-  scale_fill_manual(values = my_colors[4])+
+  scale_fill_manual(values = my_colors[5])+
   labs(x = "", y = "Weeks to 70%")
 
 ggarrange(A,B,C, ncol = 1)
+
+
+
+######################
+## VACCINATION PLOT ##
+######################
+vacplot_i <- dynplot %>% mutate(source = ifelse(prof %in% c("cgiar.shp", "cgiar.goat"), "cgiar",
+                                ifelse(prof %in% c("lesnoff.T"), "lesnoff.T",
+                                       ifelse(prof %in% c("oc.shp.aridP",
+                                                               "oc.shp.semiaridP",
+                                                               "oc.shp.semiaridM",
+                                                               "oc.shp.subhumidM",
+                                                               "oc.shp.humidM",
+                                                               "oc.shp.humidM.valid"), "OC.shp", "OC.goat")))) %>%
+  filter(prop_immune>0)
+
+
+plot_vaci <- ggplot(vacplot_i, aes(x=w, y=prop_immune))+
+  geom_point(aes(col = prof), size = 0.5)+
+  facet_wrap(~source,nrow=2)+
+  labs(x="week", y="proportion-immune", title = "Immune decay, 5 years")+
+  coord_cartesian(xlim=c(260,500))+
+  theme_bw()
+plot_vaci

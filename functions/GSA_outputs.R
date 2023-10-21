@@ -7,8 +7,9 @@ GSA_output <- function(output_df, Vstart){
   wk2mnth <- 4.345 # weeks to months 
   wk_6m <- round(wk2mnth*6, 0)
   wk_12m <- round(wk2mnth*12, 0)
+  Imm_V0 <- output_df[Vstart, "prop_immune"]
   Imm_6m <- output_df[Vstart+wk_6m, "prop_immune"]
-  Imm_12m <- output_df[Vstart+wk_12m, "prop_immune"]
+  Imm_12m <- output_df[(Vstart+wk_12m)-1, "prop_immune"] #minus 1 to account for annual campaigns
   Imm70_w <- output_df %>%
     filter(w>=Vstart, 
            prop_immune<0.7) %>%
@@ -19,6 +20,7 @@ GSA_output <- function(output_df, Vstart){
     filter(w==max(w)) %>%
     cbind(pop_growth=pop_growth,
           tenyr_growth = tenyr_growth, 
+          imm_V0 = Imm_V0,
           imm_6m=Imm_6m,
           imm_12m=Imm_12m,
           imm70_w=Imm70_w-Vstart) %>%
@@ -27,6 +29,7 @@ GSA_output <- function(output_df, Vstart){
            pop_growth, 
            tenyr_growth,
            prop_immune, 
+           imm_V0,
            imm_6m, 
            imm_12m,
            imm70_w,

@@ -12,7 +12,8 @@ dynmod_func <- function(
     Kid,
     Sub,
     Adu_F,
-    Vstart
+    Vstart,
+    Vprog
 ){
   
   fIm <- f_list[["fIm"]]
@@ -117,13 +118,41 @@ dynmod_func <- function(
     
     # ---------------
     ## VACCINATION ##
-    if(w==Vstart){
+    if(w %in% Vprog$Vweek){
       
-      fR_cur <- fS_cur+fE_cur+fI_cur+fR_cur
-      fS_cur <- 0; fE_cur <- 0; fI_cur <- 0
+      round_i <- Vprog %>% filter(Vweek == w) %>% pull(Vround)
       
-      mR_cur <- mS_cur+mE_cur+mI_cur+mR_cur
-      mS_cur <- 0; mE_cur <- 0; mI_cur <- 0
+      # Vcov is a vector of vaccination coverage for each age group on round_i
+      # V_coverage is a df containing hte coverage vector for every round
+      pV <- Vprog %>% filter(Vweek == w) %>% pull(pV)
+      Vtype <- Vprog %>% filter(Vweek == w) %>% pull(Vtype)
+      Vmin <- Vprog %>% filter(Vweek == w) %>% pull(Vmin)
+      Vmax <- Vprog %>% filter(Vweek == w) %>% pull(Vmax)
+      
+      
+      # defining the age range for vaccination and producing a Vcov vector
+      # Vcov is a vector of vaccination coverage for each age group on round_i
+      
+      if(Vtype=="full"){
+        # if full all animals over the minimum age are vaccinated
+        Vcov <- rep(pV, length(fS_cur))
+        Vcov[0:Vmin] <- 0
+      }else if(Vtype=="partial"){
+        # if partial only a subset of animals are vaccinated
+        Vcov <- rep(pV, length(fS_cur))
+        Vcov[0:Vmin] <- 0
+        Vcov[Vmax:length(Vcov)] <- 0
+      }
+      
+      fR_cur <- fR_cur + Vcov*(fS_cur+fE_cur+fI_cur) # new recovered units are all those already immune plus newly vaccinated units from non-immune (SEI) compartments
+      fS_cur <- fS_cur*(1-Vcov) 
+      fE_cur <- fE_cur*(1-Vcov) 
+      fI_cur <- fI_cur*(1-Vcov)
+      
+      mR_cur <- mR_cur+Vcov*(mS_cur+mE_cur+mI_cur) # new recovered units are all those already immune plus newly vaccinated units from non-immune (SEI) compartments
+      mS_cur <- mS_cur*(1-Vcov) 
+      mE_cur <- mE_cur*(1-Vcov) 
+      mI_cur <- mI_cur*(1-Vcov)
     }
     # ---------------
     
