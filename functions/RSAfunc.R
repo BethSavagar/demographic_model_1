@@ -271,7 +271,8 @@ RSA_func <- function(
     res <- output_df %>%
       filter(w==TimeStop_dynamics) %>%
       mutate(pop_growth = output_df[nrow(output_df),"sum_pop"] / output_df[1,"sum_pop"],
-             tenyr_growth = (output_df[t1, "sum_pop"]) / output_df[t2, "sum_pop"]
+             tenyr_growth = (output_df[t1, "sum_pop"]) / output_df[t2, "sum_pop"],
+             tenyr_anngrowth = (output_df[t1, "sum_pop"] - (output_df[t2, "sum_pop"]))/10
              )
   }
   

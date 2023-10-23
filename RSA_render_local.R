@@ -80,7 +80,7 @@ if(filesave == T){
   write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
 }
    
-rm(var_input_set)
+# rm(var_input_set)
 
 
 ## PARALLELISATION ##
@@ -89,6 +89,7 @@ cores=detectCores()
 cl <- makeCluster(cores[1]-1) # for running locally
 registerDoParallel(cl)
 
+# var_input_backup <- slice_sample(var_input_backup, n=10)
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
                    .packages = c("dplyr"),
                    .combine = "rbind") %dopar% {
