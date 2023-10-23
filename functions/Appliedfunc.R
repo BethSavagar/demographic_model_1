@@ -10,6 +10,7 @@ App_func <- function(
     summary_df, # empty output dataframe
     clean_environment, # cleaning tool
     Vstart, # time of vaccination
+    Vprog,
     fixdata,
     vardata
 ){
@@ -278,7 +279,8 @@ App_func <- function(
     Kid,
     Sub,
     Adu_F,
-    Vstart
+    Vstart,
+    Vprog
   )
   
   # only works for summary all needs updating for summary (only)
