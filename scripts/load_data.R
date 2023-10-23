@@ -1,4 +1,4 @@
-# load data for RSA
+# load data for GSA
 
 fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input_2.csv",col_names=T)
 var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input_2.csv", col_names=T)

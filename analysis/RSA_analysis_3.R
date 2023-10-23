@@ -4,6 +4,7 @@
 # Setup
 ################
 library(tidyverse)
+library(GGally)
 
 
 ################
@@ -14,6 +15,7 @@ library(tidyverse)
 RSAoutput <- read.csv("output/RSA_output/RSA_output_2023-08-24.csv")
 # parameter sets:
 var_input_set <- read.csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
+# behavioural parameters with +/- 15% growth saved as GSA_var_input-PRCC in data folder for GSA analysis with PRCC
 
 # take a look at the data: 
 str(RSAoutput)
@@ -95,7 +97,7 @@ RSAoutput_ext <- RSAoutput %>%
 
 # How many parameter sets are behavioural for growth of 5%, 15% and growth of 5%-15% with age-sex structure.
 
-RSAoutput_ext %>% group_by(tenyr_15, tenyr_05) %>% count()
+RSAoutput_ext %>% group_by(tenyr_15, tenyr_05) %>% count() # 5-15% growth, no age-sex structure
 RSAoutput_ext %>% group_by(tenyr_15age) %>% count()
 RSAoutput_ext %>% group_by(tenyr_05age) %>% count()
 
@@ -110,6 +112,8 @@ RSAparameters <- var_input_set %>%
                      tenyr_15age,
                      tenyr_05age,
                      set), by = c("set"))
+
+# RSA pars 15 age contains parameter sets which produce valid results
 
 RSApars_15age <- RSAparameters %>% 
   filter(tenyr_15age==1)  %>%
@@ -126,6 +130,8 @@ pairs(RSApars_15age, pch = 18)
 ggpairs(RSApars_15age)
 ggplot(RSApars_15age, aes(x=off_mA, y=tenyr_growth))+geom_point()
 
+
+# RSA pars 15 ageX contains parameter sets which produce invalid results
 RSApars_15ageX <- RSAparameters %>% 
   filter(tenyr_15age==0)  %>%
   select(-c(tenyr_15age,
@@ -135,6 +141,8 @@ RSApars_15ageX <- RSAparameters %>%
             tenyr_05age,
             set))
 
+
+## RUN KOLMOGOROV SMIRNOV TEST ON VALID AND NON-VALID PAR SETS
 
 KStest_df <- data.frame(par=character(10), D=numeric(10), p=numeric(10), stringsAsFactors=F)
 for(j in 1:10){  
@@ -194,4 +202,51 @@ agesex_structure <- RSAoutput_ext %>%
 
 ggplot(agesex_structure, aes(x=stat, y=prop, col = sex))+geom_boxplot()
 agesex_structure %>% group_by(sex, stat) %>% summarise(mean=mean(prop)) %>% kable()
+
+
+
+###############
+################
+################
+################
+
+# 
+# # Density Plot & Boxplot comparing pre & post condition distributions. 
+# 
+# RSApars_long <- gather(as.data.frame(RSAparameters) %>% 
+#                          mutate(set=1:nrow(RSAparameters)) %>% 
+#                          select(-c(starts_with("tenyr"))), key="par", value = "val", -set) %>%
+#   mutate(condition = "PRE")
+# 
+# RSApars_15age_long <- gather(as.data.frame(RSApars_15age) %>% 
+#                                mutate(set=1:nrow(RSApars_15age)) %>% 
+#                                select(-c(tenyr_growth)), key="par", value = "val", -set) %>%
+#   mutate(condition = "POST")
+# 
+# 
+# RSApars_15ageX_long <- gather(as.data.frame(RSApars_15ageX) %>% 
+#                                 mutate(set=1:nrow(RSApars_15ageX)) %>% 
+#                                 select(-c(tenyr_growth)), key="par", value = "val", -set) %>%
+#   mutate(condition = "INVALID")
+# 
+# 
+# RSA_long_comparison <- as.data.frame(rbind(RSApars_long, RSApars_15age_long, RSApars_15ageX_long)) %>%
+#   mutate(
+#     condition = factor(condition, levels = c("PRE", "POST", "INVALID")),
+#     par = factor(par, levels = c("max_yrs_F",
+#                                  "max_yrs_M",
+#                                  "min_off", 
+#                                  "min_repro",
+#                                  "birth_rate",
+#                                  "mort_Y",
+#                                  "mort_A", 
+#                                  "off_mY",
+#                                  "off_mA",
+#                                  "off_f")))
+# 
+# # Density plot
+# ggplot(RSA_long_comparison, aes(x=val))+
+#   geom_density(aes(col=condition), linewidth = 1)+
+#   facet_wrap(~par, scales="free")
+
 
