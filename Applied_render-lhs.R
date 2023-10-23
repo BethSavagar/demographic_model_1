@@ -2,6 +2,10 @@
 # Author: Beth Savagar
 # Date: 10.10.23
 
+# 21/10/23 - update script for applied-vaccination (see applied_render_local and applied_vaccination). 
+# for each parameter set add loop through each different vaccination coverage level
+# set up master loop to run through each different profile and save the output (possible this is the foreach statement?)
+
 local <- F
 # local <- T
 ############
@@ -84,6 +88,16 @@ if(lhs){
 source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
 
 varnames <- colnames(var_input)
+
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+# 
+# source("scripts/applied/applied_vaccination.R")
+# Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
 
 
 ##################
