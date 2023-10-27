@@ -5,7 +5,7 @@
 # 21/10/23 - update script for applied-vaccination (see applied_render_local and applied_vaccination). 
 # for each parameter set add loop through each different vaccination coverage level
 # set up master loop to run through each different profile and save the output (possible this is the foreach statement?)
-
+applied_example <- F
 local <- F
 # local <- T
 ############
@@ -34,7 +34,8 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
 
 ## Dataset
-dataset <- "cgiar.shp"
+datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
+dataset <- datasets[1]
 data_filename <- gsub("\\.","",dataset)
 
 ## Set filenames:
@@ -95,8 +96,8 @@ varnames <- colnames(var_input)
 #######################
 # see applied_vaccination
 # 
-# source("scripts/applied/applied_vaccination.R")
-# Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+source("scripts/applied/applied_vaccination.R")
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
 
 
@@ -120,6 +121,7 @@ t1 <- TimeStop_dynamics
 
 # Format demographic parameter sets:
 var_input_backup <- var_input_df %>% as.data.frame() %>% slice_sample(n=5)
+#var_input_backup <- var_demo_data_full %>% column_to_rownames("parameter") %>% t() %>% as.data.frame()
 write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save parameter set
 rm(var_input_df)
 

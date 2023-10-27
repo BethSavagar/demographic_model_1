@@ -15,7 +15,6 @@ for(v in 1:V_rounds){
   V_starts[v] <- V1+(v-1)*V_breaks
 }
 
-pV <- 1 # within flock coverage of each campaign (0.7-1)
 V_age_min <- round(4 *4.345,0) # 4 months (4.345 weeks per month)
 V_age_max <- round(12*4.345,0) # 12 months (4.345 weeks per month) for partial campaigns
 

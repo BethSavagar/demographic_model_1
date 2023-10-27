@@ -2,7 +2,7 @@
 getwd()
 
 # Load profiles parameter ranges and original parameter ranges
-profile_ranges <- read.csv("data/Applied_parameters/demographics-lhs.csv")
+profile_ranges <- read.csv("data/Applied_parameters/demographics-lhs2.csv")
 profile_vals <- read.csv("data/Applied_parameters/demographics.csv")
 GSA_ranges <- read.csv("data/GSA_parameters/GSA_var_input.csv")
 
@@ -119,7 +119,7 @@ ggpairs(validpars_profilevals,
 
 
 # Load profiles parameter ranges and original parameter ranges
-profiles_lhs <- read_csv("output/applied_pars_lhs_cgiarshp-2023-10-10.csv")
+profiles_lhs <- read_csv("output/Applied/applied_pars_lhs_cgiarshp-2023-10-10.csv")
 
 # Profiles:
 # Select parameters for comparison
@@ -161,47 +161,3 @@ ggpairs(validpars_cgiar,
         columns = 2:9,
         aes(color = as.factor(profile),
             alpha = 0.2))
-
-
-
-
-
-# 
-# # # select minimums & maximums from profiles
-# profile_mins <- profile_ranges %>%
-#   select(ends_with(".min")) 
-# 
-# profile_maxs <- profile_ranges %>%
-#   select(ends_with(".max"))
-# 
-# # profile names
-# profiles <- profile_ranges %>%
-# select(ends_with("min"), ends_with("max")) %>%
-#   colnames() %>%
-#   gsub(".max","",.) %>%
-#   gsub(".min","",.) %>% 
-#   unique()
-# 
-# # store T or F depending on whether profile parameters are within original parameter range
-# tracker <- profile_ranges
-# 
-# profile_mins>=GSA_ranges$min.1 
-# profile_maxs<=GSA_ranges$max.1
-# 
-# 
-# tracker.min <- apply(profile_mins, 2, function(x)
-#   x <- ifelse(x>=GSA_ranges$min.1, 1, 0)
-# )
-# 
-# 
-# tracker.max <- apply(profile_maxs, 2, function(x)
-#   x <- ifelse(x<=GSA_ranges$max.1, 1, 0)
-# )
-# 
-# 
-# tracker <- cbind(tracker.min, tracker.max)
-
-
-
-
-

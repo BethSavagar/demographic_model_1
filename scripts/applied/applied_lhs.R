@@ -2,7 +2,6 @@
 ## Generate demographic parameters matrix for applied-profiles with lhs on uncertain parameters ##
 ##################################################################################################
 
-
 # Script to construct matrix containing lhs_n number of parameter sets sampled from the parameter space defined for RSA in var_demo_data_full.
 
 var_input <- var_demo_data_full %>%

@@ -46,7 +46,7 @@ output <- "dynamics" # Output options: "summary" (stats with age-group prop), "s
 ## Vaccination Setup ##
 #######################
 # see applied_vaccination
-
+pV <- 0.8 # within flock coverage of each campaign (0.7-1)
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
@@ -182,13 +182,22 @@ dynplot <- dynplot %>%
   )
 ))
 
-
-dynplot_i <- dynplot %>% filter(prof %in% c("oc.shp.aridP",
-                                            "oc.shp.semiaridP",
-                                            "oc.shp.semiaridM",
-                                            "oc.shp.subhumidM",
-                                            "oc.shp.humidM",
-                                            "oc.shp.humidM.valid"))
+# dynplot_i <- dynplot %>% filter(prof %in% c("cgiar.goat","cgiar.shp"))
+# 
+# dynplot_i <- dynplot %>% filter(prof %in% c("lesnoff.T"))
+# 
+dynplot_i <- dynplot %>% filter(prof %in% c("oc.goat.aridP",
+                                            "oc.goat.semiaridP",
+                                            "oc.goat.semiaridM",
+                                            "oc.goat.subhumidM",
+                                            "oc.goat.humidM"))
+# 
+# dynplot_i <- dynplot %>% filter(prof %in% c("oc.shp.aridP",
+#                                             "oc.shp.semiaridP",
+#                                             "oc.shp.semiaridM",
+#                                             "oc.shp.subhumidM",
+#                                             "oc.shp.humidM",
+#                                             "oc.shp.humidM.valid"))
 
 ## AGE STRUCTURE
 age_struc <- dynplot_i %>%
