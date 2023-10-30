@@ -57,7 +57,7 @@ output <- "summary_all" # Output options: "summary" (stats with age-group prop),
 ## Vaccination Setup ##
 #######################
 # see applied_vaccination
-
+pV <- 1
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
@@ -291,3 +291,7 @@ for(d in 1:length(datasets)){
 tdate <- Sys.Date()
 filename  <- paste0("applied_output_lhs2_ALL-", tdate, ".RData")
 saveRDS(Out_list, file = paste0("output/Applied/", filename))
+filename2  <- paste0("applied_output_lhs2_VALID-", tdate, ".RData")
+saveRDS(validOut, file = paste0("output/Applied/", filename2))
+filename3  <- paste0("applied_output_pars_VALID-", tdate, ".RData")
+saveRDS(validPars, file = paste0("output/Applied/", filename3))

@@ -46,7 +46,6 @@ output <- "dynamics" # Output options: "summary" (stats with age-group prop), "s
 ## Vaccination Setup ##
 #######################
 # see applied_vaccination
-pVs <- seq(0.7,1,0.1)
 pV <- 0.8 # within flock coverage of each campaign (0.7-1)
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
@@ -63,7 +62,6 @@ lhs <- F
 ##################
 GSAoutput <- c(); 
 Out <- list()
-vOut <- list()
 # pR_noIm_df <- c(); 
 # pop_dynamics <- c()
 
@@ -89,64 +87,57 @@ var_input_backup <- var_demo_data_full %>% column_to_rownames("parameter") %>% t
 #   rates <- "yrly"
 # }
 
-for(n in 1:length(pVs)){
-  #######################
-  ## Vaccination Setup ##
-  #######################
-  # see applied_vaccination
-  pV <- pVs[n] # within flock coverage of each campaign (0.7-1)
-  source("scripts/applied/applied_vaccination.R")
-  Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+for(i in 1:length(datasets)){
+  dataset <- datasets[i]
+  data_filename <- gsub("\\.","",dataset)
   
-  for(i in 1:length(datasets)){
-    dataset <- datasets[i]
-    data_filename <- gsub("\\.","",dataset)
-    
-    ## Set filenames:
-    
-    tdate <- Sys.Date()
-    filename1 <- paste0("applied_output_eg_", data_filename, "-", tdate, ".csv")
-    filename1.rds <- paste0("applied_output_eg_", data_filename, "-", tdate, ".RData")
-    filename2 <- paste0("applied_pars_eg_", data_filename, "-",tdate, ".csv")
-    filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv")
-    
-    fixdata <- dataset
-    vardata <- dataset
-    if(applied_example){
+  ## Set filenames:
+  
+  tdate <- Sys.Date()
+  filename1 <- paste0("applied_output_eg_", data_filename, "-", tdate, ".csv")
+  filename1.rds <- paste0("applied_output_eg_", data_filename, "-", tdate, ".RData")
+  filename2 <- paste0("applied_pars_eg_", data_filename, "-",tdate, ".csv")
+  filename3 <- paste0("applied_outputSummary_eg_", data_filename, "-",tdate, ".csv")
+  
+  fixdata <- dataset
+  vardata <- dataset
+  if(applied_example){
       vardata <- "value"
-    }
-    
-    if(dataset == "lesnoff.T"){
-      rates <- "wkly"
-    }else{
-      rates <- "yrly"
-    }
-    
-    var_input_full <- unlist(var_input_backup[i,])
-    
-    Out[[i]] <- 
-      App_func(
-        imm_decay_corrected,
-        var_input_full,
-        # var_input_backup[2,],
-        fix_age_data_full,
-        f_list, # initial state of female population
-        m_list, # initial state of male population
-        TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-        TimeStop_transmission, # 1 day, hourly timestep for transission component
-        output, # model output: tracker or summary stats
-        summary_df, #
-        clean_environment,
-        Vstart,
-        Vprog,
-        fixdata,
-        vardata
-      )
   }
   
-  vOut[[n]] <- Out
+  if(dataset == "lesnoff.T"){
+    rates <- "wkly"
+  }else{
+    rates <- "yrly"
+  }
+  
+  var_input_full <- unlist(var_input_backup[i,])
+  
+  Out[[i]] <- 
+    App_func(
+      imm_decay_corrected,
+      var_input_full,
+      # var_input_backup[2,],
+      fix_age_data_full,
+      f_list, # initial state of female population
+      m_list, # initial state of male population
+      TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+      TimeStop_transmission, # 1 day, hourly timestep for transission component
+      output, # model output: tracker or summary stats
+      summary_df, #
+      clean_environment,
+      Vstart,
+      Vprog,
+      fixdata,
+      vardata
+    )
+  
+  
+  
+  
+  
 }
-
 
 
 ####################
