@@ -34,7 +34,7 @@ datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
 ######################
 
 ## Simulation:
-TimeStop_dynamics <- 10*52 # 10 years (based on earlier simulations)
+TimeStop_dynamics <- 20*52 # 10 years (based on earlier simulations)
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 
@@ -75,7 +75,7 @@ transmission <- F;
 clean_environment <- T
 
 # timepoints for population growth
-t2 <- 5*52 # 5 year pop growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
 t1 <- TimeStop_dynamics
 
 # Format demographic parameter sets:
@@ -146,6 +146,17 @@ for(n in 1:length(pVs)){
   
   vOut[[n]] <- Out
 }
+
+saveRDS(vOut, file = "output/Applied/applied_output_vaccination_EXAMPLE-2023-10-31.RData")
+
+
+v70 <- vOut[[1]]
+v80 <- vOut[[2]]
+v90 <- vOut[[3]]
+v100 <- vOut[[4]]
+
+
+
 
 
 

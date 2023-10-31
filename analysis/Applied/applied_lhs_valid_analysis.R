@@ -127,7 +127,7 @@ validpars_SA <- validpars_SA %>% mutate(profile = "SA", prof2 = "SA")
 
 # Create df with valid pars and profile identifier:
 prof_rep <- rep(datasets, as.numeric(prof_count))
-pars_df <- as.data.frame(do.call(rbind, validOnly_pars))
+pars_df <- as.data.frame(do.call(rbind, validpars_App))
 
 validPars_df <- cbind(pars_df, profile = prof_rep) %>%
   as.data.frame() %>%
@@ -151,15 +151,23 @@ validPars_df <- rbind(validpars_SA,
 ggpairs(validPars_df %>% filter(prof2 != "sheep",
                                 profile != "oc.shp.semiaridM"),
         columns = 1:8,
+        legend = 1,
         aes(colour = profile,
             alpha = 0.5),
         upper = "blank")+
-  scale_colour_manual(values = c("#1B9E77","#D95F02","#7570B3","#333333"))
+  scale_colour_manual(values = c("#1B9E77","#D95F02","#7570B3","#333333"))+
+  scale_fill_manual(values = c("#1B9E77","#D95F02","#7570B3","#333333"))+
+  theme(legend.position = "bottom")
 
 ggpairs(validPars_df %>% filter(prof2 != "goat",
                                 profile != "oc.shp.semiaridM"),
         columns = 1:8,
+        legend = 1,
         aes(colour = profile,
             alpha = 0.5),
         upper = "blank")+
-  scale_colour_manual(values = c("#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#333333"))
+  scale_colour_manual(values = c("#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#333333"))+
+
+  scale_fill_manual(values = c("#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#333333"))+
+  theme(legend.position = "bottom")
+

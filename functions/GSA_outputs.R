@@ -3,10 +3,12 @@ GSA_output <- function(output_df, Vstart){
   
   pop_growth <- output_df[nrow(output_df),"sum_pop"] / output_df[1,"sum_pop"]
   tenyr_growth <- (output_df[t1, "sum_pop"]) / output_df[t2, "sum_pop"]
-  
   wk2mnth <- 4.345 # weeks to months 
   wk_6m <- round(wk2mnth*6, 0)
   wk_12m <- round(wk2mnth*12, 0)
+  
+  finyr_growth <- (output_df[t1, "sum_pop"]) / output_df[t1-wk_12m, "sum_pop"]
+  
   Imm_V0 <- output_df[Vstart, "prop_immune"]
   Imm_6m <- output_df[Vstart+wk_6m, "prop_immune"]
   Imm_12m <- output_df[(Vstart+wk_12m)-1, "prop_immune"] #minus 1 to account for annual campaigns
@@ -20,6 +22,7 @@ GSA_output <- function(output_df, Vstart){
     filter(w==max(w)) %>%
     cbind(pop_growth=pop_growth,
           tenyr_growth = tenyr_growth, 
+          finyr_growth = finyr_growth,
           imm_V0 = Imm_V0,
           imm_6m=Imm_6m,
           imm_12m=Imm_12m,
@@ -28,6 +31,7 @@ GSA_output <- function(output_df, Vstart){
            sum_pop, 
            pop_growth, 
            tenyr_growth,
+           finyr_growth,
            prop_immune, 
            imm_V0,
            imm_6m, 
