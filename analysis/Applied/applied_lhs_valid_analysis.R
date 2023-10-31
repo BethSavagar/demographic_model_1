@@ -1,4 +1,8 @@
-Outlist <- readRDS(file = "output/Applied/applied_output_lhs2_VALID-2023-10-30.RData")
+library(tidyverse)
+library(knitr)
+library(ggpubr)
+
+validOut <- readRDS(file = "output/Applied/applied_output_lhs2_VALID-2023-10-30.RData")
 fix_age_data_full <- read_csv("data/Applied_parameters/state_vars.csv",col_names=T)
 datasets <- fix_age_data_full %>% select(-c(parameter, oc.shp.humidM.valid)) %>% colnames()
 
@@ -126,6 +130,7 @@ ggpairs(validpars_SA)
 validpars_SA <- validpars_SA %>% mutate(profile = "SA", prof2 = "SA")
 
 # Create df with valid pars and profile identifier:
+prof_count <- valid_tally %>% as.data.frame() %>% pull(nvalid) %>% as.numeric()
 prof_rep <- rep(datasets, as.numeric(prof_count))
 pars_df <- as.data.frame(do.call(rbind, validpars_App))
 
@@ -171,3 +176,61 @@ ggpairs(validPars_df %>% filter(prof2 != "goat",
   scale_fill_manual(values = c("#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#333333"))+
   theme(legend.position = "bottom")
 
+######################################
+## Vaccination Uncertainty Examples ##
+######################################
+
+valid_df <- as.data.frame(do.call(rbind, validOnly))
+
+validOnly_df <- cbind(valid_df, profile = prof_rep) %>%
+  as.data.frame() %>%
+  # add profile identifier for faceting
+  mutate(prof2 = if_else(profile %in% c(
+    "oc.goat.aridP",
+    "oc.goat.semiaridP",
+    "oc.goat.subhumidM"), 
+    "goat", "sheep")) %>%
+  # remove columns which aren't parameters
+  select(tenyr_growth, 
+         imm_V0,
+         imm_6m,
+         imm_12m,
+         imm70_w,
+         profile,
+         prof2)
+
+validOnly_long <- validOnly_df %>% gather(key = "stat", value = "value", -c(profile, prof2))
+
+head(validOnly_long)
+
+mypal <- brewer.pal(5,"Dark2")
+
+A <- ggplot(validOnly_long %>% filter(!stat %in% c("imm70_w", "tenyr_growth")), 
+       aes(x = profile, y = as.numeric(value), fill = stat))+ 
+  geom_boxplot() +
+  facet_wrap(~stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = mypal[1:3])
+
+B <- ggplot(validOnly_long %>% filter(stat %in% c("imm70_w")), 
+            aes(x = profile, y = as.numeric(value), fill = stat))+ 
+  geom_boxplot() +
+  facet_wrap(~stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = mypal[4])
+
+
+C <- ggplot(validOnly_long %>% filter(stat %in% c("tenyr_growth")), 
+                 aes(x = profile, y = as.numeric(value), fill = stat))+ 
+  geom_boxplot() +
+  facet_wrap(~stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = mypal[1:3])
+
+ggarrange(A,B,C, ncol = 1)
