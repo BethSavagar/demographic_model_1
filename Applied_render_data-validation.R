@@ -1,16 +1,15 @@
 ###############################################################################################################
 ## Flock Dynamics - Applied Profile ~ Baseline/Basic Example
 ###############################################################################################################
-# Script rendering applied-profiles examples
+# Script for validating data and model output of Applied-Examples
 # Author: Beth Savagar
-# Date: 19.10.23
+# Date: 03/02/2023
 
 ############
 ## SETUP ##
 ############
 
 filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/3. Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
-
 
 ## Libraries
 source(paste0(filepath,"scripts/setup.R")) 
@@ -24,6 +23,11 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ## Load parameters
 applied_example <- T
+# Select dataset:
+data <- "-cgiar" #"-lesnoff" 
+demfile <- paste0("demographics", data, ".csv")
+statefile <- paste0("state_vars", data, ".csv")
+
 source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
 
 ## Dataset
@@ -34,7 +38,7 @@ datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
 ######################
 
 ## Simulation:
-TimeStop_dynamics <- 20*52 # 10 years (based on earlier simulations)
+TimeStop_dynamics <- 10*52 # 10 years (based on earlier simulations)
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 
@@ -45,9 +49,8 @@ output <- "dynamics" # Output options: "summary" (stats with age-group prop), "s
 #######################
 ## Vaccination Setup ##
 #######################
-# see applied_vaccination
-pVs <- seq(0.7,1,0.1)
-pV <- 0.8 # within flock coverage of each campaign (0.7-1)
+# Not interested in vaccination here
+pV <- 1 
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
@@ -64,8 +67,6 @@ lhs <- F
 GSAoutput <- c(); 
 Out <- list()
 vOut <- list()
-# pR_noIm_df <- c(); 
-# pop_dynamics <- c()
 
 summary_df <- output_func(TimeStop_dynamics, output) # create empty dataframe to store output
 
@@ -80,25 +81,9 @@ t1 <- TimeStop_dynamics
 
 # Format demographic parameter sets:
 var_input_backup <- var_demo_data_full %>% column_to_rownames("parameter") %>% t() %>% as.data.frame()
-# fixdata <- dataset
-# vardata <- dataset
-# 
-# if(dataset == "lesnoff.T"){
-#   rates <- "wkly"
-# }else{
-#   rates <- "yrly"
-# }
 
-for(n in 1:length(pVs)){
-  #######################
-  ## Vaccination Setup ##
-  #######################
-  # see applied_vaccination
-  pV <- pVs[n] # within flock coverage of each campaign (0.7-1)
-  source("scripts/applied/applied_vaccination.R")
-  Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
   
-  for(i in 1:length(datasets)){
+for(i in 1:length(datasets)){
     dataset <- datasets[i]
     data_filename <- gsub("\\.","",dataset)
     
@@ -119,7 +104,11 @@ for(n in 1:length(pVs)){
     if(dataset %in% c("lesnoff.T",
                       "lesnoff.b",
                       "lesnoff.c", 
-                      "lesnoff.d")){
+                      "lesnoff.c2", 
+                      "lesnoff.d",
+                      "lesnoff.e",
+                      "lesnoff.f",
+                      "lesnoff.g")){
       rates <- "wkly"
     }else{
       rates <- "yrly"
@@ -146,21 +135,6 @@ for(n in 1:length(pVs)){
         vardata
       )
   }
-  
-  vOut[[n]] <- Out
-}
-
-saveRDS(vOut, file = "output/Applied/applied_output_vaccination_EXAMPLE-2023-10-31.RData")
-
-
-v70 <- vOut[[1]]
-v80 <- vOut[[2]]
-v90 <- vOut[[3]]
-v100 <- vOut[[4]]
-
-
-
-
 
 
 ####################
@@ -178,11 +152,26 @@ Out_summary <- sapply(Out, function(x)
   mutate(prof = datasets, 
          fiveyr_growth = tenyr_growth)
 
-dynplot <- do.call(rbind, Out) %>% mutate(prof = rep(datasets, each = TimeStop_dynamics))
+
+# For Lesnoff Data:
+if(data == "-lesnoff"){
+  sevenyr_growth <- sapply(Out, function(x)
+    (x[t1, "sum_pop"]) / x[t1-(52*7), "sum_pop"]
+  )
+  twoyr_growth <- sapply(Out, function(x)
+    (x[t1, "sum_pop"]) / x[t1-(52*2), "sum_pop"]
+  )
+
+  Out_summary <- Out_summary %>% mutate(twoyr_growth = twoyr_growth,
+                                        sevenyr_growth = sevenyr_growth)
+
+}
 
 ##############
 ## PLOTTING ##
 ##############
+
+dynplot <- do.call(rbind, Out) %>% mutate(prof = rep(datasets, each = TimeStop_dynamics))
 
 dynplot <- dynplot %>%
   mutate(prof = factor(
@@ -190,10 +179,19 @@ dynplot <- dynplot %>%
   levels = c(
     "cgiar.goat",
     "cgiar.shp",
+    "cgiar.goat.b",
+    "cgiar.shp.b",
+    "cgiar.goat.c",
+    "cgiar.shp.c",
+    "cgiar.shp.d",
     "lesnoff.T",
     "lesnoff.b",
     "lesnoff.c",
+    "lesnoff.c2",
     "lesnoff.d",
+    "lesnoff.e",
+    "lesnoff.f",
+    "lesnoff.g",
     "oc.goat.aridP",
     "oc.goat.semiaridP",
     "oc.goat.semiaridM",
@@ -208,15 +206,23 @@ dynplot <- dynplot %>%
   )
 ))
 
-# dynplot_i <- dynplot %>% filter(prof %in% c("cgiar.goat","cgiar.shp"))
-# 
-# dynplot_i <- dynplot %>% filter(prof %in% c("lesnoff.T", "lesnoff.b", "lesnoff.c", "lesnoff.d"))
-# 
-dynplot_i <- dynplot %>% filter(prof %in% c("oc.goat.aridP",
-                                            "oc.goat.semiaridP",
-                                            "oc.goat.semiaridM",
-                                            "oc.goat.subhumidM",
-                                            "oc.goat.humidM"))
+if(data == "-cgiar") {
+  dynplot_i <-
+    dynplot %>% filter(prof %in% c("cgiar.goat", "cgiar.shp", "cgiar.goat.b",
+                                   "cgiar.shp.b","cgiar.goat.c",
+                                   "cgiar.shp.c","cgiar.shp.d"))
+}
+
+if(data == "-lesnoff"){
+  dynplot_i <- dynplot %>% filter(prof %in% c("lesnoff.T", "lesnoff.b", "lesnoff.c", "lesnoff.c2", "lesnoff.d", "lesnoff.e", "lesnoff.f","lesnoff.g"))
+}
+
+# # 
+# dynplot_i <- dynplot %>% filter(prof %in% c("oc.goat.aridP",
+#                                             "oc.goat.semiaridP",
+#                                             "oc.goat.semiaridM",
+#                                             "oc.goat.subhumidM",
+#                                             "oc.goat.humidM"))
 # 
 # dynplot_i <- dynplot %>% filter(prof %in% c("oc.shp.aridP",
 #                                             "oc.shp.semiaridP",
@@ -233,49 +239,52 @@ age_struc <- dynplot_i %>%
 plot_age <- ggplot(age_struc, aes(x = w, y = prop,col = age_group,group = age_group)) + 
   geom_line() + 
   facet_wrap( ~ prof,nrow=1) +
-  labs(x = "week", y = "population-propotion", title = "Age Structure, 5 years") +
+  labs(x = "week", y = "population-propotion", title = "Age Structure") +
   theme_bw()+
   theme(legend.position = "right")
   # theme(legend.position = "bottom") +
   # guides(color = guide_legend(nrow = 1))
 
-plot_growth <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/min(sum_pop)))+
+minpop <- dynplot_i %>% filter(w==1) %>% slice(1) %>% pull(sum_pop)
+
+plot_growth <- ggplot(dynplot_i, aes(x=w, y=sum_pop/minpop))+
   geom_line()+
   facet_wrap(~prof,nrow=1)+
-  labs(x="week", y="population-growth", title = "Population growth, 5 years")+
+  labs(x="week", y="population-growth", title = "Population growth")+
   theme_bw()
 
-plot_growth_free <- ggplot(dynplot_i %>% filter(w<500), aes(x=w, y=sum_pop/min(sum_pop)))+
+plot_growth_free <- ggplot(dynplot_i, aes(x=w, y=sum_pop/minpop))+
   geom_line()+
   facet_wrap(~prof, scales = "free",nrow=1)+
-  labs(x="week", y="population-growth", title = "Population growth, 5 years")+
+  labs(x="week", y="population-growth", title = "Population growth")+
   theme_bw()
 
-plot_immune <- ggplot(dynplot_i, aes(x=w, y=prop_immune))+
-  geom_line()+
-  facet_wrap(~prof,nrow=1)+
-  labs(x="week", y="proportion-immune", title = "Immune decay, 5 years")+
-  coord_cartesian(xlim=c(0,500))+
-  theme_bw()
-
-ggarrange(plot_age, plot_growth, plot_immune, ncol=1)
-
+ggarrange(plot_age, plot_growth, ncol=1)
 
 ########################
 ## PLOTTING SUMMARIES ##
 ########################
 
 Out_summary_long <- Out_summary %>%
-  select(imm_V0, imm_6m, imm_12m, imm70_w, finyr_growth, fiveyr_growth, prof) %>%
+  select(finyr_growth, fiveyr_growth, prof) %>%
   gather(Out_summary, value = "value", -prof) %>% 
   rename(stat = Out_summary) %>%
-  mutate(stat = factor(stat, levels = c("finyr_growth", "fiveyr_growth", "imm_V0", "imm_6m", "imm_12m", "imm70_w")))
+  mutate(stat = factor(stat, levels = c("finyr_growth", "fiveyr_growth")))
+
+if(data == "-lesnoff"){
+  Out_summary_long <- Out_summary %>%
+    select(finyr_growth, twoyr_growth, sevenyr_growth, prof) %>%
+    gather(Out_summary, value = "value", -prof) %>% 
+    rename(stat = Out_summary) %>%
+    mutate(stat = factor(stat, levels = c("finyr_growth", "twoyr_growth", "sevenyr_growth")))
+  
+  Out_summary %>% select(prof,sevenyr_growth,twoyr_growth,finyr_growth) %>% kable()
+  
+}
+
+Out_summary %>% select(prof,fiveyr_growth,finyr_growth) %>% kable()
 
 
-ggplot(Out_summary_long, aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
-  facet_wrap( ~ stat, scales = "free")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
 
 my_colors <- RColorBrewer::brewer.pal(4, "Dark2")[1:4]

@@ -11,6 +11,10 @@
 
 filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/3. Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
 
+# Select dataset:
+data <- "" # "-lhs" for LHS, "" for demographics examples, 
+demfile <- paste0("demographics", data, ".csv")
+statefile <- paste0("state_vars", data, ".csv")
 
 ## Libraries
 source(paste0(filepath,"scripts/setup.R")) 
@@ -116,10 +120,7 @@ for(n in 1:length(pVs)){
       vardata <- "value"
     }
     
-    if(dataset %in% c("lesnoff.T",
-                      "lesnoff.b",
-                      "lesnoff.c", 
-                      "lesnoff.d")){
+    if(dataset %in% c("lesnoff.T")){
       rates <- "wkly"
     }else{
       rates <- "yrly"
@@ -191,9 +192,6 @@ dynplot <- dynplot %>%
     "cgiar.goat",
     "cgiar.shp",
     "lesnoff.T",
-    "lesnoff.b",
-    "lesnoff.c",
-    "lesnoff.d",
     "oc.goat.aridP",
     "oc.goat.semiaridP",
     "oc.goat.semiaridM",
@@ -210,7 +208,7 @@ dynplot <- dynplot %>%
 
 # dynplot_i <- dynplot %>% filter(prof %in% c("cgiar.goat","cgiar.shp"))
 # 
-# dynplot_i <- dynplot %>% filter(prof %in% c("lesnoff.T", "lesnoff.b", "lesnoff.c", "lesnoff.d"))
+# dynplot_i <- dynplot %>% filter(prof %in% c("lesnoff.T"))
 # 
 dynplot_i <- dynplot %>% filter(prof %in% c("oc.goat.aridP",
                                             "oc.goat.semiaridP",

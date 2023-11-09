@@ -1,0 +1,15 @@
+﻿parameter,cgiar.shp.min,cgiar.shp.max,cgiar.shp.b.min,cgiar.shp.b.max
+NET_offtake_y,0.01,0.05,0.0297,0.0363
+NET_offtake_m,0.02,0.49,0.49,0.99
+NET_offtake_m2,0.47,0.51,0.49,0.99
+NET_offtake_f,0.01,0.02,0.018,0.022
+mortality_y,0.22,0.24,0.231,0.4
+mortality_a,0.06,0.13,0.06,0.13
+mortality_end,1,1,1,1
+birth_rate,1.26,1.4,1.26,1.4
+ppr_mortality_y,0,0,0,0
+ppr_mortality_a,0,0,0,0
+adu_f_max_yrs,6,6,6,6.5
+adu_m_max_yrs,5,5,4,4.5
+min_age_offtake,9,14,9,12.5
+min_age_repro,12,24,12,24

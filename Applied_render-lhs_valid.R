@@ -7,7 +7,6 @@
 # set up master loop to run through each different profile and save the output (possible this is the foreach statement?)
 
 # 26/10/23 - update script with lhs for each parameter set, see if any output is valid
-
 applied_example <- F
 local <- T
 ############
@@ -33,12 +32,19 @@ source(paste0(filepath, "functions/output.R")) # what to include in output df
 source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
 ## Load parameters
+# Select dataset:
+data <- "-lesnoff-lhs" # lhs, lhs2
+demfile <- paste0("demographics", data, ".csv")
+statefile <- paste0("state_vars", data, ".csv")
+
 source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
-var_demo_data_full <- read_csv("data/Applied_parameters/demographics-lhs2.csv", col_names=T)
 
+## Dataset
+datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
 
-## Datasets
-datasets <- fix_age_data_full %>% select(-c(parameter, oc.shp.humidM.valid)) %>% colnames()
+if(data == "-lhs2"){
+  datasets <- fix_age_data_full %>% select(-c(parameter, oc.shp.humidM.valid)) %>% colnames()
+}
 
 ######################
 ## MODEL SETUP ##
@@ -82,7 +88,7 @@ pfKid.min <- 0.05; pfKid.max <- 0.19
 pfSub.min <- 0.06; pfSub.max <- 0.19
 pfAdu.min <- 0.21; pfAdu.max <- 0.62
 
-pmKid.min <- 0.05; pmKid.max <- 0.16
+pmKid.min <- 0.05; pmKid.max <- 0.16; pmKid.max <- 0.19
 pmSub.min <- 0.04; pmSub.max <- 0.15
 pmAdu.min <- 0.01; pmAdu.max <- 0.15
 
@@ -93,13 +99,13 @@ pmAdu.min <- 0.01; pmAdu.max <- 0.15
 
 summary_df <- output_func(TimeStop_dynamics, output) # create empty dataframe to store output
 
-turnover <- F; 
-dynamics <- T; 
-transmission <- F; 
+# turnover <- F; 
+# dynamics <- T; 
+transmission <- T; 
 clean_environment <- T
 
 # timepoints for population growth
-t2 <- 5*52 # 5 year pop growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
 t1 <- TimeStop_dynamics
 
 
@@ -147,8 +153,8 @@ for(d in 1:length(datasets)){
   # filename1.rds <- paste0("applied_output_lhs_", data_filename, "-", tdate, ".RData")
   # filename2 <- paste0("applied_pars_lhs_", data_filename, "-",tdate, ".csv")
   # filename3 <- paste0("applied_outputSummary_lhs_", data_filename, "-",tdate, ".csv")
-  
-  if(dataset == "lesnoff.T"){
+  datasrc <- gsub("\\..*", "", dataset)
+  if(datasrc %in% c("lesnoff")){
     rates <- "wkly"
   }else{
     rates <- "yrly"
@@ -288,6 +294,10 @@ for(d in 1:length(datasets)){
   validPars[[d]] <- pars_valid
   
 }
+
+# Outlist is all outputs
+# Outvalid is only valid outputs
+#pars valid is only valid parameters
 
 tdate <- Sys.Date()
 filename  <- paste0("applied_output_lhs2_ALL-", tdate, ".RData")

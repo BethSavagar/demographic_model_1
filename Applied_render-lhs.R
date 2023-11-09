@@ -31,6 +31,16 @@ source(paste0(filepath, "functions/output.R")) # what to include in output df
 source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
 ## Load parameters
+
+## Load parameters
+
+# Select dataset:
+data <- "-lhs2" # "-lhs" for LHS, "" for demographics examples, 
+demfile <- paste0("demographics", data, ".csv")
+statefile <- paste0("state_vars", data, ".csv")
+if(data == "-lhs2"){
+  statefile <-"state_vars.csv"
+}
 source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
 
 ## Dataset
