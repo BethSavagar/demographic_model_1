@@ -17,7 +17,7 @@ filepath <- "/storage/users/bsavagar/"
 
 # local filepath: 
 if(local){
-  filepath <- "/Users/bethsavagar/Library/CloudStorage/OneDrive-RoyalVeterinaryCollege/3. Population_Dynamics_Model/pop-dynamics_April2020/demographic_model_1/"
+  filepath <- ""
 }
 
 ## Libraries
@@ -31,6 +31,7 @@ source(paste0(filepath, "functions/output.R")) # what to include in output df
 source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
 ## Load parameters
+## Reads in state_vars and demographics-lhs.csv which contain pars for each profile investigated
 source(paste0(filepath, "scripts/applied/applied_load_data.R")) 
 
 ## Dataset
@@ -96,6 +97,7 @@ varnames <- colnames(var_input)
 #######################
 # see applied_vaccination
 # 
+pV <- 1
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
@@ -105,8 +107,6 @@ Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 ## RUN MODEL ##
 ##################
 GSAoutput <- c(); 
-# pR_noIm_df <- c(); 
-# pop_dynamics <- c()
 
 summary_df <- output_func(TimeStop_dynamics, output) # create empty dataframe to store output
 
@@ -120,10 +120,14 @@ t2 <- 5*52 # 5 year pop growth
 t1 <- TimeStop_dynamics
 
 # Format demographic parameter sets:
-var_input_backup <- var_input_df %>% as.data.frame() %>% slice_sample(n=5)
-#var_input_backup <- var_demo_data_full %>% column_to_rownames("parameter") %>% t() %>% as.data.frame()
-write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save parameter set
-rm(var_input_df)
+if(local){
+  var_input_backup <- var_input_df %>% as.data.frame() %>% slice_sample(n=5)
+}else{
+  var_input_backup <- var_input_df %>% as.data.frame()
+  write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save parameter set
+  rm(var_input_df)
+}
+
 
 #####################
 ## PARALLELISATION ##
@@ -131,16 +135,17 @@ rm(var_input_df)
 
 print("start-parallel")
 
-cores=detectCores()
-cl <- makeCluster(10)
-registerDoParallel(cl)
+# Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(40)
+  registerDoParallel(cl)
+}
 
-## Local parallelisation
-# if(local <- T){
-#   cores=detectCores()
-#   cl <- makeCluster(cores[1]-1)
-#   registerDoParallel(cl)
-# }
 print("parallel-verified")
 print("start-model")
 # 
