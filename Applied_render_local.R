@@ -149,7 +149,7 @@ for(n in 1:length(pVs)){
 
 saveRDS(vOut, file = "output/Applied/applied_output_vaccination_EXAMPLE-2023-10-31.RData")
 
-
+# see vaccination_analysis_SIMPLE.R for output analysis
 v70 <- vOut[[1]]
 v80 <- vOut[[2]]
 v90 <- vOut[[3]]
@@ -330,6 +330,6 @@ plot_vaci <- ggplot(vacplot_i, aes(x=w, y=prop_immune))+
   geom_point(aes(col = prof), size = 0.5)+
   facet_wrap(~source,nrow=2)+
   labs(x="week", y="proportion-immune", title = "Immune decay, 5 years")+
-  coord_cartesian(xlim=c(260,500))+
+  # coord_cartesian(xlim=c(260,500))+
   theme_bw()
 plot_vaci
