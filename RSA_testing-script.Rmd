@@ -1,7 +1,7 @@
 ---
-title: "Regional Sensitivity Analysis BACKUP"
+title: "Regional Sensitivity Analysis"
 author: "Beth Savagar"
-date: "2023-06-21"
+date: "2023-04-26"
 output: pdf_document
 ---
 
@@ -18,12 +18,17 @@ library(readr)
 library(here)
 library(ggpubr)
 library(knitr)
+library(lhs)
 here()
 source("functions/demos_summary.R")
 source("functions/output.R")
 source("functions/dynmod.R")
 
 ```
+
+Overview
+- Old file testing RSA function with LHS analysis. 
+- Retain just in case it's useful down the line but not part of cleaned folder
 
 ```{r loaddata}
 
@@ -32,13 +37,27 @@ var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_name
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
 ```
 
+```{r loaddata2}
+# For later simulations with additional input variables:
+
+fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input_2.csv",col_names=T)
+var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input_2.csv", col_names=T)
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
+
+```
+
+
+
 Run the Regional Sensitivity Analysis for 25 years over 10000 lhs parameter sets. 
 - Preliminary simulations:
   - **Example 1**: with `var_input` as `max.1` and `max.1`, `fixed_input` as `sim.1` (i.e. 7y Female, 3y male) and 1,000 LHS parameter sets
   - **Example 2**: as 1 previous but with 10,000 parameter sets
   - **Example 3**: as 2 with 10,00 parameter sets and with 25year simulation, measuring population growth in last 10 years. RSA_1 and RSA_2 scripts can be used for analysis incl. population age-sex conditions
   - **Example 4**: 10,000 parameter sets, 25 year simulation run with broad prior parameters, `RSA_var_input` of `min.3`, `max.3` on 20/06/2023. The fixed demographic parameters are still as in `sim.1`. In RSA_analysis_2 with population conditions relaxed such that adult_male proportion ~ 20% is acceptable, SOME behavioural parameters were found. 
-  - **Example 5**: Revert to use of original parameter boundaries `min.1` and `max.1` but update fixed_demographic parameter to `sim.2` i.e. adult female age = 12, male adult age = 2. Thihs produces population output much closer to the specified conditions.
+  - **Example 5**: Revert to use of original parameter boundaries `min.1` and `max.1` but update fixed_demographic parameter to `sim.2` i.e. adult female age = 12, male adult age = 2. This produces population output much closer to the specified conditions.
+  - **Example 5**:  parameter boundaries `min.3` and `max.3` with additional variable parameters added (This produces population output much closer to the specified conditions.(27/06/2023)
+  - **Example 6**:  parameter boundaries `min.3` and `max.3` with fix_input `sim.2` from fix_input_2, such that pR (recovered units) = 1. To measure turnover rate. 28/06/2023.
+  - **Age-Sex Str Dynamics**: `var_input_set <- read.csv("output/RSAoutput_morevars_220623.csv")` load parameters with behavioural 10 year growth to assess age-sex dynamics and overall pop dynamics in last 5-10 years.
 
 ```{r model-setup}
 
@@ -49,9 +68,9 @@ TimeStop_dynamics <- 25*52 # 10 years
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 output <- "summary_all" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
-pars_filename <- "set_pars_RSA.R"
+pars_filename <- "set_pars_RSA2.R"
 lhs_n <- 1e4
-
+pairs_plot <- F
 # ---------------------------------
 ## SENSITIVITY ANALYSIS PARAMETERS:
 
@@ -59,18 +78,23 @@ SA <- TRUE
 set.seed(1)
 if(SA == TRUE){
   # select parameter min-max pair (see RSA_var_input.csv)
-pars_min <- "min.1"
-pars_max <- "max.1"
+pars_min <- "min.3"
+pars_max <- "max.3"
 
 # latin hypercube sampling of parameter space:
 # output is var_input_set dataframe with sampled parameter sets for each variable input (demographic) parameter
-source("scripts/RSA/RSA_lhs.R")
+source("scripts/RSA/RSA_lhs2.R")
 }else{
 # test_1 dataset, all aprameters set to 0 and all animals in age group 1 (susceptible)
 dataset1 <- "sim.1" # select dataset for test data
 dataset2 <- "sim.1" # select dataset for age data
 }
-#  dataset2 <- "sim.2"
+
+dataset2 <- "sim.2" # fix_input_2 : sim.2 for pR=1
+
+# RSA_analysis_2.2 tenyr growth set:
+# var_input_set <- tenyr_pars / valid_as_pars_df
+# lhs_n <- nrow(var_input_set)
 
 ```
 
@@ -78,7 +102,8 @@ dataset2 <- "sim.1" # select dataset for age data
 
 
 ## RSA FOR-LOOP
-RSAoutput <- c()
+RSAoutput <- c(); pR_noIm_df <- c(); pop_dynamics <- c()
+turnover <- F; dynamics <- T
 
 # timepoints for the population growth
 t2 <- 15*52
@@ -86,7 +111,7 @@ t1 <- TimeStop_dynamics
 
 for(i in 1:lhs_n){
   # print(i)
-  source("scripts/parameters/set-pars-RSA.R")
+  source("scripts/parameters/set-pars-RSA2.R")
   # output is demographic pars dataframe (for sex-age-groupings) and starting population m_list, f_list
   
   
@@ -116,28 +141,41 @@ for(i in 1:lhs_n){
   summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df)
   
   output_df <- dynmod_func(
-    f_list,# initial state of female population
-    m_list,# initial state of male population
-    TimeStop_dynamics,# 1 year, weekly timestep for demographic component
-    TimeStop_transmission,# 1 day, hourly timestep for transission component
-    output,# model output: tracker or summary stats
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
     demographic_pars,
-    summary_df
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
   )
 
   output_df <- output_df %>% replace(is.na(.), 0)
- 
-  
+  pR_noIm_temp <- output_df %>% pull(pR_noIm)
+  agesex_dynamics <- output_df %>% mutate(set = i)
   ## output is pop growth from t=0 to end
   
   res <- output_df %>%
    filter(w==TimeStop_dynamics) %>%
    mutate(pop_growth = output_df[nrow(output_df),"sum_pop"] / output_df[1,"sum_pop"],
-          tenyr_growth = output_df[t2, "sum_pop"] / output_df[t1, "sum_pop"],
+          tenyr_growth = (output_df[t1, "sum_pop"]) / output_df[t2, "sum_pop"],
           set = i)
   
   RSAoutput <- RSAoutput %>%
     rbind(res)
+  
+  if(turnover == T){
+    pR_noIm_df <- pR_noIm_df %>%
+      rbind(pR_noIm_temp)
+  }
+  
+  if(dynamics == T){
+    pop_dynamics <- pop_dynamics %>% rbind(agesex_dynamics) %>% as.data.frame()
+  }
 }
 
 # write.csv(RSAoutput,"output/RSA_output/RSAoutput_20230601.csv",row.names=F)
@@ -223,13 +261,17 @@ for(i in set){
   summary_df <- summary_demos(w = 1, f_list, m_list, output, summary_df)
   
   output_df <- dynmod_func(
-    f_list,# initial state of female population
-    m_list,# initial state of male population
-    TimeStop_dynamics,# 1 year, weekly timestep for demographic component
-    TimeStop_transmission,# 1 day, hourly timestep for transission component
-    output,# model output: tracker or summary stats
+     f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
     demographic_pars,
-    summary_df
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
   )
   
   output_df <- output_df %>% replace(is.na(.), 0)

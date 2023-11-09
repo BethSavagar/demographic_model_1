@@ -1,24 +1,35 @@
 ###############################################################################################################
 ## Script for RSA on RVC cluster - 04/07/23
 ###############################################################################################################
-# this code needs modifying for cluster
-# - makeCluster with 30cores
-# - lhs_n = 1e4
-# - parallel computing with foreach and doPar packages
+# Test function locally - 9Nov23
+# Verified function works.
+# LHS of parameter space to identify valid parameter sets
+# Using RSAfunc to produce population growth and age-sex structure of population (output %in% summary, summary_all)
+# Or produce full pop dynamics (output == dynamics)
 
+## Filepath ##
+local <- T
+if(local){
+  filepath <- ""
+}
 filepath <- "/storage/users/bsavagar/"
-## Sims script: set up 23 June to run base vaccination simulations
+
+## Setup ##
+
 source(paste0(filepath,"scripts/setup.R"))
-list.files(paste0(filepath,"functions"), full.names = TRUE) %>% map(source)
+
+## Functions ##
+
+source(paste0(filepath, "functions/demos_summary.R")) # compute output statistics (dynamics, summary, summary_all)
+source(paste0(filepath, "functions/RSAfunc.R")) # wrapper function for fynamics model
+source(paste0(filepath, "functions/dynmod.R")) # dynamocs model simulation
+source(paste0(filepath, "functions/output.R")) # generate output dataframe
+
+## Data ##
 source(paste0(filepath, "scripts/load_data.R"))
 # #
 # ###############################################################################################################
-# ## PARALLEL COMPUTATION ##
-# # 
-# cores=detectCores()
-# cl <- makeCluster(cores[1]-1) # for running locally
-# registerDoParallel(cl)
-# stopCluster(cl)
+
 # -----------------------
 ## SET FILENAMES ##
 
@@ -81,15 +92,22 @@ t1 <- TimeStop_dynamics
 # insert model from RSA_test2.Rmd
 
 var_input_backup <- var_input_set %>% as.data.frame()
+# var_input_backup <- var_input_set %>% as.data.frame() %>% slice_sample(.,n=5)
 write_csv(var_input_backup, paste0(filepath, "output/", filename2)) # save paramter set
 rm(var_input_set)
 
 
 ## PARALLELISATION ##
 
-cores=detectCores()
-cl <- makeCluster(50) # for running locally
-registerDoParallel(cl)
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1) # for running locally
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(50) # for running locally
+  registerDoParallel(cl)
+}
 
 RSAout <- foreach (i = 1:nrow(var_input_backup), 
                    .packages = c("dplyr"),

@@ -13,9 +13,6 @@ RSA_func <- function(
   
   # use demographic matrix: 
   var_input_set <- var_input_full
-  # this script uses the fix_age_data df (fixed parameters + init pop state) and  var_input_set (variable demographic rates) to generate the demographic_pars df which contains the demographic rates for each week-long sex-age group
-  # source("scripts/parameters/set-pars-RSA3.R") # removing this script seems potentially to have fixed the issue? 
-  # output is demographic pars dataframe (for sex-age-groupings) and starting population m_list, f_list
   
   fix_age_data <- fix_age_data_full %>% select(parameter, "value" = all_of(`fixdata`))
   
@@ -276,29 +273,11 @@ RSA_func <- function(
              )
   }
   
-  # if(dynamics == T){
-  #  res <- output_df
-  # }
-  # 
+  if(output == "dynamics"){
+   res <- output_df
+  }
   
   return(res)
-  
-  
-  # below not required as output for RSA - only pop growth & age-sex structure in first instance.
-  
-  # # 
-  # if(dynamics == T){
-  #   pop_dynamics <- pop_dynamics %>% rbind(agesex_dynamics) %>% as.data.frame()
-  # }
-  
-  # RSAoutput <- RSAoutput %>%
-  #   rbind(res)
-  
-  # if(turnover == T){
-  #   pR_noIm_df <- pR_noIm_df %>%
-  #     rbind(pR_noIm_temp)
-  # }
-  
 
 }
 
