@@ -31,7 +31,7 @@ Overview
 - Retain just in case it's useful down the line but not part of cleaned folder
 
 ```{r loaddata}
-
+# this is data for old version of model probably not needed at all (Nov 23)
 fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input.csv",col_names=T)
 var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input.csv", col_names=T)
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") # "scripts/demographic-data/mat-imm-decay.R" for workings
