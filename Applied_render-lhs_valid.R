@@ -99,7 +99,7 @@ transmission <- F;
 clean_environment <- T
 
 # timepoints for population growth
-t2 <- 5*52 # 5 year pop growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
 t1 <- TimeStop_dynamics
 
 
