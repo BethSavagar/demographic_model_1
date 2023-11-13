@@ -2,7 +2,7 @@
 # Author: Beth Savagar
 # Date: 10.10.23
 
-# 9/11/23
+# 9/11/23: Run model with LHS of lesnoff parameter space. Analyse results against original valid population conditions and against lesnoff population growth reports. 
 
 applied_example <- F
 local <- T
@@ -40,13 +40,12 @@ datasets <- fix_age_data_full %>% select(-c(parameter)) %>% colnames()
 ######################
 
 ## Simulation:
-TimeStop_dynamics <- 10*52 # 2 years only interested in rates for 1 y
+TimeStop_dynamics <- 20*52 # 2 years only interested in rates for 1 y
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 
 ## Model Output
-output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
-
+output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 
 #######################
 ## Vaccination Setup ##
@@ -56,37 +55,12 @@ pV <- 1
 source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
-##################################
-## Demographic parameters - LHS ##
-##################################
-
-## Setup
-lhs <- T
-lhs_n <- 1e3 # number of sets (parameter combinations)
-#lhs_n <- 5000
-pairs_plot <- F
-SA <- TRUE
-
-
-##################################
-## Valid Age-Sex Conditions ##
-##################################
-
-## Min and max proportions for each sex-age group (see age-sex SS)
-pfKid.min <- 0.05; pfKid.max <- 0.19
-pfSub.min <- 0.06; pfSub.max <- 0.19
-pfAdu.min <- 0.21; pfAdu.max <- 0.62
-
-pmKid.min <- 0.05; pmKid.max <- 0.16
-pmSub.min <- 0.04; pmSub.max <- 0.15
-pmAdu.min <- 0.01; pmAdu.max <- 0.15
-
 ##################
 ## RUN MODEL ##
 ##################
 
-
-summary_df <- output_func(TimeStop_dynamics, output) # create empty dataframe to store output
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
 
 turnover <- F; 
 dynamics <- T; 
@@ -104,8 +78,6 @@ t1 <- TimeStop_dynamics
 
 print("start-parallel")
 
-
-
 ## Local parallelisation
 if(local){
   cores=detectCores()
@@ -118,32 +90,24 @@ if(local){
 }
 print("parallel-verified")
 print("start-model")
-# 
 
-##############
-## FOR LOOP ##
-##############
-
-# validOut = list to store outputs
-GSAoutput <- c(); 
-Out_list <- list()
-validOut <- list()
-validPars <- list()
-# pR_noIm_df <- c(); 
-# pop_dynamics <- c()
+##################################
+## LHS DEMOGRAPHIC PARS ##
+##################################
 
 dataset <- "lesnoff.yr"
 data_filename <- gsub("\\.","",dataset)
-  
+
 if(dataset == "lesnoff.ft"){
   rates <- "wkly"
 }else{
   rates <- "yrly"
 }
-  
-#########
-## LHS ##
-#########
+
+lhs <- T
+lhs_n <- 1e3 # number of sets (parameter combinations)
+pairs_plot <- F
+SA <- TRUE
 
 # set seed
 set.seed(1) # so that results are consistent
@@ -158,10 +122,55 @@ source("scripts/applied/applied_lhs.R") # output var_input_df contains all param
 # Format demographic parameter sets:
 var_input_backup <- var_input_df %>% as.data.frame()
 
+##############
+## FOR LOOP ##
+##############
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+Out_list <- list()
+validOut <- list()
+validPars <- list()
+
 ################
 ## SIMULATION ##
 ################
 Out <- foreach (i = 1:nrow(var_input_backup), 
+                .packages = c("dplyr", "tibble")
+) %dopar% {
+  
+  print(i)
+  var_input_full <- unlist(var_input_backup[i,])
+  
+  App_func(
+    imm_decay_corrected,
+    var_input_full,
+    fix_age_data_full,
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    summary_df, #
+    clean_environment,
+    Vstart,
+    Vprog,
+    fixdata,
+    vardata
+  )
+}
+
+############
+############
+
+output <- "summary_all"
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+################
+## SIMULATION ##
+################
+Out2 <- foreach (i = 1:nrow(var_input_backup), 
                 .packages = c("dplyr", "tibble"),
                 .combine = "rbind"
 ) %dopar% {
@@ -186,6 +195,12 @@ Out <- foreach (i = 1:nrow(var_input_backup),
     vardata
   )
 }
+
+Out2 <- Out2 %>% rename("midyr_growth"="tenyr_growth")
+
+
+
+
 
 # female mortality <12m target
 F1targ_minW <- 0.006
@@ -214,11 +229,3 @@ valid_mort_df <- var_input_backup[valid_mort, ] %>% select(mortality_y, mortalit
 
 ggplot(valid_mort_df, aes(x=mortality_y, y = mortality_a))+geom_point()
 
-
-# AGe-Sex plots
-
-agesex <- Out %>% 
-  select(starts_with("pf"), starts_with("pm")) %>% 
-  gather(key = "par", value = "prop")
-
-ggplot(agesex, aes(x=par, y = prop))+geom_boxplot()
