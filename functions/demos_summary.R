@@ -23,7 +23,7 @@ summary_demos <- function(
   mI <- m_list[["mI"]]
   mR <- m_list[["mR"]]
   
-  if(output %in% c("summary", "summary_all", "dynamics")){
+  if(output %in% c("summary", "summary_all", "dynamics", "pop_tracker")){
     # total population size
     fpop <- fIm+fS+fE+fI+fR
     mpop <- mIm+mS+mE+mI+mR
@@ -63,16 +63,12 @@ summary_demos <- function(
   
   # add row to summary stats dataframe
   if (output == "summary") {
-    summary_df[w, ] <-
-      c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pKid,pSub,pAdu)
-    
+    summary_df[w, ] <-c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pKid,pSub,pAdu)
   } else if (output %in% c("summary_all","dynamics")) {
-    summary_df[w, ] <-
-      c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
-  } else if (output == "counts") {
-    # tracking matrix...
-    #...
-    #...
+    summary_df[w, ] <- c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
+  } else if (output == "pop_tracker") {
+    pop_w <- cbind(w,fpop,mpop,pop_tot, sum_pop)
+    summary_df <- rbind(summary_df,pop_w)
     count_df <- c()
   }
   # Output of Model: 
@@ -81,6 +77,8 @@ summary_demos <- function(
   }else if(output == "summary_all"){
     return(summary_df)
   }else if(output == "dynamics"){
+    return(summary_df) 
+  }else if(output == "pop_tracker"){
     return(summary_df)
   }
 }

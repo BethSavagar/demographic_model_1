@@ -26,6 +26,10 @@ source("functions/dynmod.R")
 
 ```
 
+## Overview
+
+R markdown script testing first version of flock dynamics model. Including testing maternal immunity decay, births and deaths and empirical test using basic BAOBAB data (NET offtake = 0)
+
 ## Maternal Immunity
 
 - Check implementation of maternal immunity decay by comparing model output to empirical data (from Bodjo *et al*)
@@ -84,15 +88,19 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 
 # -----------------------
 ## MODEL
-
+min_pop <- 1
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+   f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 
@@ -242,13 +250,17 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 ## MODEL
 
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+   f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 
@@ -395,13 +407,17 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 ## MODEL
 
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 
@@ -548,13 +564,17 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 ## MODEL
 
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+   f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 
@@ -705,13 +725,17 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 ## MODEL
 
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 
@@ -887,13 +911,17 @@ summary_df <- summary_demos(w=1, f_list, m_list, output, summary_df)
 ## MODEL
 
 output_df <- dynmod_func(
-  f_list, # initial state of female population
-  m_list, # initial state of male population
-  TimeStop_dynamics, # 1 year, weekly timestep for demographic component
-  TimeStop_transmission, # 1 day, hourly timestep for transission component
-  output, # model output: tracker or summary stats
-  demographic_pars,
-  summary_df
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    demographic_pars,
+    summary_df,
+    Imm_b,
+    Kid,
+    Sub,
+    Adu_F
 )
 ```
 

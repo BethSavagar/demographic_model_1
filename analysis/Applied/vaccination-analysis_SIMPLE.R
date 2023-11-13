@@ -165,11 +165,7 @@ summary_long <- summary_df %>%
   rename(stat = summary_df) %>%
   mutate(stat = factor(stat, levels = c("finyr_growth","tenyr_growth", "imm_V0", "imm_6m", "imm_12m", "imm70_w")))
 
-summary_long <- summary_df %>%
-  select(imm_V0, imm_6m, imm_12m, imm70_w, tenyr_growth, finyr_growth, prof,pV) %>%
-  gather(summary_df, value = "value", -c(prof,pV)) %>% 
-  rename(stat = summary_df) %>%
-  mutate(stat = factor(stat, levels = c("finyr_growth","tenyr_growth", "imm_V0", "imm_6m", "imm_12m", "imm70_w")))ggplot(summary_long, aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+ggplot(summary_long, aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
   facet_wrap( ~ stat, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
@@ -234,3 +230,52 @@ plot_vaci <- ggplot(vacplot_i, aes(x=w, y=prop_immune))+
   coord_cartesian(xlim = c(500,800))+
   theme_bw()
 plot_vaci
+
+
+
+
+##################################################
+##################################################
+##################################################
+
+
+Out_summary_long <- summary_long %>% filter(pV == 1)
+
+
+my_colors <- RColorBrewer::brewer.pal(4, "Dark2")[1:4]
+
+A <- ggplot(Out_summary_long %>% filter(stat %in% c("finyr_growth")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = my_colors[1])+
+  labs(x = "", y = "Population growth")
+
+B <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_V0","imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  coord_cartesian(ylim = c(0,0.9))+
+  # scale_fill_manual(values = my_colors[2:4])+
+  labs(x = "", y = "Proportion immune")
+
+B2 <- ggplot(Out_summary_long %>% filter(stat %in% c("imm_V0","imm_6m", "imm_12m")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  coord_cartesian(ylim = c(0,0.9))+
+  scale_fill_manual(values = my_colors[2:4])+
+  labs(x = "", y = "Proportion immune")
+
+C <- ggplot(Out_summary_long %>% filter(stat %in% c("imm70_w")), aes(x = prof, y = as.numeric(value), fill = stat)) + geom_col(position = position_dodge(width = 0.9)) +
+  facet_wrap( ~ stat, scales = "free")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = my_colors[5])+
+  labs(x = "", y = "Weeks to 70%")
+
+ggarrange(A,B,C, ncol = 1)

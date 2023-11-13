@@ -22,38 +22,42 @@ App_func <- function(
   # update state vars and demographics data 
   var_input_set <- var_input_full
   fix_age_data <- fix_age_data_full %>% 
-    select(parameter, "value" = all_of(`fixdata`))
+    select(parameter, all_of(`fixdata`))
   
   if(lhs & class(var_input_full) == "numeric"){
     var_input_set <- var_input_full %>%
       as.data.frame() %>%
       rownames_to_column(var = "parameter") %>%
       rename("value"=".")
-    }
+    names(var_input_set) <- c("parameter", fixdata)
+  }
   if(applied_example & class(var_input_full) == "numeric"){
     var_input_set <- var_input_full %>%
       as.data.frame() %>%
       rownames_to_column(var = "parameter") %>%
       rename("value"=".")
+    names(var_input_set) <- c("parameter", fixdata)
   }
   
+  
+  ###
   # -------------------
   ## State Variables ##
   # -------------------
   
   ## Flock Size ##
-  N_tot <- fix_age_data %>% filter(parameter=="N_tot") %>% pull(value) # number of animals in population (flock or village)?
+  N_tot <- fix_age_data %>% filter(parameter=="N_tot") %>% pull(`fixdata`) # number of animals in population (flock or village)?
   
   ## Flock Structure ##
   # set proportion of male/female: kid (<6m), sub (<12m), adu (12m+)
   
-  kid_f_prop <- fix_age_data %>% filter(parameter=="kid_f_prop") %>% pull(value) 
-  sub_f_prop <- fix_age_data %>% filter(parameter=="sub_f_prop") %>% pull(value) 
-  adu_f_prop <- fix_age_data %>% filter(parameter=="adu_f_prop") %>% pull(value) 
+  kid_f_prop <- fix_age_data %>% filter(parameter=="kid_f_prop") %>% pull(`fixdata`) 
+  sub_f_prop <- fix_age_data %>% filter(parameter=="sub_f_prop") %>% pull(`fixdata`) 
+  adu_f_prop <- fix_age_data %>% filter(parameter=="adu_f_prop") %>% pull(`fixdata`) 
   
-  kid_m_prop <- fix_age_data %>% filter(parameter=="kid_m_prop") %>% pull(value) 
-  sub_m_prop <- fix_age_data %>% filter(parameter=="sub_m_prop") %>% pull(value) 
-  adu_m_prop <- fix_age_data %>% filter(parameter=="adu_m_prop") %>% pull(value) 
+  kid_m_prop <- fix_age_data %>% filter(parameter=="kid_m_prop") %>% pull(`fixdata`) 
+  sub_m_prop <- fix_age_data %>% filter(parameter=="sub_m_prop") %>% pull(`fixdata`) 
+  adu_m_prop <- fix_age_data %>% filter(parameter=="adu_m_prop") %>% pull(`fixdata`) 
   
   age_p_f <- c("kid_f_p"=kid_f_prop,"sub_f_p"=sub_f_prop,"adu_f_p"=adu_f_prop) # sex-age group proportions (INITIAL)
   age_p_m <- c("kid_m_p"=kid_m_prop,"sub_m_p"=sub_m_prop,"adu_m_p"=adu_m_prop)
@@ -61,17 +65,17 @@ App_func <- function(
   ## Immune Fraction ##
   pR <- fix_age_data %>% 
     filter(parameter=="pR") %>% 
-    pull(value)  # proportion initially in R state
+    pull(`fixdata`)  # proportion initially in R state
   
   ## Age Group Limits ##
   
   wk2mnth <- 4.345 # weeks per month
   
   # kids
-  kid_max <- fix_age_data %>% filter(parameter=="kid_max") %>% pull(value) 
+  kid_max <- fix_age_data %>% filter(parameter=="kid_max") %>% pull(`fixdata`) 
   kid_max_wks <- round(kid_max*wk2mnth)
   # sub-adults
-  sub_max <- fix_age_data %>% filter(parameter=="sub_max") %>% pull(value) 
+  sub_max <- fix_age_data %>% filter(parameter=="sub_max") %>% pull(`fixdata`) 
   sub_max_wks <- round(sub_max*wk2mnth)
   # adults
   max_age_F <- var_input_set %>% filter(parameter == "adu_f_max_yrs") %>% pull(`vardata`) *52
@@ -101,27 +105,22 @@ App_func <- function(
     off_1 <- 0
   }
   
-  # resolve issues with pulling data from var_input_set:
-  if(lhs){
-    fixdata = "value"
-  }
-
   ## Pull Demographics ##
   
-    if("NET_offtake_y" %in% var_input_set$parameter){
-      off_1 <- var_input_set %>% filter(parameter == "NET_offtake_y") %>% pull(`vardata`)
-    }
-    off_F <- var_input_set %>% filter(parameter == "NET_offtake_f") %>% pull(`vardata`)
-    off_M <- var_input_set  %>% filter(parameter == "NET_offtake_m") %>% pull(`vardata`)
-    off_M2 <- var_input_set  %>% filter(parameter == "NET_offtake_m2") %>% pull(`vardata`)
-    mort_1 <- var_input_set  %>% filter(parameter == "mortality_y") %>% pull(`vardata`)
-    mort_2 <- var_input_set  %>% filter(parameter == "mortality_a") %>% pull(`vardata`)
-    # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
-    birth_r <- var_input_set  %>% filter(parameter == "birth_rate")  %>% pull(`vardata`)
-
-    min_age_offtake <- var_input_set  %>% filter(parameter == "min_age_offtake") %>% pull(`vardata`)
-    min_age_repro <- var_input_set  %>% filter(parameter == "min_age_repro") %>% pull(`vardata`)
-
+  if("NET_offtake_y" %in% var_input_set$parameter){
+    off_1 <- var_input_set %>% filter(parameter == "NET_offtake_y") %>% pull(`vardata`)
+  }
+  off_F <- var_input_set %>% filter(parameter == "NET_offtake_f") %>% pull(`vardata`)
+  off_M <- var_input_set  %>% filter(parameter == "NET_offtake_m") %>% pull(`vardata`)
+  off_M2 <- var_input_set  %>% filter(parameter == "NET_offtake_m2") %>% pull(`vardata`)
+  mort_1 <- var_input_set  %>% filter(parameter == "mortality_y") %>% pull(`vardata`)
+  mort_2 <- var_input_set  %>% filter(parameter == "mortality_a") %>% pull(`vardata`)
+  # mort_end <- var_demo_data %>% filter(parameter=="mortality_end") %>% pull(value) # natural mortality rate for final age group (per week)
+  birth_r <- var_input_set  %>% filter(parameter == "birth_rate")  %>% pull(`vardata`)
+  
+  min_age_offtake <- var_input_set  %>% filter(parameter == "min_age_offtake") %>% pull(`vardata`)
+  min_age_repro <- var_input_set  %>% filter(parameter == "min_age_repro") %>% pull(`vardata`)
+  
   
   ## Convert to weekly rates ##
   # (if yearly):
@@ -134,24 +133,24 @@ App_func <- function(
     mort_2 <- 1-((1-mort_2)^(1/52))
     birth_r <- birth_r / 52
   }
-
-    #(if fortnightly:
-    if(rates == "2wkly"){
-      off_1 <- 1-((1-off_1)^(1/2))
-      off_F <- 1-((1-off_F)^(1/2))
-      off_M <- 1-((1-off_M)^(1/2))
-      off_M2 <- 1-((1-off_M2)^(1/2))
-      mort_1 <- 1-((1-mort_1)^(1/2))
-      mort_2 <- 1-((1-mort_2)^(1/2))
-      birth_r <- birth_r / 2
-    } 
-    
+  
+  #(if fortnightly:
+  if(rates == "2wkly"){
+    off_1 <- 1-((1-off_1)^(1/2))
+    off_F <- 1-((1-off_F)^(1/2))
+    off_M <- 1-((1-off_M)^(1/2))
+    off_M2 <- 1-((1-off_M2)^(1/2))
+    mort_1 <- 1-((1-mort_1)^(1/2))
+    mort_2 <- 1-((1-mort_2)^(1/2))
+    birth_r <- birth_r / 2
+  } 
+  
   # Convert ages to wks
   min_offtake_wks <- round(min_age_offtake*wk2mnth)
   max_M2off_wks <- round(24*wk2mnth) # most male offtake before 12-18months 
   min_repro_wks <- round(min_age_repro*wk2mnth)
   
-
+  
   ## Construct Demographics DF ##
   demographic_pars <- data.frame(
     age_weeks = 1:max_age_F) %>% # nrow = age in weeks
@@ -249,6 +248,9 @@ App_func <- function(
     rm(fix_age_data,kid_f_prop,sub_f_prop,adu_f_prop,kid_m_prop,sub_m_prop,adu_m_prop,kid_max,sub_max, max_age_F,max_age_M,fIm_init,fS_init,fE_init,fI_init,fR_init,mIm_init,mS_init,mE_init,mI_init,mR_init,off_1,off_F,off_M,mort_1,mort_2,birth_r,ppr_mort_1,ppr_mort_2)
   }
   
+  
+  
+  ###
   #--------------------------
   ## Transmission parameters ##
   #--------------------------
@@ -293,11 +295,11 @@ App_func <- function(
     res <- GSA_output(output_df,Vstart)
   }
   
-  if(output == "dynamics"){
+  if(output %in% c("dynamics", "pop_tracker")){
     res <- output_df
   }
   
   return(res)
-
+  
 }
 

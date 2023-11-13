@@ -1,3 +1,8 @@
+# Comment 9-Nov after testing: 
+# RSA function where set-pars script is sourced within the function
+# this was changed because it wasn't working with remote computing
+# keep as a reference but no longer in use
+
 RSA_func_backup <- function(
     imm_decay_corrected,
     var_input_full,

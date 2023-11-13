@@ -167,6 +167,7 @@ dynmod_func <- function(
     
     ## OUTPUT ##
     
+    
     f_list <- list("fIm"=fIm_cur,
                    "fS"=fS_cur,
                    "fE"=fE_cur,
@@ -209,6 +210,7 @@ dynmod_func <- function(
                                    Sub,
                                    Adu_F)
     }
+    
     
     ## UPDATE STATES ##
     
