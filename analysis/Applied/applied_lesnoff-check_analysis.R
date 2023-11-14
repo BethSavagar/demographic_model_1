@@ -2,40 +2,69 @@ library(tidyverse)
 library(knitr)
 library(ggpubr)
 
+# ANALYSIS OF LESNOFF LHS PARAMETER SETS:
+
+################################
+## POP & AGE-SEX DYNAMICS ##
+################################
+
+# Out is a list of df which track full population dynamics for 1000 (lhs_n) parameter combinations over 20y periods
+
+# Sample for plotting
 dyn_sample <- sample(1:lhs_n, 10, replace = F)
 
-
+# Transform Out (list) into a df of dynamics with each set identified:
 Out_dynamics <- Out %>%
   do.call(rbind, .) %>% 
   mutate(set = rep(1:lhs_n, each = TimeStop_dynamics))
 
+# Population Growth plot:
 ggplot(Out_dynamics %>% filter(set %in% dyn_sample), aes(x = w, y = sum_pop, group = set)) + 
   geom_line()
 
+# AgeSex Dynamics df: 
 Out_agesex <- Out_dynamics %>% 
   select(c("w", "set", starts_with("pf"), starts_with("pm"))) %>% 
   gather(key = "par", value = value, -c(w,set))
 
+# Age-Sex Plot:
 ggplot(Out_agesex %>% filter(set %in% dyn_sample), aes(x = w, y = value, group = set, col = par)) + 
   geom_line()+
   facet_wrap(~par)
 
 
-### out 2
+################################
+## POP & AGE-SEX SUMMARY ##
+################################
 
+# Out2 is a dataframe of summary data for each parameter set 
 
-## Analyse population growth:
+## Plot population growth stats: 
+# - Total Growth (20y), 
+# - Midyr Growth (10y), 
+# - Finyr Growth (1y)
 
+# df of population growth stats:
 popgrowth <- Out2 %>% 
   select(ends_with("growth")) %>% 
   gather(key = "par", value = "prop")
 
 ggplot(popgrowth, aes(x=par, y = prop))+
-  geom_boxplot()
+  geom_boxplot()+
+  facet_wrap(~par, scales = "free")+
+  labs(x = "Growth Stat", 
+       y = "Pop Growth",
+       title = "Growth statistics for Lesnoff data, LHS parameter sets")+
+  theme_bw()
 
 ggplot(Out2, aes(finyr_growth))+
-  geom_histogram()+
-  geom_vline(xintercept = 1)
+  geom_histogram(colour = "black",
+                 alpha = 0.5)+
+  geom_vline(xintercept = 1)+
+  labs(x="Final year growth", 
+       y = "Count", 
+       title = "Distribution of final year growth (LHS paremeter sets)")+
+  theme_bw()
 
 
 ## Analyse age-sex dynamics:
