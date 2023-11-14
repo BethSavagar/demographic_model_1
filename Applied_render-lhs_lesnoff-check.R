@@ -197,35 +197,3 @@ Out2 <- foreach (i = 1:nrow(var_input_backup),
 }
 
 Out2 <- Out2 %>% rename("midyr_growth"="tenyr_growth")
-
-
-
-
-
-# female mortality <12m target
-F1targ_minW <- 0.006
-F1targ_maxW <- 0.007
-
-F2targ_minW <- 0.0025
-F2targ_maxW <- 0.0035
-
-
-# calc F1 and F2 weekly mortality
-mort_Fs <- sapply(Out, function(x) {
-  testdf <- x %>% mutate(age = rep(1:156, TimeStop_dynamics))
-  F0init <- testdf %>% filter(w == 1, age == 1) %>% pull("fpop")
-  F12end <- testdf %>% filter(w == 52, age == 52) %>% pull("fpop")
-  
-  mort_A <- 1 - F12end / F0init # annual mortality
-  mort_F <- 1 - ((1 - mort_A) ^ (1 / 26)) # fortnightly mortality
-  
-  return(mort_F)
-})
-
-summary(mort_Fs)
-
-valid_mort <- which(mort_Fs>=F1targ_minW & mort_Fs<=F1targ_maxW)
-valid_mort_df <- var_input_backup[valid_mort, ] %>% select(mortality_y, mortality_a)
-
-ggplot(valid_mort_df, aes(x=mortality_y, y = mortality_a))+geom_point()
-

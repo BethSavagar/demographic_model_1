@@ -4,6 +4,30 @@ library(ggpubr)
 
 # ANALYSIS OF LESNOFF LHS PARAMETER SETS:
 
+lesnoff_ranges <- var_demo_data_full %>% 
+  select(parameter,
+         lesnoff.yr.min,
+         lesnoff.yr.max,
+         RSA.min,
+         RSA.max) %>% 
+  gather(key = "datasource", value = "value", -parameter) %>%
+  mutate(datasource = gsub("\\.min|\\.max","", datasource))
+
+ggplot(lesnoff_ranges, aes(x=parameter, y=value, col = datasource))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_line(position=position_dodge(width=0.2))+
+  labs(x = "Parameter")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
+ggplot(lesnoff_ranges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro")), 
+       aes(x=parameter, y=value, col = datasource))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_line(position=position_dodge(width=0.2))+
+  labs(x = "Parameter")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+
 ################################
 ## POP & AGE-SEX DYNAMICS ##
 ################################
