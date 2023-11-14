@@ -19,19 +19,35 @@ Out_dynamics <- Out %>%
   mutate(set = rep(1:lhs_n, each = TimeStop_dynamics))
 
 # Population Growth plot:
-ggplot(Out_dynamics %>% filter(set %in% dyn_sample), aes(x = w, y = sum_pop, group = set)) + 
-  geom_line()
+growth_dynplot <- ggplot(Out_dynamics %>% filter(set %in% dyn_sample), 
+       aes(x = w, y = sum_pop, group = set)) + 
+  labs(x="weeks", 
+       y = "Population Size",
+       title = "Population growth over 20 years, Lesnoff, (LHS Parameter Sets)")+
+  geom_line()+
+  theme_bw()
 
 # AgeSex Dynamics df: 
 Out_agesex <- Out_dynamics %>% 
   select(c("w", "set", starts_with("pf"), starts_with("pm"))) %>% 
-  gather(key = "par", value = value, -c(w,set))
+  gather(key = "par", value = value, -c(w,set)) %>%
+  mutate(par = factor(par, levels = c("pfAdu", "pfSub", "pfKid", 
+                                         "pmAdu","pmSub","pmKid",
+                                         "pF")))
 
 # Age-Sex Plot:
-ggplot(Out_agesex %>% filter(set %in% dyn_sample), aes(x = w, y = value, group = set, col = par)) + 
+agesex_dynplot <- ggplot(Out_agesex %>% filter(set %in% dyn_sample), 
+       aes(x = w, y = value, group = set, col = par)) + 
   geom_line()+
-  facet_wrap(~par)
+  facet_wrap(~par)+
+  labs(x="Weeks", 
+       y = "Proportion",
+       title = "Age-Sex dynamics, Lesnoff, (LHS Parameter Sets)")+
+  theme_bw()
 
+growth_dynplot
+agesex_dynplot
+ggarrange(growth_dynplot, agesex_dynplot, ncol = 1)
 
 ################################
 ## POP & AGE-SEX SUMMARY ##
@@ -49,35 +65,79 @@ popgrowth <- Out2 %>%
   select(ends_with("growth")) %>% 
   gather(key = "par", value = "prop")
 
-ggplot(popgrowth, aes(x=par, y = prop))+
+growth_summplot <- ggplot(popgrowth, aes(x=par, y = prop))+
   geom_boxplot()+
   facet_wrap(~par, scales = "free")+
   labs(x = "Growth Stat", 
        y = "Pop Growth",
        title = "Growth statistics for Lesnoff data, LHS parameter sets")+
   theme_bw()
+growth_summplot
 
-ggplot(Out2, aes(finyr_growth))+
+finyr_summplot <- ggplot(Out2, aes(finyr_growth))+
   geom_histogram(colour = "black",
                  alpha = 0.5)+
   geom_vline(xintercept = 1)+
   labs(x="Final year growth", 
        y = "Count", 
-       title = "Distribution of final year growth (LHS paremeter sets)")+
+       title = "Distribution of final year growth, Lesnoff, (LHS paremeter sets)")+
   theme_bw()
+
+finyr_summplot
+
+## twoyr growth
+twoyr_growth <- sapply(Out, function(x)
+  x[nrow(x),"sum_pop"] / x[(nrow(x)-(2*52)), "sum_pop"]
+)
+
+Out2 <- Out2 %>%
+  mutate(twoyr_growth = replace_na(twoyr_growth, 0))
+
+twoyr_summplot <- ggplot(Out2, aes(twoyr_growth))+
+  geom_histogram(colour = "black",
+                 alpha = 0.5)+
+  geom_vline(xintercept = 1)+
+  labs(x="Two year growth", 
+       y = "Count", 
+       title = "Distribution of final TWO year growth, Lesnoff, (LHS paremeter sets)")+
+  theme_bw()
+
+twoyr_boxplot <- ggplot(Out2, aes(y = twoyr_growth))+
+  geom_boxplot()+
+  labs(x= "", 
+       y = "Two year growth", 
+       title = "Final TWO year growth, Lesnoff, (LHS paremeter sets)")+
+  theme_bw()
+
+twoyr_summplot
+
+twoyr_boxplot
+
+summary(Out2 %>% filter(twoyr_growth>0) %>% select(twoyr_growth)) %>% kable()
 
 
 ## Analyse age-sex dynamics:
-# - Age-Sex plots
 
+# - Age-Sex plots
 agesex <- Out2 %>% 
   select(starts_with("pf"), starts_with("pm")) %>% 
   gather(key = "par", value = "prop")
 
-ggplot(agesex, aes(x=par, y = prop))+geom_boxplot()
+agesex_summplot <- ggplot(agesex, aes(x=par, y = prop))+
+  geom_boxplot(fill = "grey", 
+               alpha = 0.5)+
+  labs(x="Age-Sex Group", 
+       y = "Proportion",
+       title = "Stable Age-Sex structure, Lesnoff, (LHS parameter sets)")+
+  theme_bw()
   
-  
-## Do any meet original profile criteria:
+agesex_summplot
+
+ggarrange(growth_summplot, finyr_summplot, agesex_summplot, ncol = 1)
+
+#------------------------------------------------------------------------------
+## VALID RESULTS ##
+
 
 
 ##################################
@@ -132,6 +192,7 @@ Out_ext <- Out2 %>%
         pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0)
   )
 
+Out_ext %>% group_by(midyr_15age, midyr_05age) %>% count() %>% kable()
 
 ##################
 ## Valid Output ##
@@ -160,7 +221,7 @@ pars_valid <- Out_parameters %>%
             set))
 
 library(GGally)
-ggpairs(pars_valid %>% select(-c(midyr_growth,midyr_05age,midyr_15age)))
+pairs(pars_valid %>% select(-c(midyr_growth,midyr_05age,midyr_15age)))
 
 
 
