@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 applied_example <- F
 local <- T
+
 ############
 ## SETUP ##
 ############
@@ -34,9 +35,12 @@ source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
 source(paste0(filepath, "functions/dynmod-vac.R")) # flock dynamics model function
 source(paste0(filepath, "functions/output.R")) # what to include in output df
 source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
+```
 
+
+```{r}
 ## Load parameters
-datafile <- "-lesnoff_check"
+datafile <- "-lesnoff_validation"
 source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
 
 ## Datasets
@@ -47,12 +51,12 @@ datasets <- fix_age_data_full %>% select(-c(parameter)) %>% colnames()
 ######################
 
 ## Simulation:
-TimeStop_dynamics <- 20*52 # 2 years only interested in rates for 1 y
+TimeStop_dynamics <- 2*52 # 2 years only interested in rates for 1 y
 TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
 min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
 
 ## Model Output
-output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+output <- "pop_tracker" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 
 #######################
 ## Vaccination Setup ##
@@ -98,18 +102,20 @@ if(local){
 print("parallel-verified")
 print("start-model")
 
+```
+
+
+
+## Female Mortality Rates
+
+```{r Fmort_target}
+
 ##################################
 ## LHS DEMOGRAPHIC PARS ##
 ##################################
 
-dataset <- "lesnoff.yr"
+dataset <- "lesnoff.mortF"
 data_filename <- gsub("\\.","",dataset)
-
-if(dataset == "lesnoff.ft"){
-  rates <- "wkly"
-}else{
-  rates <- "yrly"
-}
 
 lhs <- T
 lhs_n <- 1e3 # number of sets (parameter combinations)
@@ -129,15 +135,7 @@ source("scripts/applied/applied_lhs.R") # output var_input_df contains all param
 # Format demographic parameter sets:
 var_input_backup <- var_input_df %>% as.data.frame()
 
-##############
-## FOR LOOP ##
-##############
-
-# validOut = list to store outputs
-GSAoutput <- c(); 
-Out_list <- list()
-validOut <- list()
-validPars <- list()
+Out <- c()
 
 ################
 ## SIMULATION ##
@@ -166,5 +164,72 @@ Out <- foreach (i = 1:nrow(var_input_backup),
     vardata
   )
 }
+
+
 ```
+
+
+```{r mortF_filter}
+
+# quickplot:
+
+# test <- Out[[1]]
+# 
+# ggplot(test, aes(x=w, y=pfKid))+geom_point()
+
+# female mortality <12m target
+F1targ_minW <- 0.006
+F1targ_maxW <- 0.007
+
+F2targ_minW <- 0.0025
+F2targ_maxW <- 0.0035
+
+F_max_age <- var_input %>% distinct(adu_f_max_yrs) %>% pull()
+# calc F1 and F2 weekly mortality
+mort_F1s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 1, age == 1) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 52, age == 52) %>% pull("fpop")
+  
+  mort_A <- 1 - F12end / F0init # annual mortality
+  mort_F <- 1 - ((1 - mort_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(mort_F)
+})
+
+summary(mort_F1s)
+
+valid_mortF1 <- which(mort_F1s>=F1targ_minW & mort_F1s<=F1targ_maxW)
+valid_mortF1_df <- var_input_backup[valid_mortF1, ] %>% select(mortality_y, mortality_a)
+
+ggplot(valid_mortF1_df, aes(x=mortality_y, y = mortality_a))+geom_point()
+
+
+# calc F1 and F2 weekly mortality
+mort_F2s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 53, age == 53) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 104, age == 104) %>% pull("fpop")
+  
+  mort_A <- 1 - F12end / F0init # annual mortality
+  mort_F <- 1 - ((1 - mort_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(mort_F)
+})
+
+summary(mort_F2s)
+
+valid_mortF2 <- which(mort_F2s>=F2targ_minW & mort_F2s<=F2targ_maxW)
+valid_mortF2_df <- var_input_backup[valid_mortF2, ] %>% select(mortality_y, mortality_a)
+
+ggplot(valid_mortF2_df, aes(x=mortality_y, y = mortality_a))+geom_point()
+
+valid_mortF1F2 <- which(valid_mortF1 %in% valid_mortF2)
+valid_mortF1F2_df <- var_input_backup[valid_mortF1F2, ] %>% select(mortality_y, mortality_a)
+
+ggplot(valid_mortF1F2_df, aes(x=mortality_y, y = mortality_a))+geom_point()
+
+
+```
+
 
