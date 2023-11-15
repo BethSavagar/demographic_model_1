@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r setup}
 
 applied_example <- F
 local <- T
@@ -38,14 +38,16 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 ```
 
 
-```{r}
+```{r loadpars}
 ## Load parameters
 datafile <- "-lesnoff_validation"
 source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
 
 ## Datasets
 datasets <- fix_age_data_full %>% select(-c(parameter)) %>% colnames()
+```
 
+```{r modsetup}
 ######################
 ## MODEL SETUP ##
 ######################
@@ -67,7 +69,7 @@ source("scripts/applied/applied_vaccination.R")
 Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 
 ##################
-## RUN MODEL ##
+## MODEL INPUTS ##
 ##################
 
 # create empty dataframe to store output
@@ -129,6 +131,12 @@ pars_min <- paste0(dataset, ".min") # minimum val
 pars_max <-  paste0(dataset, ".max") # maximum val
 fixdata <- dataset # set dataset for state_vars
 vardata <- dataset
+
+if(dataset == "lesnoff.ft"){
+  rates <- "wkly"
+}else{
+  rates <- "yrly"
+}
 
 source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
 
@@ -227,7 +235,284 @@ ggplot(valid_mortF2_df, aes(x=mortality_y, y = mortality_a))+geom_point()
 valid_mortF1F2 <- which(valid_mortF1 %in% valid_mortF2)
 valid_mortF1F2_df <- var_input_backup[valid_mortF1F2, ] %>% select(mortality_y, mortality_a)
 
-ggplot(valid_mortF1F2_df, aes(x=mortality_y, y = mortality_a))+geom_point()
+ggplot(valid_mortF1F2_df, aes(x=mortality_y, y = mortality_a))+geom_point()+theme_bw()
+
+
+```
+
+
+
+
+## Female Offtake Rates
+
+```{r Foff_target}
+
+##################################
+## LHS DEMOGRAPHIC PARS ##
+##################################
+
+dataset <- "lesnoff.offF"
+data_filename <- gsub("\\.","",dataset)
+
+lhs <- T
+lhs_n <- 1e3 # number of sets (parameter combinations)
+pairs_plot <- F
+SA <- TRUE
+
+# set seed
+set.seed(1) # so that results are consistent
+
+pars_min <- paste0(dataset, ".min") # minimum val
+pars_max <-  paste0(dataset, ".max") # maximum val
+fixdata <- dataset # set dataset for state_vars
+vardata <- dataset
+
+if(dataset == "lesnoff.ft"){
+  rates <- "wkly"
+}else{
+  rates <- "yrly"
+}
+
+source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+
+# Format demographic parameter sets:
+var_input_backup <- var_input_df %>% as.data.frame()
+
+Out <- c()
+
+################
+## SIMULATION ##
+################
+Out <- foreach (i = 1:nrow(var_input_backup), 
+                .packages = c("dplyr", "tibble")
+) %dopar% {
+  
+  print(i)
+  var_input_full <- unlist(var_input_backup[i,])
+  
+  App_func(
+    imm_decay_corrected,
+    var_input_full,
+    fix_age_data_full,
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    summary_df, #
+    clean_environment,
+    Vstart,
+    Vprog,
+    fixdata,
+    vardata
+  )
+}
+
+
+```
+
+
+```{r offF_filter}
+
+# quickplot:
+
+# test <- Out[[1]]
+# 
+# ggplot(test, aes(x=w, y=pfKid))+geom_point()
+
+# female mortality <12m target
+F1targ_minW <- 0.0095
+F1targ_maxW <- 0.0115
+
+F2targ_minW <- 0.0045
+F2targ_maxW <- 0.006
+
+F_max_age <- var_input %>% distinct(adu_f_max_yrs) %>% pull()
+# calc F1 and F2 weekly mortality
+off_F1s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 1, age == 1) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 52, age == 52) %>% pull("fpop")
+  
+  off_A <- 1 - F12end / F0init # annual mortality
+  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(off_F)
+})
+
+summary(off_F1s)
+
+valid_offF1 <- which(off_F1s>=F1targ_minW & off_F1s<=F1targ_maxW)
+valid_offF1_df <- var_input_backup[valid_offF1, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF1_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
+
+
+# calc F1 and F2 weekly mortality
+off_F2s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 53, age == 53) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 104, age == 104) %>% pull("fpop")
+  
+  off_A <- 1 - F12end / F0init # annual mortality
+  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(off_F)
+})
+
+summary(off_F2s)
+
+valid_offF2 <- which(off_F2s>=F2targ_minW & off_F2s<=F2targ_maxW)
+valid_offF2_df <- var_input_backup[valid_offF2, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
+
+valid_offF1F2 <- which(valid_offF1 %in% valid_offF2)
+valid_offF1F2_df <- var_input_backup[valid_offF1F2, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF1F2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
+
+
+```
+
+
+## ALL Offtake Rates
+
+```{r Alloff_target}
+
+##################################
+## LHS DEMOGRAPHIC PARS ##
+##################################
+
+dataset <- "lesnoff.off"
+data_filename <- gsub("\\.","",dataset)
+
+lhs <- T
+lhs_n <- 1e3 # number of sets (parameter combinations)
+pairs_plot <- F
+SA <- TRUE
+
+# set seed
+set.seed(1) # so that results are consistent
+
+pars_min <- paste0(dataset, ".min") # minimum val
+pars_max <-  paste0(dataset, ".max") # maximum val
+fixdata <- dataset # set dataset for state_vars
+vardata <- dataset
+
+
+source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+
+if(dataset == "lesnoff.ft"){
+  rates <- "wkly"
+}else{
+  rates <- "yrly"
+}
+
+# Format demographic parameter sets:
+var_input_backup <- var_input_df %>% as.data.frame()
+
+Out <- c()
+
+################
+## SIMULATION ##
+################
+Out <- foreach (i = 1:nrow(var_input_backup), 
+                .packages = c("dplyr", "tibble")
+) %dopar% {
+  
+  print(i)
+  var_input_full <- unlist(var_input_backup[i,])
+  
+  App_func(
+    imm_decay_corrected,
+    var_input_full,
+    fix_age_data_full,
+    f_list, # initial state of female population
+    m_list, # initial state of male population
+    TimeStop_dynamics, # 1 year, weekly timestep for demographic component
+    TimeStop_transmission, # 1 day, hourly timestep for transission component
+    output, # model output: tracker or summary stats
+    summary_df, #
+    clean_environment,
+    Vstart,
+    Vprog,
+    fixdata,
+    vardata
+  )
+}
+
+
+```
+
+
+
+```{r Alloff_filter}
+
+# quickplot:
+
+# test <- Out[[1]]
+# 
+# ggplot(test, aes(x=w, y=pfKid))+geom_point()
+
+# female mortality <12m target
+F1targ_minW <- 0.0094
+F1targ_maxW <- 0.0114
+
+F2targ_minW <- 0.0048
+F2targ_maxW <- 0.0058
+
+M1targ_minW <- 0.0026
+M1targ_maxW <- 0.0032
+
+M2targ_minW <- 0.055
+M2targ_maxW <- 0.067
+
+
+F_max_age <- var_input %>% distinct(adu_f_max_yrs) %>% pull()
+# calc F1 and F2 weekly mortality
+off_F1s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 1, age == 1) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 52, age == 52) %>% pull("fpop")
+  
+  off_A <- 1 - F12end / F0init # annual mortality
+  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(off_F)
+})
+
+summary(off_F1s)
+
+valid_offF1 <- which(off_F1s>=F1targ_minW & off_F1s<=F1targ_maxW)
+valid_offF1_df <- var_input_backup[valid_offF1, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF1_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
+
+
+# calc F1 and F2 weekly mortality
+off_F2s <- sapply(Out, function(x) {
+  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
+  F0init <- testdf %>% filter(w == 53, age == 53) %>% pull("fpop")
+  F12end <- testdf %>% filter(w == 104, age == 104) %>% pull("fpop")
+  
+  off_A <- 1 - F12end / F0init # annual mortality
+  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  
+  return(off_F)
+})
+
+summary(off_F2s)
+
+valid_offF2 <- which(off_F2s>=F2targ_minW & off_F2s<=F2targ_maxW)
+valid_offF2_df <- var_input_backup[valid_offF2, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
+
+valid_offF1F2 <- which(valid_offF1 %in% valid_offF2)
+valid_offF1F2_df <- var_input_backup[valid_offF1F2, ] %>% select(NET_offtake_y, NET_offtake_f)
+
+ggplot(valid_offF1F2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
 
 
 ```
