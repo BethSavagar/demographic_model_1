@@ -114,7 +114,7 @@ finyr_summplot <- ggplot(Out2, aes(finyr_growth))+
 
 finyr_summplot
 
-## twoyr growth
+## twoyr growth
 twoyr_growth <- sapply(Out, function(x)
   x[nrow(x),"sum_pop"] / x[(nrow(x)-(2*52)), "sum_pop"]
 )
