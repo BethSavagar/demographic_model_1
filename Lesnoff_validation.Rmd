@@ -542,24 +542,28 @@ ggplot(valid_mortFM_long, aes(x = par, y = value))+
 valid_offFM_test <- valid_offFM_df %>% filter(NET_offtake_y < NET_offtake_f)
 valid_mortFM_df 
 
+# Use valid offtake and mortality parameters to produce dataframe of parameter inputs for lesnoff testing
+# var_input_lesnoff <- valid_mortFM_df %>%
+#   cbind(valid_offFM_test %>% slice(rep(1:n(), each = nrow(valid_mortFM_df))))
+# 
+# setdiff(colnames(var_input_backup),colnames(var_input_lesnoff))
+# 
+# var_input_lesnoff <- var_input_lesnoff %>%
+#   mutate("adu_f_max_yrs" = 9,
+#          "adu_m_max_yrs" = 4,
+#          "min_age_offtake" = 6,
+#          "min_age_repro" = 9, 
+#          "birth_rate" = 0.9365096)
+# 
+# write.csv(var_input_lesnoff, file = "data/Applied_parameters/demographics-lesnoff_input.csv", row.names = F)
 
-var_input_lesnoff <- valid_mortFM_df %>%
-  cbind(valid_offFM_test %>% slice(rep(1:n(), each = nrow(valid_mortFM_df))))
-
-setdiff(colnames(var_input_backup),colnames(var_input_lesnoff))
-
-var_input_lesnoff <- var_input_lesnoff %>%
-  mutate("adu_f_max_yrs" = 9,
-         "adu_m_max_yrs" = 4,
-         "min_age_offtake" = 6,
-         "min_age_repro" = 9, 
-         "birth_rate" = 0.9365096)
+var_input_lesnoff <- read_csv("data/Applied_parameters/demographics-lesnoff_input.csv")
 
 ##################################
 ## LHS DEMOGRAPHIC PARS ##
 ##################################
 
-dataset <- "lesnoff.yr"
+dataset <- "lesnoff.yr" # for selecting state_vars input data
 data_filename <- gsub("\\.","",dataset)
 
 lhs <- T
@@ -587,7 +591,7 @@ if(dataset == "lesnoff.ft"){
 # Format demographic parameter sets:
 var_input_backup <- var_input_lesnoff %>% as.data.frame()
 
-Out <- c()
+Out_valid <- c()
 
 
 #####################
@@ -615,7 +619,7 @@ summary_df <- output_func(TimeStop_dynamics, output)
 ################
 ## SIMULATION ##
 ################
-Out <- foreach (i = 1:nrow(var_input_backup), 
+Out_lesnoff <- foreach (i = 1:nrow(var_input_backup), 
                 .packages = c("dplyr", "tibble"),
                 .combine = "rbind"
 ) %dopar% {
@@ -648,7 +652,7 @@ stopCluster(cl)
 ```{r test_analysis}
 
 
-# Out2 is a dataframe of summary data for each parameter set 
+# Out_lesnoff is a dataframe of summary data for each parameter set "valid" parameter set
 
 ## Plot population growth stats: 
 # - Total Growth (20y), 
@@ -656,7 +660,7 @@ stopCluster(cl)
 # - Finyr Growth (1y)
 
 # df of population growth stats:
-popgrowth <- Out %>% 
+popgrowth <- Out_lesnoff %>% 
   select(ends_with("growth")) %>% 
   gather(key = "par", value = "prop")
 
@@ -669,7 +673,7 @@ growth_summplot <- ggplot(popgrowth, aes(x=par, y = prop))+
   theme_bw()
 growth_summplot
 
-finyr_summplot <- ggplot(Out, aes(finyr_growth))+
+finyr_summplot <- ggplot(Out_lesnoff, aes(finyr_growth))+
   geom_histogram(colour = "black",
                  alpha = 0.5)+
   geom_vline(xintercept = 1)+
@@ -724,12 +728,12 @@ pmAdu.min <- 0.01; pmAdu.max <- 0.15
 #########################################################
 
 # add set id to output df:
-Out <- Out %>%
-  mutate(set = 1:nrow(Out), 
+Out_lesnoff <- Out_lesnoff %>%
+  mutate(set = 1:nrow(Out_lesnoff), 
          midyr_growth = tenyr_growth)
 
 # Edit Out to contain identifier variables for pop growth (5%,15%) and pop growth with age-sex structure 
-Out_ext <- Out %>%
+Out_ext <- Out_lesnoff %>%
   mutate(midyr_growth = replace_na(tenyr_growth, 0),
          # add variables to identify parameter sets with growth between 5% and 15%
          midyr_15 = ifelse(midyr_growth>=0.85 & midyr_growth <=1.15, 1, 0),
