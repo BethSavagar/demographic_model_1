@@ -1064,6 +1064,9 @@ length(which(twoyr_growth >= twoyr_min & twoyr_growth <= twoyr_max))
 
 OutL2 %>% filter(twoyr_growth >= twoyr_min & twoyr_growth <= twoyr_max)
 L2_valid <- OutL2 %>% filter(twoyr_growth >= twoyr_min & twoyr_growth <= twoyr_max) %>% pull(set)
+var_input_lesnoffv2 <- var_input_lesnoff[L2_valid, ]
+
+# write.csv(var_input_lesnoffv2, file = "data/Applied_parameters/demographics-lesnoff_input2.csv", row.names = F)
 ```
 
 
