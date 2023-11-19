@@ -8,6 +8,7 @@ GSA_output <- function(output_df, Vstart){
   wk_12m <- round(wk2mnth*12, 0)
   
   finyr_growth <- (output_df[t1, "sum_pop"]) / output_df[t1-wk_12m, "sum_pop"]
+  twoyr_growth <- (output_df[t1, "sum_pop"]) / output_df[t1-(wk_12m*2), "sum_pop"]
   
   Imm_V0 <- output_df[Vstart, "prop_immune"]
   Imm_6m <- output_df[Vstart+wk_6m, "prop_immune"]
@@ -23,6 +24,7 @@ GSA_output <- function(output_df, Vstart){
     cbind(pop_growth=pop_growth,
           tenyr_growth = tenyr_growth, 
           finyr_growth = finyr_growth,
+          twoyr_growth = twoyr_growth,
           imm_V0 = Imm_V0,
           imm_6m=Imm_6m,
           imm_12m=Imm_12m,
@@ -32,6 +34,7 @@ GSA_output <- function(output_df, Vstart){
            pop_growth, 
            tenyr_growth,
            finyr_growth,
+           twoyr_growth,
            prop_immune, 
            imm_V0,
            imm_6m, 

@@ -1,0 +1,83 @@
+---
+title: "Lesnoff_validation"
+author: "Beth Savagar"
+date: "2023-11-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r libraries}
+
+library(RColorBrewer)
+
+```
+
+## Demographic Parameters Check:
+- Plot demographic parameter range against range used for RSA.
+
+```{r ranges}
+# how to valid parameters fit in the RSA GSA range
+
+
+## Load parameters
+datafile <- "-OC_check"
+demographics <- read_csv(paste0("data/Applied_parameters/demographics",datafile,".csv"), col_names=T)
+
+checkRanges <- demographics %>% 
+  gather(key = "datasource", value = "value", -parameter) %>%
+  mutate(datasource = gsub("\\.min|\\.max","", datasource))
+
+# color scheme
+
+# Define the Dark2 palette with additional colors
+custom_palette <- c(brewer.pal(8, "Dark2"),
+                    "#FFA07A",  # LightSalmon
+                    "#20B2AA",  # LightSeaGreen
+                    "#9370DB",  # MediumPurple
+                    "#32CD32",  # LimeGreen
+                    "#FFD700",  # Gold
+                    "#8A2BE2",  # BlueViolet
+                    "#FF4500",  # OrangeRed
+                    "#00CED1",  # DarkTurquoise
+                    "#000000"   # Black
+)
+
+myPal <- custom_palette[1:11]
+myPal[11] <- "#000000"
+
+
+# Sheep 
+p1 <- ggplot(checkRanges %>% 
+              filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro")), aes(x=parameter, y=value, col = datasource))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_line(size = 1, position=position_dodge(width=0.2))+
+  labs(x = "Parameter")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
+        text = element_text(size=16))+
+  scale_color_manual(values = myPal)
+
+p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), aes(x=parameter, y=value, col = datasource))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_line(size = 1, position=position_dodge(width=0.2))+
+  labs(x = "Parameter")+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        text = element_text(size=16))+
+  scale_color_manual(values = myPal)
+
+ggarrange(p1,p2, nrow =2)
+
+
+
+```
+
+## 1. Verify Flock Dynamics
+- For each profile run a sample of 50 parameter sets with full population dynamics simulated
+- Plot the flock growth over time and the age-sex structure over time for preliminary analysis of model-profile behaviour
+
