@@ -156,7 +156,7 @@ t1 <- TimeStop_dynamics
 ##################################
 
 lhs <- T
-lhs_n <- 1e4 # number of sets (parameter combinations)
+lhs_n <- 1e3 # number of sets (parameter combinations)
 pairs_plot <- F
 SA <- TRUE
 
@@ -269,10 +269,17 @@ stopCluster(cl)
 
 ```{r analysisDynamics}
 
+# cgiarOut.dynamics
+
 # Transform Out (list) into a df of dynamics with each set identified:
-Out_dynamics <- cgiarOut.dynamics %>%
-  do.call(rbind, .) %>% 
-  mutate(set = rep(1:length(cgiarOut.dynamics), each = TimeStop_dynamics))
+dynamicsList <- lapply(cgiarOut.dynamics, function(x){
+ do.call(rbind,x) %>% mutate(set = rep(1:50, each = TimeStop_dynamics))
+  }) 
+  
+Out_dynamics <- dynamicsList %>%
+  do.call(rbind, .) %>%
+  mutate(prof = rep(datasets, each = 52000))
+
 
 # Population Growth plot:
 growth_dynplot <- ggplot(Out_dynamics, 
@@ -281,6 +288,7 @@ growth_dynplot <- ggplot(Out_dynamics,
        y = "Population Size",
        title = "Population growth over 20 years, cgiar, (LHS Parameter Sets)")+
   geom_line()+
+  facet_wrap(~prof)+
   theme_bw()
 
 fadeout <- Out_dynamics %>% filter(sum_pop==0) %>% distinct(set) %>% pull()
@@ -290,18 +298,28 @@ fadeout_dynplot <- ggplot(Out_dynamics %>% filter(set %in% fadeout),
        y = "Population Size",
        title = "Population growth over 20 years, cgiar, (LHS Parameter Sets)")+
   geom_line()+
+    facet_wrap(~prof)+
   theme_bw()
 
 # AgeSex Dynamics df: 
 Out_agesex <- Out_dynamics %>% 
-  select(c("w", "set", starts_with("pf"), starts_with("pm"))) %>% 
-  gather(key = "par", value = value, -c(w,set)) %>%
+  select(c("w", "set", "prof", starts_with("pf"), starts_with("pm"))) %>% 
+  gather(key = "par", value = value, -c(w,set,prof)) %>%
   mutate(par = factor(par, levels = c("pfAdu", "pfSub", "pfKid", 
                                          "pmAdu","pmSub","pmKid",
                                          "pF")))
 
 # Age-Sex Plot:
-agesex_dynplot <- ggplot(Out_agesex, 
+agesex_dynplotG <- ggplot(Out_agesex %>% filter(prof=="cgiar.goat"), 
+       aes(x = w, y = value, group = set, col = par)) + 
+  geom_line()+
+  facet_wrap(~par)+
+  labs(x="Weeks", 
+       y = "Proportion",
+       title = "Age-Sex dynamics, cgiar, (LHS Parameter Sets)")+
+  theme_bw()
+
+agesex_dynplotSh <- ggplot(Out_agesex %>% filter(prof=="cgiar.shp"), 
        aes(x = w, y = value, group = set, col = par)) + 
   geom_line()+
   facet_wrap(~par)+
@@ -311,9 +329,9 @@ agesex_dynplot <- ggplot(Out_agesex,
   theme_bw()
 
 growth_dynplot
-fadeout_dynplot
-agesex_dynplot
-ggarrange(growth_dynplot, agesex_dynplot, ncol = 1)
+# fadeout_dynplot
+agesex_dynplotG
+agesex_dynplotSh
 
 ```
 
@@ -432,20 +450,24 @@ stopCluster(cl)
 # - tenyr Growth (10y), 
 # - Finyr Growth (1y)
 
-cgiarOut.summary <- cgiarOut.summary %>% 
+summaryList <- cgiarOut.summary
+cgiarOut.summary <- summaryList %>%
+  do.call(rbind, .) %>%
+  mutate(prof = rep(datasets, each = lhs_n), 
+         set = rep(1:lhs_n, length(datasets))) %>% 
   replace(is.na(.), 0)
 
 # df of population growth stats:
 popgrowth <- cgiarOut.summary %>% 
-  select(ends_with("growth")) %>% 
-  gather(key = "par", value = "prop") %>% 
+  select(prof, ends_with("growth")) %>% 
+  gather(key = "par", value = "prop", -prof) %>% 
   mutate(par = factor(par, levels = c("pop_growth",
                                       "tenyr_growth", 
                                       "twoyr_growth",
                                       "finyr_growth")))
 
-growth_boxplot <- ggplot(popgrowth, aes(x=par, y = prop))+
-  geom_boxplot()+
+growth_boxplot <- ggplot(popgrowth, aes(x=prof, y = prop, col = prof))+
+  geom_boxplot(alpha = 0.5)+
   facet_wrap(~par, scales = "free", nrow = 1)+
   labs(x = "Growth Stat", 
        y = "Pop Growth",
@@ -454,39 +476,24 @@ growth_boxplot <- ggplot(popgrowth, aes(x=par, y = prop))+
 
 growth_hist <- ggplot(popgrowth, aes(prop))+
   geom_histogram()+
-  facet_wrap(~par, scales = "free", nrow = 1)+
+  facet_grid(prof~par, scales = "free")+
   labs(x = "Pop Growth", 
        y = "Count")+
   theme_bw()
 
 ggarrange(growth_boxplot, growth_hist, ncol = 1)
 
-twoyr_boxplot <- ggplot(cgiarOut.summary, aes(y = twoyr_growth))+
-  geom_boxplot()+
-  labs(x= "", 
-       y = "Two year growth")+
-  theme_bw()
-
-twoyr_hist <- ggplot(cgiarOut.summary, aes(twoyr_growth))+
-  geom_histogram(colour = "black",
-                 alpha = 0.5)+
-  geom_vline(xintercept = 1)+
-  labs(x="Two year growth", 
-       y = "Count",
-       title = "Final TWO year growth, cgiar, (LHS parameter sets)")+
-  theme_bw()
-
-ggarrange(twoyr_hist, twoyr_boxplot)
-
-summary(cgiarOut.summary %>% filter(twoyr_growth>0) %>% select(twoyr_growth)) %>% kable()
-
+# SUMMARY STATS
+##
+##
+##
 
 ## Analyse age-sex dynamics:
 
 # - Age-Sex plots
 agesex <- cgiarOut.summary %>% 
-  select(starts_with("pf"), starts_with("pm")) %>% 
-  gather(key = "par", value = "prop")
+  select(prof, starts_with("pf"), starts_with("pm")) %>% 
+  gather(key = "par", value = "prop", -prof)
 
 agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
   geom_boxplot(fill = "grey", 
@@ -494,7 +501,8 @@ agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
   labs(x="Age-Sex Group", 
        y = "Proportion",
        title = "Stable Age-Sex structure, cgiar, (LHS parameter sets)")+
-  theme_bw()
+  theme_bw()+
+  facet_wrap(~prof)
   
 agesex_boxplot
 
@@ -523,10 +531,6 @@ pmAdu.min <- 0.01; pmAdu.max <- 0.15
 #########################################################
 # Retain behavioral parameter sets
 #########################################################
-
-# add set id to output df:
-cgiarOut.summary <- cgiarOut.summary %>%
-  mutate(set = 1:nrow(cgiarOut.summary))
 
 # Edit Out to contain identifier variables for pop growth (5%,15%) and pop growth with age-sex structure 
 cgiarOut.growth <- cgiarOut.summary %>%
@@ -558,33 +562,37 @@ cgiarOut.growth <- cgiarOut.summary %>%
         pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0)
   )
 
-cgiarOut.growth %>% group_by(tenyr_15age, tenyr_05age) %>% count() %>% kable()
+cgiarOut.growth %>% group_by(prof, tenyr_15, tenyr_15age) %>% count() %>% kable()
 
-##################
-## Valid Output ##
-##################
-
-cgiarOut.valid <- cgiarOut.growth %>%
-  filter(tenyr_15age == 1 |
-           tenyr_05age == 1)
-
-## Refine parameter dataframe:
-cgiarPars.valid <- var_input_backup %>%
-  mutate(set = 1:nrow(var_input_backup)) %>%
-  left_join(cgiarOut.valid %>%
-              select(tenyr_growth,
-                     tenyr_15,
-                     tenyr_05,
-                     tenyr_15age,
-                     tenyr_05age,
-                     set), by = c("set")) %>% 
-  filter(tenyr_15age == 1 |
-           tenyr_05age == 1)  %>%
-  select(-c(tenyr_15,
-            tenyr_05,
-            set))
+# Growth well in excess of RSA conditions
 
 
-pairs(cgiarPars.valid %>% select(-c(tenyr_growth,tenyr_05age,tenyr_15age)))
+
+# ##################
+# ## Valid Output ##
+# ##################
+# 
+# cgiarOut.valid <- cgiarOut.growth %>%
+#   filter(tenyr_15age == 1 |
+#            tenyr_05age == 1)
+# 
+# ## Refine parameter dataframe:
+# cgiarPars.valid <- var_input_backup %>%
+#   mutate(set = 1:nrow(var_input_backup)) %>%
+#   left_join(cgiarOut.valid %>%
+#               select(tenyr_growth,
+#                      tenyr_15,
+#                      tenyr_05,
+#                      tenyr_15age,
+#                      tenyr_05age,
+#                      set), by = c("set")) %>% 
+#   filter(tenyr_15age == 1 |
+#            tenyr_05age == 1)  %>%
+#   select(-c(tenyr_15,
+#             tenyr_05,
+#             set))
+# 
+# 
+# pairs(cgiarPars.valid %>% select(-c(tenyr_growth,tenyr_05age,tenyr_15age)))
 
 ```

@@ -1,83 +1,667 @@
 ---
-title: "Lesnoff_validation"
+title: "oc_validation"
 author: "Beth Savagar"
 date: "2023-11-13"
 output: html_document
 ---
 
+# APPLIED EXAMPLES LHS - PRELIMINARY ANALYSIS 
+- Analyse baseline demographics of applied examples with LHS of parameter space
+- review population dynamics and age-sex structure, comparing against RSA demographic parameters
+- check "validity" of output against initial conditions (RSA conditions): 15% growth, age-sex structure conditions
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r library}
+# libraries not accounted for in setup script
+library(GGally)
 
-```{r libraries}
+```
 
-library(RColorBrewer)
+```{r modSetup1}
+############
+## SETUP ##
+############
+local <- T
+# local filepath: 
+if(local){
+  filepath <- ""
+}else{
+  # cluster filepath
+  filepath <- "/storage/users/bsavagar/"
+}
+
+## Libraries
+source(paste0(filepath,"scripts/setup.R")) 
+
+## Functions:
+source(paste0(filepath, "functions/Appliedfunc.R")) # wrapper function
+source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
+source(paste0(filepath, "functions/dynmod-vac.R")) # flock dynamics model function
+source(paste0(filepath, "functions/output.R")) # what to include in output df
+source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
 ```
 
 ## Demographic Parameters Check:
-- Plot demographic parameter range against range used for RSA.
 
 ```{r ranges}
 # how to valid parameters fit in the RSA GSA range
 
-
 ## Load parameters
 datafile <- "-OC_check"
-demographics <- read_csv(paste0("data/Applied_parameters/demographics",datafile,".csv"), col_names=T)
+demographics <- read_csv(paste0("data/Applied_parameters/demographics",datafile,".csv"), col_names=T) 
 
-checkRanges <- demographics %>% 
-  gather(key = "datasource", value = "value", -parameter) %>%
-  mutate(datasource = gsub("\\.min|\\.max","", datasource))
+checkRanges <- demographics %>%
+  gather(key = "datasource", value = "value",-parameter) %>%
+  mutate(
+    datasource = gsub("\\.min|\\.max", "", datasource))
 
-# color scheme
+RSAonly <- checkRanges %>% 
+  filter(datasource == "RSA") %>%
+  mutate(datasource = "RSA.goat")
+
+checkRanges <- checkRanges %>%
+  rbind(RSAonly) %>%
+  mutate(datasource = ifelse(datasource == "RSA", "RSA.shp", as.character(datasource)),
+         data_group = ifelse(grepl("*shp*", datasource), "shp", "goat")) %>% 
+  mutate(
+    datasource = factor(
+      datasource,
+      levels = c(
+        "oc.goat.aridP",
+        "oc.goat.semiaridP",
+        "oc.goat.semiaridM",
+        "oc.goat.subhumidM",
+        "oc.goat.humidM",
+        "oc.shp.aridP",
+        "oc.shp.semiaridP",
+        "oc.shp.semiaridM",
+        "oc.shp.subhumidM",
+        "oc.shp.humidM",
+        "RSA.shp",
+        "RSA.goat"
+      )
+    )
+  )
+
 
 # Define the Dark2 palette with additional colors
-custom_palette <- c(brewer.pal(8, "Dark2"),
-                    "#FFA07A",  # LightSalmon
-                    "#20B2AA",  # LightSeaGreen
-                    "#9370DB",  # MediumPurple
-                    "#32CD32",  # LimeGreen
-                    "#FFD700",  # Gold
-                    "#8A2BE2",  # BlueViolet
-                    "#FF4500",  # OrangeRed
-                    "#00CED1",  # DarkTurquoise
-                    "#000000"   # Black
+custom_palette <- c(
+  brewer.pal(8, "Dark2"),
+  "#FFA07A",  # LightSalmon
+  "#20B2AA",  # LightSeaGreen
+  "#9370DB",  # MediumPurple
+  "#32CD32",  # LimeGreen
+  "#FFD700",  # Gold
+  "#8A2BE2",  # BlueViolet
+  "#FF4500",  # OrangeRed
+  "#00CED1",  # DarkTurquoise
+  "#000000"   # Black
 )
 
-myPal <- custom_palette[1:11]
+myPal <- custom_palette[1:12]
 myPal[11] <- "#000000"
+myPal[12] <- "#000001"
 
-
-# Sheep 
-p1 <- ggplot(checkRanges %>% 
-              filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro")), aes(x=parameter, y=value, col = datasource))+
+p1<- ggplot(checkRanges %>% filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro")), aes(x=parameter, y=value, col = datasource))+
   geom_point(position=position_dodge(width=0.2))+
   geom_line(size = 1, position=position_dodge(width=0.2))+
   labs(x = "Parameter")+
+  facet_wrap(~data_group, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        legend.position = "none",
+       
         text = element_text(size=16))+
-  scale_color_manual(values = myPal)
+  scale_colour_manual(values = myPal)
 
-p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), aes(x=parameter, y=value, col = datasource))+
+p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), 
+       aes(x=parameter, y=value, col = datasource))+
   geom_point(position=position_dodge(width=0.2))+
   geom_line(size = 1, position=position_dodge(width=0.2))+
   labs(x = "Parameter")+
+  facet_wrap(~data_group, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+         legend.position = "none",
         text = element_text(size=16))+
-  scale_color_manual(values = myPal)
+  scale_colour_manual(values = myPal)
 
-ggarrange(p1,p2, nrow =2)
-
+ggarrange(p1,p2, nrow = 2)
 
 
 ```
+
 
 ## 1. Verify Flock Dynamics
 - For each profile run a sample of 50 parameter sets with full population dynamics simulated
 - Plot the flock growth over time and the age-sex structure over time for preliminary analysis of model-profile behaviour
 
+```{r selectData}
+# 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
+
+applied_example <- F
+
+## Load parameters
+datafile <- "-oc_check"
+source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
+
+## Datasets
+datasets <- fix_age_data_full %>% select(-c(parameter, RSA)) %>% colnames()
+```
+
+```{r modSetup2}
+
+######################
+## MODEL SETUP ##
+######################
+
+## Simulation:
+TimeStop_dynamics <- 20*52 # 2 years only interested in rates for 1 y
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
+min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+pV <- 1
+source("scripts/applied/applied_vaccination.R")
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+##################
+## RUN MODEL ##
+##################
+
+turnover <- F; 
+dynamics <- T; 
+transmission <- F; 
+clean_environment <- T
+
+# timepoints for population growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
+t1 <- TimeStop_dynamics
+
+
+##################################
+## LHS SETUP  ##
+##################################
+
+lhs <- T
+lhs_n <- 1e3 # number of sets (parameter combinations)
+pairs_plot <- F
+SA <- TRUE
+
+```
+
+
+```{r loopDynamics}
+
+###################
+## MODEL OUTPUT ##
+###################
+
+## Model Output
+output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+ocOut.dynamics <- list()
+
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+#####################
+## LOOP ##
+#####################
+
+for(d in 1:length(datasets)){
+  dataset <- datasets[d]
+  data_filename <- gsub("\\.","",dataset)
+
+  ##################################
+  ## LHS DEMOGRAPHIC PARS ##
+  ##################################
+  
+  data_filename <- gsub("\\.", "", dataset)
+  
+  if (dataset == "lesnoff.ft") {
+    rates <- "wkly"
+  } else{
+    rates <- "yrly"
+  }
+  
+  # set seed
+  set.seed(1) # so that results are consistent
+  
+  pars_min <- paste0(dataset, ".min") # minimum val
+  pars_max <-  paste0(dataset, ".max") # maximum val
+  fixdata <- dataset # set dataset for state_vars
+  vardata <- dataset
+  
+  source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+  
+  
+  # Format demographic parameter sets:
+  var_input_backup <- var_input_df %>% as.data.frame() %>% slice_sample(n = 10)
+  
+  ################
+  ## SIMULATION ##
+  ################
+  Out.dynamics <- foreach (i = 1:nrow(var_input_backup),
+                                .packages = c("dplyr", "tibble")) %dopar% {
+                                  print(i)
+                                  
+                                  var_input_full <- unlist(var_input_backup[i, ])
+                                  
+                                  App_func(
+                                    imm_decay_corrected,
+                                    var_input_full,
+                                    fix_age_data_full,
+                                    f_list,# initial state of female population
+                                    m_list, # initial state of male population
+                                    TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                                    TimeStop_transmission, # 1 day, hourly timestep for transission component
+                                    output,# model output: tracker or summary stats
+                                    summary_df, #
+                                    clean_environment,
+                                    Vstart,
+                                    Vprog,
+                                    fixdata,
+                                    vardata
+                                  )
+                                }
+  
+  ocOut.dynamics[[d]] <- Out.dynamics
+}
+
+stopCluster(cl)
+
+```
+
+
+```{r analysisDynamics}
+
+# ocOut.dynamics
+
+# Transform Out (list) into a df of dynamics with each set identified:
+dynamicsList <- lapply(ocOut.dynamics, function(x){
+ do.call(rbind,x) %>% mutate(set = rep(1:10, each = TimeStop_dynamics))
+  }) 
+  
+Out_dynamics <- dynamicsList %>%
+  do.call(rbind, .) %>%
+  mutate(prof = rep(datasets, each = 10400))
+
+
+# Population Growth plot:
+growth_dynplot <- ggplot(Out_dynamics, 
+       aes(x = w, y = sum_pop, group = set)) + 
+  labs(x="weeks", 
+       y = "Population Size",
+       title = "Population growth over 20 years, oc, (LHS Parameter Sets)")+
+  geom_line()+
+  facet_wrap(~prof)+
+  theme_bw()
+
+fadeout <- Out_dynamics %>% filter(sum_pop==0) %>% distinct(set) %>% pull()
+fadeout_dynplot <- ggplot(Out_dynamics %>% filter(set %in% fadeout), 
+       aes(x = w, y = sum_pop, group = set)) + 
+  labs(x="weeks", 
+       y = "Population Size",
+       title = "Population growth over 20 years, oc, (LHS Parameter Sets)")+
+  geom_line()+
+    facet_wrap(~prof)+
+  theme_bw()
+
+# AgeSex Dynamics df: 
+Out_agesex <- Out_dynamics %>% 
+  select(c("w", "set", "prof", starts_with("pf"), starts_with("pm"))) %>% 
+  gather(key = "par", value = value, -c(w,set,prof)) %>%
+  mutate(par = factor(par, levels = c("pfAdu", "pfSub", "pfKid", 
+                                         "pmAdu","pmSub","pmKid",
+                                         "pF"))) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"))
+
+# Age-Sex Plot:
+agesex_dynplotG <- ggplot(Out_agesex %>% filter(prof_group=="goat"), 
+       aes(x = w, y = value, group = set, col = prof)) + 
+  geom_line()+
+  facet_grid(par~prof)+
+  labs(x="Weeks", 
+       y = "Proportion",
+       title = "Age-Sex dynamics, oc, (LHS Parameter Sets)")+
+  theme_bw()+
+  scale_colour_manual(values = myPal)
+
+agesex_dynplotSh <-  ggplot(Out_agesex %>% filter(prof_group=="shp"), 
+       aes(x = w, y = value, group = set, col = par)) + 
+  geom_line()+
+  facet_grid(par~prof)+
+  labs(x="Weeks", 
+       y = "Proportion",
+       title = "Age-Sex dynamics, oc, (LHS Parameter Sets)")+
+  theme_bw()+
+  scale_colour_manual(values = myPal)
+
+growth_dynplot
+# fadeout_dynplot
+agesex_dynplotG
+agesex_dynplotSh
+
+```
+
+
+```{r loopSummary}
+
+## Model Output
+output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+ocOut.sum <- list()
+
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+#####################
+## LOOP ##
+#####################
+
+for(d in 1:length(datasets)){
+  dataset <- datasets[d]
+  data_filename <- gsub("\\.","",dataset)
+  
+  ##################################
+  ## LHS DEMOGRAPHIC PARS ##
+  ##################################
+  
+  data_filename <- gsub("\\.", "", dataset)
+  
+  if (dataset == "lesnoff.ft") {
+    rates <- "wkly"
+  } else{
+    rates <- "yrly"
+  }
+  
+  # set seed
+  set.seed(1) # so that results are consistent
+  
+  pars_min <- paste0(dataset, ".min") # minimum val
+  pars_max <-  paste0(dataset, ".max") # maximum val
+  fixdata <- dataset # set dataset for state_vars
+  vardata <- dataset
+  
+  source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+  
+  
+  # Format demographic parameter sets:
+  var_input_backup <- var_input_df %>% as.data.frame()  %>% slice_sample(n = 100)
+  
+  ################
+  ## SIMULATION ##
+  ################
+  Out.summary <- foreach (i = 1:nrow(var_input_backup),
+                                .packages = c("dplyr", "tibble"),
+                          .combine = "rbind") %dopar% {
+                                  print(i)
+                                  
+                                  var_input_full <- unlist(var_input_backup[i, ])
+                                  
+                                  App_func(
+                                    imm_decay_corrected,
+                                    var_input_full,
+                                    fix_age_data_full,
+                                    f_list,# initial state of female population
+                                    m_list, # initial state of male population
+                                    TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                                    TimeStop_transmission, # 1 day, hourly timestep for transission component
+                                    output,# model output: tracker or summary stats
+                                    summary_df, #
+                                    clean_environment,
+                                    Vstart,
+                                    Vprog,
+                                    fixdata,
+                                    vardata
+                                  )
+                                }
+  
+  ocOut.sum[[d]] <- Out.summary
+}
+
+stopCluster(cl)
+
+```
+
+
+```{r analysisSummary}
+
+################################
+## POP & AGE-SEX SUMMARY ##
+################################
+
+# ocOut.summary is a dataframe of summary data for each parameter set 
+
+## Plot population growth stats: 
+# - Total Growth (20y), 
+# - tenyr Growth (10y), 
+# - Finyr Growth (1y)
+
+summaryList <- ocOut.sum
+ocOut.summary <- summaryList %>%
+  do.call(rbind, .) %>%
+  mutate(prof = rep(datasets, each = 100), 
+         set = rep(1:100, length(datasets))) %>% 
+  replace(is.na(.), 0) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+    prof = factor(
+      prof,
+      levels = c(
+        "oc.goat.aridP",
+        "oc.goat.semiaridP",
+        "oc.goat.semiaridM",
+        "oc.goat.subhumidM",
+        "oc.goat.humidM",
+        "oc.shp.aridP",
+        "oc.shp.semiaridP",
+        "oc.shp.semiaridM",
+        "oc.shp.subhumidM",
+        "oc.shp.humidM"
+      )
+    )
+  )
+
+# df of population growth stats:
+popgrowth <- ocOut.summary %>% 
+  select(prof, prof_group, ends_with("growth")) %>% 
+  gather(key = "par", value = "prop", -c(prof,prof_group)) %>% 
+  mutate(par = factor(par, levels = c("pop_growth",
+                                      "tenyr_growth", 
+                                      "twoyr_growth",
+                                      "finyr_growth")))
+
+growth_boxplot <- ggplot(popgrowth, aes(x=prof, y = prop, col = prof))+
+  geom_boxplot(alpha = 0.5)+
+  facet_wrap(~par, scales = "free", nrow = 1)+
+  labs(x = "Growth Stat", 
+       y = "Pop Growth",
+       title = "Growth statistics for oc data, LHS parameter sets")+
+  theme_bw()+
+  scale_colour_manual(values = myPal)
+
+growth_histGoat <- ggplot(popgrowth %>% filter(prof_group == "goat"), aes(prop))+
+  geom_histogram()+
+  facet_grid(prof~par, scales = "free")+
+  labs(x = "Pop Growth", 
+       y = "Count")+
+  theme_bw()
+
+growth_histShp <- ggplot(popgrowth %>% filter(prof_group == "goat"), aes(prop))+
+  geom_histogram()+
+  facet_grid(prof~par, scales = "free")+
+  labs(x = "Pop Growth", 
+       y = "Count")+
+  theme_bw()
+
+growth_boxplot
+growth_histGoat
+growth_histShp
+##
+##
+
+## Analyse age-sex dynamics:
+
+# - Age-Sex plots
+agesex <- ocOut.summary %>% 
+  select(prof, prof_group, starts_with("pf"), starts_with("pm")) %>% 
+  gather(key = "par", value = "prop", -c(prof,prof_group))
+
+agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
+  geom_boxplot(fill = "grey", 
+               alpha = 0.5)+
+  labs(x="Age-Sex Group", 
+       y = "Proportion",
+       title = "Stable Age-Sex structure, oc, (LHS parameter sets)")+
+  theme_bw()+
+  facet_wrap(~prof, ncol = 5)
+
+agesex_boxplot2 <- ggplot(agesex, aes(x=prof, y = prop))+
+  geom_boxplot(fill = "grey", 
+               alpha = 0.5)+
+  labs(x="Age-Sex Group", 
+       y = "Proportion",
+       title = "Stable Age-Sex structure, oc, (LHS parameter sets)")+
+  theme_bw()+
+  facet_wrap(~par, ncol = 4)
+  
+agesex_boxplot
+
+
+```
+
+
+```{r outValid}
+#------------------------------------------------------------------------------
+## VALID RESULTS ##
+
+##################################
+## Valid Age-Sex Conditions ##
+##################################
+
+## Min and max proportions for each sex-age group (see age-sex SS)
+pfKid.min <- 0.05; pfKid.max <- 0.19
+pfSub.min <- 0.06; pfSub.max <- 0.19
+pfAdu.min <- 0.21; pfAdu.max <- 0.62
+
+pmKid.min <- 0.05; pmKid.max <- 0.16
+pmSub.min <- 0.04; pmSub.max <- 0.15
+pmAdu.min <- 0.01; pmAdu.max <- 0.15
+  
+
+#########################################################
+# Retain behavioral parameter sets
+#########################################################
+
+# Edit Out to contain identifier variables for pop growth (5%,15%) and pop growth with age-sex structure 
+ocOut.growth <- ocOut.summary %>%
+  mutate(tenyr_growth = replace_na(tenyr_growth, 0),
+         # add variables to identify parameter sets with growth between 5% and 15%
+         tenyr_15 = ifelse(tenyr_growth>=0.85 & tenyr_growth <=1.15, 1, 0),
+         tenyr_05 = ifelse(tenyr_growth>=0.95 & tenyr_growth <=1.05, 1, 0)) %>%
+  
+  # add variables to identify parameter sets with growth between 5% and 15% AND age-sex conditions
+  mutate(
+    tenyr_15age = ifelse(
+      tenyr_15 == 1 &
+        pfKid >= pfKid.min & pfKid <= pfKid.max &
+        pfSub >= pfSub.min & pfSub <= pfSub.max &
+        pfAdu >= pfAdu.min & pfAdu <= pfAdu.max &
+        
+        pmKid >= pmKid.min & pmKid <= pmKid.max &
+        pmSub >= pmSub.min & pmSub <= pmSub.max &
+        pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0),
+    
+    tenyr_05age = ifelse(
+      tenyr_05 == 1 &
+        pfKid >= pfKid.min & pfKid <= pfKid.max &
+        pfSub >= pfSub.min & pfSub <= pfSub.max &
+        pfAdu >= pfAdu.min & pfAdu <= pfAdu.max &
+        
+        pmKid >= pmKid.min & pmKid <= pmKid.max &
+        pmSub >= pmSub.min & pmSub <= pmSub.max &
+        pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0)
+  )
+
+ocOut.growth %>% group_by(prof,tenyr_15age) %>% count() %>% kable()
+
+# Growth easily within RSA conditions
+
+
+# ##################
+# ## Valid Output ##
+# ##################
+
+ocOut.valid <- ocOut.growth %>%
+  filter(tenyr_15age == 1 |
+           tenyr_05age == 1)
+
+## Refine parameter dataframe:
+ocPars.valid <- var_input_backup %>%
+  mutate(set = 1:nrow(var_input_backup)) %>%
+  left_join(ocOut.valid %>%
+              select(tenyr_growth,
+                     tenyr_15,
+                     tenyr_05,
+                     tenyr_15age,
+                     tenyr_05age,
+                     set), by = c("set")) %>%
+  filter(tenyr_15age == 1 |
+           tenyr_05age == 1)  %>%
+  select(-c(tenyr_15,
+            tenyr_05,
+            set))
+
+
+pairs(ocPars.valid %>% select(-c(tenyr_growth,tenyr_05age,tenyr_15age)))
+
+```
