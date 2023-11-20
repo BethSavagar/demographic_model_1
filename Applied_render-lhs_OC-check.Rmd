@@ -312,7 +312,25 @@ dynamicsList <- lapply(ocOut.dynamics, function(x){
   
 Out_dynamics <- dynamicsList %>%
   do.call(rbind, .) %>%
-  mutate(prof = rep(datasets, each = 10400))
+  mutate(prof = rep(datasets, each = 10400)) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+    prof = factor(
+      prof,
+      levels = c(
+        "oc.goat.aridP",
+        "oc.goat.semiaridP",
+        "oc.goat.semiaridM",
+        "oc.goat.subhumidM",
+        "oc.goat.humidM",
+        "oc.shp.aridP",
+        "oc.shp.semiaridP",
+        "oc.shp.semiaridM",
+        "oc.shp.subhumidM",
+        "oc.shp.humidM"
+      )
+    )
+  )
+
 
 
 # Population Growth plot:
@@ -337,12 +355,11 @@ fadeout_dynplot <- ggplot(Out_dynamics %>% filter(set %in% fadeout),
 
 # AgeSex Dynamics df: 
 Out_agesex <- Out_dynamics %>% 
-  select(c("w", "set", "prof", starts_with("pf"), starts_with("pm"))) %>% 
-  gather(key = "par", value = value, -c(w,set,prof)) %>%
+  select(c("w", "set", "prof", "prof_group", starts_with("pf"), starts_with("pm"))) %>% 
+  gather(key = "par", value = value, -c(w,set,prof, prof_group)) %>%
   mutate(par = factor(par, levels = c("pfAdu", "pfSub", "pfKid", 
                                          "pmAdu","pmSub","pmKid",
-                                         "pF"))) %>%
-  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"))
+                                         "pF")))
 
 # Age-Sex Plot:
 agesex_dynplotG <- ggplot(Out_agesex %>% filter(prof_group=="goat"), 
@@ -374,7 +391,7 @@ agesex_dynplotSh
 
 
 ```{r loopSummary}
-
+lhs_n <- 1000
 ## Model Output
 output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
