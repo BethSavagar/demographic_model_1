@@ -453,7 +453,7 @@ for(d in 1:length(datasets)){
   
   
   # Format demographic parameter sets:
-  var_input_backup <- var_input_df %>% as.data.frame()  %>% slice_sample(n = 100)
+  var_input_backup <- var_input_df %>% as.data.frame()
   
   ################
   ## SIMULATION ##
@@ -507,8 +507,8 @@ stopCluster(cl)
 summaryList <- ocOut.sum
 ocOut.summary <- summaryList %>%
   do.call(rbind, .) %>%
-  mutate(prof = rep(datasets, each = 100), 
-         set = rep(1:100, length(datasets))) %>% 
+  mutate(prof = rep(datasets, each = lhs_n), 
+         set = rep(1:lhs_n, length(datasets))) %>% 
   replace(is.na(.), 0) %>%
   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
     prof = factor(
@@ -553,7 +553,7 @@ growth_histGoat <- ggplot(popgrowth %>% filter(prof_group == "goat"), aes(prop))
        y = "Count")+
   theme_bw()
 
-growth_histShp <- ggplot(popgrowth %>% filter(prof_group == "goat"), aes(prop))+
+growth_histShp <- ggplot(popgrowth %>% filter(prof_group == "shp"), aes(prop))+
   geom_histogram()+
   facet_grid(prof~par, scales = "free")+
   labs(x = "Pop Growth", 
@@ -592,6 +592,7 @@ agesex_boxplot2 <- ggplot(agesex, aes(x=prof, y = prop))+
   facet_wrap(~par, ncol = 4)
   
 agesex_boxplot
+agesex_boxplot2
 
 
 ```
