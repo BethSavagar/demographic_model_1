@@ -1,4 +1,5 @@
 # 29 Aug - include vacciantion fro GSA
+# 21 Nov - Produce mortality and offtake in each age group for applied example validation.
 
 dynmod_func <- function(
     f_list, # initial state of female population
@@ -221,11 +222,26 @@ dynmod_func <- function(
                                    Adu_F)
     
     } 
+    #  
+    # # mortality output 
+    # if(output == mortSummary){
+    #   fIm_mort <- fIm_prev*mort_F
+    #   mIm_mort <- mIm_prev*mort_M
+    #   fS_mort <- fS_prev*mort_F
+    #   mS_mort <- mS_prev*mort_M
+    #   fE_mort <- fE_prev*mort_F
+    #   mE_mort <- mE_prev*mort_M
+    #   fI_mort <- fI_prev*mort_F
+    #   mI_mort <- mI_prev*mort_M
+    #   fR_mort <- fR_prev*mort_F
+    #   mR_mort <- mR_prev*mort_M
+    # }
+    
     
     ###################
     ## UPDATE STATES ##
     ###################
-    
+   
     fIm_prev <- fIm_cur ; mIm_prev <- mIm_cur
     fS_prev <- fS_cur ; mS_prev <- mS_cur
     fE_prev <- fE_cur ; mE_prev <- mE_cur
