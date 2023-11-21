@@ -40,7 +40,7 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ```{r loadpars}
 ## Load parameters
-datafile <- "-cgiar_validation"
+datafile <- "-OC_validation"
 source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
 
 ## Datasets
@@ -96,7 +96,7 @@ t1 <- TimeStop_dynamics
 ## LHS DEMOGRAPHIC PARS ##
 ##################################
 
-dataset <- "cgiar.shp.mort"
+dataset <- "oc.shp.aridP.mort"
 data_filename <- gsub("\\.","",dataset)
 
 lhs <- T
@@ -124,7 +124,7 @@ if(dataset == "lesnoff.ft"){
 # Format demographic parameter sets:
 var_input_backup <- var_input_df %>% as.data.frame()
 
-Out <- c()
+OutMort <- c()
 
 
 #####################
@@ -183,53 +183,59 @@ stopCluster(cl)
 ```{r mort_filter}
 
 OutMort <- as.data.frame(OutMort) %>%
-  mutate(set = 1:nrow(.))
+  mutate(set = 1:nrow(.)) %>%
+  select(set, mortF06, mortF612,mortF12end, 
+         mortM06, mortM612)
 
-cgiar_target <- read_csv("data/Applied_parameters/target-cgiar_validation.csv")
+OC_target <- read_csv("data/Applied_parameters/target-OC_validation.csv")
 
-rateMin <- "cgiar.shp.targ.min"
-rateMax <- "cgiar.shp.targ.max"
+rateMin <- "oc.shp.aridP.targ.min"
+rateMax <- "oc.shp.aridP.targ.max"
 
 # female mortality <12m target
-F1targ_min <- cgiar_target %>% filter(parameter == "F1_mort") %>% select(all_of(`rateMin`)) %>% pull()
-F1targ_max <- cgiar_target %>% filter(parameter == "F1_mort") %>% select(all_of(`rateMax`)) %>% pull()
+F1targ_min <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMin`)) %>% pull()
+F1targ_max <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMax`)) %>% pull()
 
-F2targ_min <- cgiar_target %>% filter(parameter == "F2_mort") %>% select(all_of(`rateMin`)) %>% pull()
-F2targ_max <- cgiar_target %>% filter(parameter == "F2_mort") %>% select(all_of(`rateMax`)) %>% pull()
+F2targ_min <- OC_target %>% filter(parameter == "mort2f") %>% select(all_of(`rateMin`)) %>% pull()
+F2targ_max <- OC_target %>% filter(parameter == "mort2f") %>% select(all_of(`rateMax`)) %>% pull()
+
+F3targ_min <- OC_target %>% filter(parameter == "mort3f") %>% select(all_of(`rateMin`)) %>% pull()
+F3targ_max <- OC_target %>% filter(parameter == "mort3f") %>% select(all_of(`rateMax`)) %>% pull()
 
 # Male mort <12m target
-M1targ_min <- cgiar_target %>% filter(parameter == "M1_mort") %>% select(all_of(`rateMin`)) %>% pull()
-M1targ_max <- cgiar_target %>% filter(parameter == "M1_mort") %>% select(all_of(`rateMax`)) %>% pull()
+M1targ_min <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMin`)) %>% pull()
+M1targ_max <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMax`)) %>% pull()
 
-M2targ_min <- cgiar_target %>% filter(parameter == "M2_mort") %>% select(all_of(`rateMin`)) %>% pull()
-M2targ_max <- cgiar_target %>% filter(parameter == "M2_mort") %>% select(all_of(`rateMax`)) %>% pull()
+M2targ_min <- OC_target %>% filter(parameter == "mort2m") %>% select(all_of(`rateMin`)) %>% pull()
+M2targ_max <- OC_target %>% filter(parameter == "mort2m") %>% select(all_of(`rateMax`)) %>% pull()
 
 OutMort %>% 
-  filter("mortF012">=F1targ_min,
-         "mortF012"<=F1targ_max)
+  filter(mortF06 >=F1targ_min &
+         mortF06<=F1targ_max)
 
 mortTarg <- OutMort %>% 
-  mutate(mortF1_targ = ifelse("mortF012">=F1targ_min & "mortF012"<=F1targ_max, 1, 0),
-         mortF2_targ = ifelse("mortF12end">=F2targ_min & "mortF12end"<=F2targ_max, 1, 0),
-         mortM1_targ = ifelse("mortM012">=M1targ_min & "mortM012"<=M1targ_max, 1, 0),
-         mortM2_targ = ifelse("mortM12end">=M2targ_min & "mortM12end"<=M2targ_max, 1, 0)) %>%
-  select(set, ends_with("targ")) %>%
-  mutate(targSum = apply(.[2:5],1,sum))
+  mutate(mortF1_targ = ifelse(mortF06>=F1targ_min & mortF06<=F1targ_max, 1, 0),
+         mortF2_targ = ifelse(mortF612>=F2targ_min & mortF612<=F2targ_max, 1, 0),
+         mortF3_targ = ifelse(mortF12end>=F3targ_min & mortF12end<=F3targ_max, 1, 0),
+         mortM1_targ = ifelse(mortM06>=M1targ_min & mortM06<=M1targ_max, 1, 0),
+         mortM2_targ = ifelse(mortM612>=M2targ_min & mortM612<=M2targ_max, 1, 0)) %>%
+  mutate(targSum = apply(.[7:11],1,sum))
 
 
-validAll <- mortTarg %>% filter(targSum == 4) %>% pull(set)
+
+validAll <- mortTarg %>% filter(targSum == 5) %>% pull(set)
 validMort <- var_input_backup[validAll, ] %>% select(mortality_y, mortality_a)
-# 
-# summary(valid_mortFM_df) %>% kable()
-# 
-# ggplot(valid_mortFM_df, aes(x=mortality_y, y = mortality_a))+
-#   geom_point()+
-#   theme_bw()
-# 
-# valid_mortFM_long <- valid_mortFM_df %>% gather(key = "par", value = "value")
-# ggplot(valid_mortFM_long, aes(x = par, y = value))+
-#   geom_boxplot()+
-#   theme_bw()
+
+summary(validMort) %>% kable()
+
+ggplot(validMort, aes(x=mortality_y, y = mortality_a))+
+  geom_point()+
+  theme_bw()
+
+valid_mortFM_long <- validMort %>% gather(key = "par", value = "value")
+ggplot(valid_mortFM_long, aes(x = par, y = value))+
+  geom_boxplot()+
+  theme_bw()
 
 
 ```
