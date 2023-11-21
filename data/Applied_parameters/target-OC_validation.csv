@@ -1,0 +1,6 @@
+﻿parameter,oc.shp.aridP.targ.min,oc.shp.aridP.targ.max,oc.shp.semiaridP.targ.min,oc.shp.semiaridP.targ.max,oc.shp.semiaridM.targ.min,oc.shp.semiaridM.targ.max,oc.shp.subhumidM.targ.min,oc.shp.subhumidM.targ.max,oc.shp.humidM.targ.min,oc.shp.humidM.targ.max,oc.gt.aridP.targ.min,oc.gt.aridP.targ.max,oc.gt.semiaridP.targ.min,oc.gt.semiaridP.targ.max,oc.gt.semiaridM.targ.min,oc.gt.semiaridM.targ.max,oc.gt.subhumidM.targ.min,oc.gt.subhumidM.targ.max,oc.gt.humidM.targ.min,oc.gt.humidM.targ.max
+Off_all,0.193,0.25,0.158,0.267,0.018,0.27,0.078,0.38,0.052,0.25,0.265,0.34,0.138,0.206,0.141,0.214,0.124,0.313,0.24,0.284
+mort1,0.178,0.45,0.16,0.45,0.13,0.5,0.13,0.438,0.086,0.467,0.15,0.4,0.468,0.4,0.025,0.5,0.11,0.532,0.1,0.48
+mort2f,0.05,0.15,0.15,0.15,0.04,0.17,0.039,0.1,0.1,0.24,0.05,0.15,0.15,0.15,0.04,0.17,0.1,0.162,0.1,0.318
+mort2m,0.05,0.15,0.15,0.15,0.04,0.17,0.05,0.1,0.1,0.473,0.5,0.15,0.15,0.15,0.04,0.17,0.1,0.15,0.1,0.503
+mort3f,0,0.25,0.119,0.158,0.017,0.13,0.045,0.23,0.1,0.25,0.5,0.33,0.091,0.158,0.05,0.144,0.065,0.2,0.08,0.2

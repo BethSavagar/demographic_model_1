@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r library}
 # libraries not accounted for in setup script
 library(GGally)
-
+plotsave <- F
 ```
 
 ```{r modSetup1}
@@ -52,6 +52,7 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ## Load parameters
 datafile <- "-cgiar_check"
+# datafile <- "-cgiar_check2" # rerun based on updated ranges comparing with RSA
 demographics <- read_csv(paste0("data/Applied_parameters/demographics",datafile,".csv"), col_names=T) 
 
 checkRanges <- demographics %>% 
@@ -81,7 +82,6 @@ p1<- ggplot(checkRanges %>% filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_
   labs(x = "Parameter")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        legend.position = "none",
         text = element_text(size=16))+
   scale_colour_manual(values = myPal)
 
@@ -92,11 +92,16 @@ p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_ma
   labs(x = "Parameter")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
         text = element_text(size=16))+
   scale_colour_manual(values = myPal)
 
-ggarrange(p1,p2)
+ranges_cgiar <- ggarrange(p1,p2)
+filename_ranges <- "ranges_cgiar.png"
 
+if(plotsave){
+  ggsave(paste0("plots/",filename_ranges), plot = ranges_cgiar, width = 20, height = 10, units = "cm")
+}
 
 ```
 
@@ -156,7 +161,7 @@ t1 <- TimeStop_dynamics
 ##################################
 
 lhs <- T
-lhs_n <- 1e3 # number of sets (parameter combinations)
+lhs_n <- 1e4 # number of sets (parameter combinations)
 pairs_plot <- F
 SA <- TRUE
 
@@ -316,7 +321,7 @@ agesex_dynplotG <- ggplot(Out_agesex %>% filter(prof=="cgiar.goat"),
   facet_wrap(~par)+
   labs(x="Weeks", 
        y = "Proportion",
-       title = "Age-Sex dynamics, cgiar, (LHS Parameter Sets)")+
+       title = "Age-Sex dynamics, cgiar Goat, (LHS Parameter Sets)")+
   theme_bw()
 
 agesex_dynplotSh <- ggplot(Out_agesex %>% filter(prof=="cgiar.shp"), 
@@ -325,7 +330,7 @@ agesex_dynplotSh <- ggplot(Out_agesex %>% filter(prof=="cgiar.shp"),
   facet_wrap(~par)+
   labs(x="Weeks", 
        y = "Proportion",
-       title = "Age-Sex dynamics, cgiar, (LHS Parameter Sets)")+
+       title = "Age-Sex dynamics, cgiar Sheep, (LHS Parameter Sets)")+
   theme_bw()
 
 growth_dynplot
@@ -333,6 +338,15 @@ growth_dynplot
 agesex_dynplotG
 agesex_dynplotSh
 
+agesex_dynShG <- ggarrange(agesex_dynplotSh,agesex_dynplotG, ncol = 1)
+
+filename_growthDyn <- "growthDyn_cgiarShG.png"
+filename_agesexDyn <- "agesexDyn_cgiarShG.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_growthDyn), plot = growth_dynplot, width = 20, height = 10, units = "cm")
+  ggsave(paste0("plots/",filename_agesexDyn), plot = agesex_dynShG, width = 20, height = 20, units = "cm")
+}
 ```
 
 
@@ -471,7 +485,7 @@ growth_boxplot <- ggplot(popgrowth, aes(x=prof, y = prop, col = prof))+
   facet_wrap(~par, scales = "free", nrow = 1)+
   labs(x = "Growth Stat", 
        y = "Pop Growth",
-       title = "Growth statistics for cgiar data, LHS parameter sets")+
+       title = "Population growth, cgiar, LHS parameter sets")+
   theme_bw()
 
 growth_hist <- ggplot(popgrowth, aes(prop))+
@@ -506,7 +520,12 @@ agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
   
 agesex_boxplot
 
-ggarrange(growth_boxplot, growth_hist, agesex_boxplot, ncol = 1)
+summary_ShG <- ggarrange(growth_boxplot, growth_hist, agesex_boxplot, ncol = 1)
+filename_summary <- "summary_cgiarShG.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_summary), plot = summary_ShG, width = 20, height = 20, units = "cm")
+}
 ```
 
 
