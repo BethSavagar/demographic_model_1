@@ -50,10 +50,10 @@ dynmod_func <- function(
   ## DEMOGRAPHICS LOOP ##
   ###############################
   
-  
-  
   for(w in 2:TimeStop_dynamics){
     
+    # w == 1 is already completed (initial conditions) 
+    # week 2 is first week in simulation.
     if(w == 2){
       fIm_prev <- fIm ; mIm_prev <- mIm
       fS_prev <- fS ; mS_prev <- mS
@@ -61,7 +61,8 @@ dynmod_func <- function(
       fI_prev <- fI ; mI_prev <- mI
       fR_prev <- fR ; mR_prev <- mR
     }
- 
+    
+    # ----------
     ## BIRTHS ## 
     
     # Only females > 18M can give birth (birth rate =0 for all other age groups)
@@ -71,7 +72,7 @@ dynmod_func <- function(
     
     E_births <- 0; I_births <- 0; R_births <- 0 # set EIR births to 0
     
-    
+    # ---------------------
     ## SEIR DEMOGRAPHICS ##
     
     # Immune Offspring Demographics (f/m)
@@ -118,37 +119,39 @@ dynmod_func <- function(
     
     # ---------------
     ## VACCINATION ##
+    # only run if week is in vaccination implementation week in Vprog:
     if(w %in% Vprog$Vweek){
       
+      # which round of vaccination (determines animals selected for vac)
       round_i <- Vprog %>% filter(Vweek == w) %>% pull(Vround)
       
-      # Vcov is a vector of vaccination coverage for each age group on round_i
-      # V_coverage is a df containing hte coverage vector for every round
+      # pull vaccination parameters from Vprog dataframe for current implementation week
       pV <- Vprog %>% filter(Vweek == w) %>% pull(pV)
       Vtype <- Vprog %>% filter(Vweek == w) %>% pull(Vtype)
       Vmin <- Vprog %>% filter(Vweek == w) %>% pull(Vmin)
       Vmax <- Vprog %>% filter(Vweek == w) %>% pull(Vmax)
       
-      
-      # defining the age range for vaccination and producing a Vcov vector
-      # Vcov is a vector of vaccination coverage for each age group on round_i
+      # Vcov vector contains the pV for each age group
+      # Update Vcov to reflect age-groups vaccination in round_i (i.e. Partial or Full)
       
       if(Vtype=="full"){
-        # if full all animals over the minimum age are vaccinated
+        # Full: All animals >4m are vaccinated
         Vcov <- rep(pV, length(fS_cur))
         Vcov[0:Vmin] <- 0
       }else if(Vtype=="partial"){
-        # if partial only a subset of animals are vaccinated
+        # Partial: Animals 4-12m are vacciated
         Vcov <- rep(pV, length(fS_cur))
         Vcov[0:Vmin] <- 0
         Vcov[Vmax:length(Vcov)] <- 0
       }
       
+      # Update Female population, post-vaccination
       fR_cur <- fR_cur + Vcov*(fS_cur+fE_cur+fI_cur) # new recovered units are all those already immune plus newly vaccinated units from non-immune (SEI) compartments
       fS_cur <- fS_cur*(1-Vcov) 
       fE_cur <- fE_cur*(1-Vcov) 
       fI_cur <- fI_cur*(1-Vcov)
       
+      # Update Male population, post-vaccination
       mR_cur <- mR_cur+Vcov*(mS_cur+mE_cur+mI_cur) # new recovered units are all those already immune plus newly vaccinated units from non-immune (SEI) compartments
       mS_cur <- mS_cur*(1-Vcov) 
       mE_cur <- mE_cur*(1-Vcov) 
@@ -163,10 +166,8 @@ dynmod_func <- function(
     #
     # ----------------------
     
-    
-    
-    ## OUTPUT ##
-    
+    # ---------------------
+    ## UPDATE POPULATION ##
     
     f_list <- list("fIm"=fIm_cur,
                    "fS"=fS_cur,
@@ -179,6 +180,9 @@ dynmod_func <- function(
                    "mI"=mI_cur,
                    "mR"=mR_cur)
     
+    # -----------------
+    ## UPDATE OUTPUT ##
+    
     summary_df <- summary_demos( w,
                                  f_list,
                                  m_list,
@@ -188,7 +192,12 @@ dynmod_func <- function(
                                  Sub,
                                  Adu_F)
     
+    # ----------- 
+    ## FADEOUT ##
+    
+    # If there is less than 1 animal in the population at week "w" then set all groups to 0:
     min_pop <- 1
+    
     if(summary_df[w,"sum_pop"]<min_pop){
       f_list <- list("fIm"=0,
                      "fS"=0,
@@ -201,6 +210,7 @@ dynmod_func <- function(
                      "mI"=0,
                      "mR"=0)
       
+      ## Update Output ##
       summary_df <- summary_demos( w,
                                    f_list,
                                    m_list,
@@ -209,10 +219,12 @@ dynmod_func <- function(
                                    Kid,
                                    Sub,
                                    Adu_F)
-    }
     
+    } 
     
+    ###################
     ## UPDATE STATES ##
+    ###################
     
     fIm_prev <- fIm_cur ; mIm_prev <- mIm_cur
     fS_prev <- fS_cur ; mS_prev <- mS_cur
@@ -220,8 +232,13 @@ dynmod_func <- function(
     fI_prev <- fI_cur ; mI_prev <- mI_cur
     fR_prev <- fR_cur ; mR_prev <- mR_cur
     
+    # --------------------------
+    ## END DEMOGRAPHICS LOOP ##
   }
   
+  ###################
+  ## FINAL OUTPUT ##
+  ###################
   
   summary_df <- summary_df %>% replace(is.na(.), 0)
   return(summary_df)
