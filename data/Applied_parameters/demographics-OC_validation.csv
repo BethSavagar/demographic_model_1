@@ -1,0 +1,15 @@
+﻿parameter,oc.shp.aridP.min,oc.shp.aridP.max,oc.shp.aridP.mort.min,oc.shp.aridP.mort.max,oc.shp.aridP.off.min,oc.shp.aridP.off.max
+NET_offtake_y,0,0,0,0,0,0
+NET_offtake_m,0.193,0.25,0,0,0.193,0.25
+NET_offtake_m2,0.193,0.99,0,0,0.193,0.99
+NET_offtake_f,0.193,0.25,0,0,0.193,0.25
+mortality_y,0.178,0.45,0.178,0.45,0,0
+mortality_a,0,0.25,0,0.25,0,0
+mortality_end,1,1,1,1,1,1
+birth_rate,0.9,1.35763,0,0,0,0
+ppr_mortality_y,0,0,0,0,0,0
+ppr_mortality_a,0,0,0,0,0,0
+adu_f_max_yrs,7,12,6,6,6,6
+adu_m_max_yrs,3,5,5,5,5,5
+min_age_offtake,9,14,10,12,10,12
+min_age_repro,18,19,12,12,12,12
