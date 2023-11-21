@@ -299,6 +299,71 @@ App_func <- function(
     res <- output_df
   }
   
+  if(output %in% c("mort_only")){
+    
+    ######
+    ## F Mortality
+    ######
+    
+    # Female 0-12m Mortality
+    outMort <- output_df %>% mutate(age = rep(1:(nrow(output_df)/TimeStop_dynamics), TimeStop_dynamics))
+    F0init <- outMort %>% filter(w == 1, age == 1) %>% pull("fpop")
+    F12end <- outMort %>% filter(w == 52, age == 52) %>% pull("fpop")
+    annMortF012 <- 1 - F12end / F0init # annual mortality
+    mortF012 <- annMortF012
+    
+    # Female 12m+ Mortality
+    F12init <- outMort %>% filter(w == 53, age == 53) %>% pull("fpop")
+    Fend <- outMort %>% filter(w == 104, age == 104) %>% pull("fpop")
+    annMortF12end <- 1 - Fend / F12init # annual mortality
+    mortF12end <- annMortF12end
+    
+    # Female 0-6m
+    F6end <- outMort %>% filter(w == 26, age == 26) %>% pull("fpop")
+    monMortF06 <- 1 - (F6end/F0init)
+    annMortF06 <- 1- (1-monMortF06)^2
+    mortF06 <- annMortF06
+    
+    # Female 6-12m
+    F6init <- outMort %>% filter(w == 26, age == 26) %>% pull("fpop")
+    monMortF612 <- 1 - (F12end/F6init)
+    annMortF612 <- 1- (1-monMortF612)^2
+    mortF612 <- annMortF612
+    
+    ######
+    ## M Mortality
+    ######
+    
+    # Male 0-12m Mortality
+    M0init <- outMort %>% filter(w == 1, age == 1) %>% pull("mpop")
+    M12end <- outMort %>% filter(w == 52, age == 52) %>% pull("mpop")
+    annMortM012 <- 1 - M12end / M0init # annual mortality
+    mortM012 <- annMortM012
+    
+    # Male 12m+ Mortality
+    M12init <- outMort %>% filter(w == 53, age == 53) %>% pull("mpop")
+    Mend <- outMort %>% filter(w == 104, age == 104) %>% pull("mpop")
+    annMortM12end <- 1 - Mend / M12init # annual mortality
+    mortM12end <- annMortM12end
+    
+    
+    # Male 0-6m
+    M6end <- outMort %>% filter(w == 26, age == 26) %>% pull("mpop")
+    monMortM06 <- 1 - (M6end/M0init)
+    annMortM06 <- 1- (1-monMortM06)^2
+    mortM06 <- annMortM06
+    
+    # Male 6-12m
+    M6init <- outMort %>% filter(w == 26, age == 26) %>% pull("mpop")
+    monMortM612 <- 1 - (M12end/M6init)
+    annMortM612 <- 1- (1-monMortM612)^2
+    mortM612 <- annMortM612
+    
+    res <- c("mortF012"=mortF012, "mortF12end"=mortF12end, "mortM012"=mortM012, "mortM12end"=mortM12end,
+             "mortF06"=mortF06, "mortF612"=mortF612, "mortM06"=mortM06, "mortM612"=mortM612)
+    
+    }
+ 
   return(res)
   
 }
