@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r library}
 # libraries not accounted for in setup script
 library(GGally)
-
+plotsave <- F
 ```
 
 ```{r modSetup1}
@@ -114,7 +114,7 @@ p1<- ggplot(checkRanges %>% filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
        
-        text = element_text(size=16))+
+        text = element_text(size=14))+
   scale_colour_manual(values = myPal)
 
 p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), 
@@ -126,10 +126,18 @@ p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_ma
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
          legend.position = "none",
-        text = element_text(size=16))+
+        text = element_text(size=14))+
   scale_colour_manual(values = myPal)
 
 ggarrange(p1,p2, nrow = 2)
+
+
+ranges_OC <- ggarrange(p1,p2, nrow = 2)
+filename_ranges <- "ranges_OC.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_ranges), plot = ranges_OC, width = 25, height = 20, units = "cm")
+}
 
 
 ```
@@ -340,7 +348,7 @@ growth_dynplot <- ggplot(Out_dynamics,
        y = "Population Size",
        title = "Population growth over 20 years, oc, (LHS Parameter Sets)")+
   geom_line()+
-  facet_wrap(~prof)+
+  facet_wrap(~prof, ncol = 5)+
   theme_bw()
 
 fadeout <- Out_dynamics %>% filter(sum_pop==0) %>% distinct(set) %>% pull()
@@ -387,11 +395,22 @@ growth_dynplot
 agesex_dynplotG
 agesex_dynplotSh
 
+filename_growthDyn <- "growthDyn_OC.png"
+filename_agesexDynG <- "agesexDyn_OCG.png"
+filename_agesexDynSh <- "agesexDyn_OCSh.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_growthDyn), plot = growth_dynplot, width = 20, height = 10, units = "cm")
+  ggsave(paste0("plots/",filename_agesexDynG), plot = agesex_dynplotG, width = 20, height = 20, units = "cm")
+  ggsave(paste0("plots/",filename_agesexDynSh), plot = agesex_dynplotSh, width = 20, height = 20, units = "cm")
+
+}
+
 ```
 
 
 ```{r loopSummary}
-lhs_n <- 1000
+lhs_n <- 1e4
 ## Model Output
 output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
