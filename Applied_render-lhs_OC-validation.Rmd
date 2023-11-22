@@ -40,9 +40,13 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ```{r loadpars}
 ## Load parameters
-datafile <- "-OC_validation"
-source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
-
+datafile1 <- "-OC_validation"
+# load data for Applied-Examples & Applied-LHS
+fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars","-OC_validation",".csv"),col_names=T)
+var_demo_dataMort <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationMORT",".csv"), col_names=T)
+var_demo_dataOff <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationOFF",".csv"), col_names=T)
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
+var_demo_data_backup <- var_demo_data_full
 ## Datasets
 datasets <- fix_age_data_full %>% select(-c(parameter)) %>% colnames()
 ```
@@ -240,8 +244,52 @@ ggplot(valid_mortFM_long, aes(x = par, y = value))+
 
 ```
 
+## Conditions on Mortality Parameter sets:
+- For all mortality parameter sets they must also satisfy the condition that youth mortality is greater than adult mortality (`mortality_y`>>`mortality_a`)
+
 
 ## ALL Offtake Rates
+
+```{r modsetup}
+######################
+## MODEL SETUP ##
+######################
+
+## Simulation:
+TimeStop_dynamics <- 2*52 # 2 years only interested in rates for 1 y
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
+min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
+
+## Model Output
+output <- "off_only" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+pV <- 1
+source("scripts/applied/applied_vaccination.R")
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+##################
+## MODEL INPUTS ##
+##################
+
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+turnover <- F; 
+dynamics <- T; 
+transmission <- F; 
+clean_environment <- T
+
+# timepoints for population growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
+t1 <- TimeStop_dynamics
+
+
+```
+
 
 ```{r Alloff_target}
 
@@ -249,22 +297,27 @@ ggplot(valid_mortFM_long, aes(x = par, y = value))+
 ## LHS DEMOGRAPHIC PARS ##
 ##################################
 
-dataset <- "lesnoff.off"
+dataset <- "oc.shp.aridP"
 data_filename <- gsub("\\.","",dataset)
 
 lhs <- T
 lhs_n <- 1e4 # number of sets (parameter combinations)
+lhs_n<- 100
 pairs_plot <- F
 SA <- TRUE
 
 # set seed
 set.seed(1) # so that results are consistent
 
+if(output == "off_only"){
+  var_demo_data_full <- var_demo_dataOff
+}
+
+
 pars_min <- paste0(dataset, ".min") # minimum val
 pars_max <-  paste0(dataset, ".max") # maximum val
 fixdata <- dataset # set dataset for state_vars
 vardata <- dataset
-
 
 source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
 
@@ -277,7 +330,7 @@ if(dataset == "lesnoff.ft"){
 # Format demographic parameter sets:
 var_input_backup <- var_input_df %>% as.data.frame()
 
-Out <- c()
+OutOff <- c()
 
 
 #####################
@@ -303,7 +356,8 @@ print("start-model")
 ################
 ## SIMULATION ##
 ################
-Out <- foreach (i = 1:nrow(var_input_backup), 
+OutOff <- foreach (i = 1:nrow(var_input_backup), 
+                .combine = "rbind",
                 .packages = c("dplyr", "tibble")
 ) %dopar% {
   
@@ -332,134 +386,309 @@ stopCluster(cl)
 
 ```
 
+```{r off_filter}
+
+OutOff <- as.data.frame(OutOff) %>%
+  mutate(set = 1:nrow(.)) %>%
+  select(set, offF06, offF612,offF12end, 
+         offM06, offM612, offAll)
+
+OC_target <- read_csv("data/Applied_parameters/target-OC_validation.csv")
+
+rateMin <- "oc.shp.aridP.targ.min"
+rateMax <- "oc.shp.aridP.targ.max"
+
+# female mortality <12m target
+targ_min <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMin`)) %>% pull()
+targ_max <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMax`)) %>% pull()
+
+offTarg <- OutOff %>% 
+  mutate(off_targ = ifelse(offAll>=targ_min & offAll<=targ_max, 1, 0))
+
+var_input_backup
+
+summary(var_input_backup %>% select(starts_with("NET"))) %>% kable()
+
+```
 
 
-```{r Alloff_filter}
+## Conditions on Offtake Parameter sets:
+- For all offtake parameter sets they must also satisfy the condition that Young male offtake (off_m2) is higher than female offtake (off_f)
 
-# quickplot:
 
-# test <- Out[[1]]
-# 
-# ggplot(test, aes(x=w, y=pfKid))+geom_point()
+## VALID OFF LOOP: 
 
-OutOff <- Out
+```{r validloop}
 
-# All Off target
-F1targ_minW <- 0.0094
-F1targ_maxW <- 0.0114
 
-F2targ_minW <- 0.0048
-F2targ_maxW <- 0.0058
+lhs_n <- 10000
+## Model Output
+output <- "off_only" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
 
-M1targ_minW <- 0.0026
-M1targ_maxW <- 0.0032
+# validOut = list to store outputs
+GSAoutput <- c(); 
+outOffls <- list()
+offValidParsls <- list()
 
-M2targ_minW <- 0.055
-M2targ_maxW <- 0.067
+#####################
+## PARALLELISATION ##
+#####################
 
-F_max_age <- var_input %>% distinct(adu_f_max_yrs) %>% pull()
-# calc F1 and F2 weekly mortality
-off_F1s <- sapply(OutOff, function(x) {
-  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
-  F0init <- testdf %>% filter(w == 1, age == 1) %>% pull("fpop")
-  F12end <- testdf %>% filter(w == 52, age == 52) %>% pull("fpop")
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+#####################
+## LOOP ##
+#####################
+
+for(d in 1:length(datasets)){
+  dataset <- datasets[d]
   
-  off_A <- 1 - F12end / F0init # annual mortality
-  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  ##################################
+  ## LHS DEMOGRAPHIC PARS ##
+  ##################################
   
-  return(off_F)
-})
-
-summary(off_F1s)
-
-valid_offF1 <- which(off_F1s>=F1targ_minW & off_F1s<=F1targ_maxW)
-
-# valid_offF1_df <- var_input_backup[valid_offF1, ] %>% select(NET_offtake_y, NET_offtake_f)
-# ggplot(valid_offF1_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
-
-# calc F1 and F2 weekly mortality
-off_F2s <- sapply(OutOff, function(x) {
-  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
-  F0init <- testdf %>% filter(w == 53, age == 53) %>% pull("fpop")
-  F12end <- testdf %>% filter(w == 104, age == 104) %>% pull("fpop")
+  data_filename <- gsub("\\.", "", dataset)
   
-  off_A <- 1 - F12end / F0init # annual mortality
-  off_F <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
+  if (dataset == "lesnoff.ft") {
+    rates <- "wkly"
+  } else{
+    rates <- "yrly"
+  }
   
-  return(off_F)
-})
-
-summary(off_F2s)
-
-valid_offF2 <- which(off_F2s>=F2targ_minW & off_F2s<=F2targ_maxW)
-
-# valid_offF2_df <- var_input_backup[valid_offF2, ] %>% select(NET_offtake_y, NET_offtake_f)
-# ggplot(valid_offF2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
-
-valid_offF1F2 <- which(valid_offF1 %in% valid_offF2)
-
-valid_offF1F2_df <- var_input_backup[valid_offF1F2, ] %>% select(NET_offtake_y, NET_offtake_f)
-ggplot(valid_offF1F2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
-
-
-##################
-## MALE OFFTAKE ##
-##################
-
-F_max_age <- var_input %>% distinct(adu_f_max_yrs) %>% pull()
-# calc M1 weekly offtake
-off_M1s <- sapply(OutOff, function(x) {
-  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
-  M0init <- testdf %>% filter(w == 1, age == 1) %>% pull("mpop")
-  M12end <- testdf %>% filter(w == 26, age == 26) %>% pull("mpop")
+  # set seed
+  set.seed(1) # so that results are consistent
   
-  off_A <- 1 - M12end / M0init # 6month mortality
-  off_M <- 1 - ((1 - off_A) ^ (1 / 13)) # fortnightly mortality
+  pars_min <- paste0(dataset, ".min") # minimum val
+  pars_max <-  paste0(dataset, ".max") # maximum val
+  fixdata <- dataset # set dataset for state_vars
+  vardata <- dataset
   
-  return(off_M)
-})
-
-summary(off_M1s)
-
-valid_offM1 <- which(off_M1s>=M1targ_minW & off_M1s<=M1targ_maxW)
-
-
-
-# calc M2 weekly offtake
-off_M2s <- sapply(OutOff, function(x) {
-  testdf <- x %>% mutate(age = rep(1:(F_max_age*52), TimeStop_dynamics))
-  M0init <- testdf %>% filter(w == 53, age == 53) %>% pull("mpop")
-  M12end <- testdf %>% filter(w == 104, age == 104) %>% pull("mpop")
+  source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
   
-  off_A <- 1 - M12end / M0init # annual mortality
-  off_M <- 1 - ((1 - off_A) ^ (1 / 26)) # fortnightly mortality
   
-  return(off_M)
-})
+  # Format demographic parameter sets:
+  var_input_backup <- var_input_df %>% as.data.frame()
+  
+  ################
+  ## SIMULATION ##
+  ################
+  OutOff <- foreach (i = 1:nrow(var_input_backup),
+                          .packages = c("dplyr", "tibble"),
+                          .combine = "rbind") %dopar% {
+                            print(i)
+                            
+                            var_input_full <- unlist(var_input_backup[i, ])
+                            
+                            App_func(
+                              imm_decay_corrected,
+                              var_input_full,
+                              fix_age_data_full,
+                              f_list,# initial state of female population
+                              m_list, # initial state of male population
+                              TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                              TimeStop_transmission, # 1 day, hourly timestep for transission component
+                              output,# model output: tracker or summary stats
+                              summary_df, #
+                              clean_environment,
+                              Vstart,
+                              Vprog,
+                              fixdata,
+                              vardata
+                            )
+                          }
+  
+  OutOff <- as.data.frame(OutOff) %>%
+    mutate(set = 1:nrow(.)) %>%
+    select(set, offF06, offF612,offF12end, 
+           offM06, offM612, offAll)
+  
+  rateMin <- paste0(dataset,".targ.min")
+  rateMax <-  paste0(dataset,".targ.max")
+  
+  # female mortality <12m target
+  targ_min <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMin`)) %>% pull()
+  targ_max <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  offTarg <- OutOff %>% mutate(off_targ = ifelse(offAll>=targ_min & offAll<=targ_max, 1, 0))
+  outOffls[[d]] <- offTarg
+  
+  offValidIDs <- offTarg %>% filter(off_targ==1) %>% pull(set)
+  offValidPars <- var_input_backup[offValidIDs, ]
+  offValidParsls[[d]] <- offValidPars
+}
 
-summary(off_M2s)
+```
 
-valid_offM2 <- which(off_M2s>=M2targ_minW & off_M2s<=M2targ_maxW)
+## 
 
-# valid_offF2_df <- var_input_backup[valid_offF2, ] %>% select(NET_offtake_y, NET_offtake_f)
-# ggplot(valid_offF2_df, aes(x=NET_offtake_y, y = NET_offtake_f))+geom_point()
 
-valid_offM1M2 <- which(valid_offM1 %in% valid_offM2)
 
-# valid_offM1M2_df <- var_input_backup[valid_offM1M2, ] %>% select(NET_offtake_y, NET_offtake_f, NET_offtake_m, NET_offtake_m2)
 
-# ggplot(valid_offM1M2_df, aes(x=NET_offtake_m, y = NET_offtake_m2))+geom_point()
 
-valid_offFM <- which(valid_offM1M2 %in% valid_offF1F2)
 
-var_input_OFF <- var_input_backup %>% mutate(set=1:nrow(.))
 
-valid_offFM_df <- var_input_OFF[valid_offFM, ] %>% select(NET_offtake_y, NET_offtake_f, NET_offtake_m, NET_offtake_m2)
+## VALID MORT LOOP
+
+```{r validMortLoop}
+
+lhs_n <- 10000
+## Model Output
+output <- "mort_only" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+outMortls <- list()
+mortValidParsls <- list()
+
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+#####################
+## LOOP ##
+#####################
+
+for(d in 1:length(datasets)){
+  dataset <- datasets[d]
+  
+  ##################################
+  ## LHS DEMOGRAPHIC PARS ##
+  ##################################
+  
+  data_filename <- gsub("\\.", "", dataset)
+  
+  if (dataset == "lesnoff.ft") {
+    rates <- "wkly"
+  } else{
+    rates <- "yrly"
+  }
+  
+  # set seed
+  set.seed(1) # so that results are consistent
+  
+  pars_min <- paste0(dataset, ".min") # minimum val
+  pars_max <-  paste0(dataset, ".max") # maximum val
+  fixdata <- dataset # set dataset for state_vars
+  vardata <- dataset
+  
+  source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+  
+  
+  # Format demographic parameter sets:
+  var_input_backup <- var_input_df %>% as.data.frame()
+  
+  ################
+  ## SIMULATION ##
+  ################
+  OutMort <- foreach (i = 1:nrow(var_input_backup),
+                     .packages = c("dplyr", "tibble"),
+                     .combine = "rbind") %dopar% {
+                       print(i)
+                       
+                       var_input_full <- unlist(var_input_backup[i, ])
+                       
+                       App_func(
+                         imm_decay_corrected,
+                         var_input_full,
+                         fix_age_data_full,
+                         f_list,# initial state of female population
+                         m_list, # initial state of male population
+                         TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                         TimeStop_transmission, # 1 day, hourly timestep for transission component
+                         output,# model output: tracker or summary stats
+                         summary_df, #
+                         clean_environment,
+                         Vstart,
+                         Vprog,
+                         fixdata,
+                         vardata
+                       )
+                     }
+  
+  OutMort <- as.data.frame(OutMort) %>%
+    mutate(set = 1:nrow(.)) %>%
+    select(set, mortF06, mortF612,mortF12end, 
+           mortM06, mortM612)
+  
+  rateMin <- paste0(dataset,".targ.min")
+  rateMax <-  paste0(dataset,".targ.max")
+  
+  
+  # female mortality <12m target
+  F1targ_min <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMin`)) %>% pull()
+  F1targ_max <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  F2targ_min <- OC_target %>% filter(parameter == "mort2f") %>% select(all_of(`rateMin`)) %>% pull()
+  F2targ_max <- OC_target %>% filter(parameter == "mort2f") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  F3targ_min <- OC_target %>% filter(parameter == "mort3f") %>% select(all_of(`rateMin`)) %>% pull()
+  F3targ_max <- OC_target %>% filter(parameter == "mort3f") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  # Male mort <12m target
+  M1targ_min <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMin`)) %>% pull()
+  M1targ_max <- OC_target %>% filter(parameter == "mort1") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  M2targ_min <- OC_target %>% filter(parameter == "mort2m") %>% select(all_of(`rateMin`)) %>% pull()
+  M2targ_max <- OC_target %>% filter(parameter == "mort2m") %>% select(all_of(`rateMax`)) %>% pull()
+  
+  
+  mortTarg <- OutMort %>% 
+    mutate(mortF1_targ = ifelse(mortF06>=F1targ_min & mortF06<=F1targ_max, 1, 0),
+           mortF2_targ = ifelse(mortF612>=F2targ_min & mortF612<=F2targ_max, 1, 0),
+           mortF3_targ = ifelse(mortF12end>=F3targ_min & mortF12end<=F3targ_max, 1, 0),
+           mortM1_targ = ifelse(mortM06>=M1targ_min & mortM06<=M1targ_max, 1, 0),
+           mortM2_targ = ifelse(mortM612>=M2targ_min & mortM612<=M2targ_max, 1, 0)) %>%
+    mutate(targSum = apply(.[7:11],1,sum))
+  
+  outMortls[[d]] <- mortTarg
+  
+  mortValidIDs <- mortTarg %>% filter(targSum==5) %>% pull(set)
+  mortValidPars <- var_input_backup[mortValidIDs, ] # %>% select(mortality_y, mortality_a)
+  mortValidParsls[[d]] <- mortValidPars
+}
+
+```
+
+```{r}
+
 
 
 
 ```
-
 
 
 ## Valid parameter combinations?

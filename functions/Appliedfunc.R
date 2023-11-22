@@ -362,8 +362,76 @@ App_func <- function(
     res <- c("mortF012"=mortF012, "mortF12end"=mortF12end, "mortM012"=mortM012, "mortM12end"=mortM12end,
              "mortF06"=mortF06, "mortF612"=mortF612, "mortM06"=mortM06, "mortM612"=mortM612)
     
-    }
- 
+  }
+  
+  if(output %in% c("off_only")){
+    
+    ######
+    ## F Offtake
+    ######
+    
+    # Female 0-12m Offtake
+    outOff <- output_df %>% mutate(age = rep(1:(nrow(output_df)/TimeStop_dynamics), TimeStop_dynamics))
+    F0init <- outOff %>% filter(w == 1, age == 1) %>% pull("fpop")
+    F12end <- outOff %>% filter(w == 52, age == 52) %>% pull("fpop")
+    annOffF012 <- 1 - F12end / F0init # annual offtake
+    offF012 <- annOffF012
+    
+    # Female 12m+ Offtake
+    F12init <- outOff %>% filter(w == 53, age == 53) %>% pull("fpop")
+    Fend <- outOff %>% filter(w == 104, age == 104) %>% pull("fpop")
+    annOffF12end <- 1 - Fend / F12init # annual offtake
+    offF12end <- annOffF12end
+    
+    # Female 0-6m
+    F6end <- outOff %>% filter(w == 26, age == 26) %>% pull("fpop")
+    monOffF06 <- 1 - (F6end/F0init)
+    annOffF06 <- 1- (1-monOffF06)^2
+    offF06 <- annOffF06
+    
+    # Female 6-12m
+    F6init <- outOff %>% filter(w == 26, age == 26) %>% pull("fpop")
+    monOffF612 <- 1 - (F12end/F6init)
+    annOffF612 <- 1- (1-monOffF612)^2
+    offF612 <- annOffF612
+    
+    ######
+    ## M offtake
+    ######
+    
+    # Male 0-12m offtake
+    M0init <- outOff %>% filter(w == 1, age == 1) %>% pull("mpop")
+    M12end <- outOff %>% filter(w == 52, age == 52) %>% pull("mpop")
+    annOffM012 <- 1 - M12end / M0init # annual offtake
+    offM012 <- annOffM012
+    
+    # Male 12m+ offtake
+    M12init <- outOff %>% filter(w == 53, age == 53) %>% pull("mpop")
+    Mend <- outOff %>% filter(w == 104, age == 104) %>% pull("mpop")
+    annOffM12end <- 1 - Mend / M12init # annual offtake
+    offM12end <- annOffM12end
+    
+    # Male 0-6m
+    M6end <- outOff %>% filter(w == 26, age == 26) %>% pull("mpop")
+    monOffM06 <- 1 - (M6end/M0init)
+    annOffM06 <- 1- (1-monOffM06)^2
+    offM06 <- annOffM06
+    
+    # Male 6-12m
+    M6init <- outOff %>% filter(w == 26, age == 26) %>% pull("mpop")
+    monOffM612 <- 1 - (M12end/M6init)
+    annOffM612 <- 1- (1-monOffM612)^2
+    offM612 <- annOffM612
+    
+    offinit <- outOff %>% filter(w == 1, age == 1) %>% pull("sum_pop")
+    offend <- outOff %>% filter(w == 52, age == 52) %>% pull("sum_pop")
+    offAll <- 1-(offend / offinit)
+    
+    res <- c("offF012"=offF012, "offF12end"=offF12end, "offM012"=offM012, "offM12end"=offM12end,
+             "offF06"=offF06, "offF612"=offF612, "offM06"=offM06, "offM612"=offM612, "offAll"=offAll)
+    
+  }
+  
   return(res)
   
 }
