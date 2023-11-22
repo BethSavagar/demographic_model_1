@@ -46,7 +46,7 @@ fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars","-OC_v
 var_demo_dataMort <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationMORT",".csv"), col_names=T)
 var_demo_dataOff <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationOFF",".csv"), col_names=T)
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
-var_demo_data_backup <- var_demo_data_full
+var_demo_data_backup <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validation",".csv"), col_names=T)
 ## Datasets
 datasets <- fix_age_data_full %>% select(-c(parameter)) %>% colnames()
 ```
@@ -420,6 +420,7 @@ summary(var_input_backup %>% select(starts_with("NET"))) %>% kable()
 
 ```{r validloop}
 
+var_demo_data_full <- var_demo_dataOff
 
 lhs_n <- 10000
 ## Model Output
@@ -546,6 +547,8 @@ for(d in 1:length(datasets)){
 ## VALID MORT LOOP
 
 ```{r validMortLoop}
+
+var_demo_data_full <- var_demo_dataMort
 
 lhs_n <- 10000
 ## Model Output
