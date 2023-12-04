@@ -6,6 +6,21 @@
 library(tidyverse)
 library(GGally)
 
+plotsave <- F
+
+################
+# GGplot Theme
+################
+
+# Define the custom theme
+custom_theme <- theme_bw() +
+  theme(
+    text = element_text(family = "Times New Roman", size = 12)
+  )
+
+# Set the custom theme globally
+theme_set(custom_theme)
+
 
 ################
 # Load Datasets
@@ -127,9 +142,22 @@ RSApars_15age <- RSAparameters %>%
 # pairs plot:
 
 pairs(RSApars_15age, pch = 18)
-ggpairs(RSApars_15age)
-ggplot(RSApars_15age, aes(x=off_mA, y=tenyr_growth))+geom_point()
 
+ggpairs(RSApars_15age,
+        upper = list(continuous = wrap("cor", size = 7,family = "Times New Roman")))
+
+# save plot without tenyr growth: 
+RSApairs <- ggpairs(RSApars_15age %>% select(-tenyr_growth),
+                    upper = list(continuous = wrap("cor", size = 4,family = "Times New Roman")))
+filename_RSApairs <- "RSApairs.png"
+
+# ggplot(RSApars_15age, aes(x=off_mA, y=tenyr_growth))+
+#   geom_point()
+
+
+if(plotsave){
+  ggsave(paste0("plots/RSA/",filename_RSApairs), plot = RSApairs, width = 25, height = 25, units = "cm")
+}
 
 # RSA pars 15 ageX contains parameter sets which produce invalid results
 RSApars_15ageX <- RSAparameters %>% 
@@ -181,13 +209,31 @@ RSA_long_comparison <- as.data.frame(rbind(RSApars_long, RSApars_15age_long)) %>
                                   "off_f")))
 
 # Density plot
-ggplot(RSA_long_comparison, aes(x=val))+
+RSAdensity <- ggplot(RSA_long_comparison, aes(x=val))+
   geom_density(aes(col=condition), linewidth = 1)+
-  facet_wrap(~par, scales="free")
+  facet_wrap(~par, scales="free", ncol =5)+
+  labs(x = "Value",
+       y = "Density",
+       col = "Stage")
 # Box plot
-ggplot(RSA_long_comparison, aes(x=par,y=val))+
+RSAboxplot <- ggplot(RSA_long_comparison, aes(x=par,y=val))+
   geom_boxplot(aes(col=condition))+
-  facet_wrap(~par, scales="free")
+  facet_wrap(~par, scales="free",ncol =5)+
+  labs(x = "Demographic Parameter",
+       y = "Value",
+       col = "Stage")
+
+filename_RSAdensity <- "RSAdensity.png"
+filename_RSAboxplot <- "RSAboxplot.png"
+
+# ggplot(RSApars_15age, aes(x=off_mA, y=tenyr_growth))+
+#   geom_point()
+
+
+if(plotsave){
+  ggsave(paste0("plots/RSA/",filename_RSAdensity), plot = RSAdensity, width = 25, height = 10, units = "cm")
+  ggsave(paste0("plots/RSA/",filename_RSAboxplot), plot = RSAboxplot, width = 25, height = 10, units = "cm")
+  }
 
 
 # Age-Sex structure
@@ -200,53 +246,16 @@ agesex_structure <- RSAoutput_ext %>%
   gather(key=stat, value=prop) %>%
   mutate(sex = ifelse(stat %in% c("pmKid","pmSub","pmAdu"), "M", "F"))
 
-ggplot(agesex_structure, aes(x=stat, y=prop, col = sex))+geom_boxplot()
+RSAage <- ggplot(agesex_structure, aes(x=stat, y=prop, col = sex))+
+  geom_boxplot()+
+  labs(x = "Age Group",
+       y = "Proportion",
+       col = "Sex")
+
 agesex_structure %>% group_by(sex, stat) %>% summarise(mean=mean(prop)) %>% kable()
 
+filename_RSAage <- "RSAage.png"
 
-
-###############
-################
-################
-################
-
-# 
-# # Density Plot & Boxplot comparing pre & post condition distributions. 
-# 
-# RSApars_long <- gather(as.data.frame(RSAparameters) %>% 
-#                          mutate(set=1:nrow(RSAparameters)) %>% 
-#                          select(-c(starts_with("tenyr"))), key="par", value = "val", -set) %>%
-#   mutate(condition = "PRE")
-# 
-# RSApars_15age_long <- gather(as.data.frame(RSApars_15age) %>% 
-#                                mutate(set=1:nrow(RSApars_15age)) %>% 
-#                                select(-c(tenyr_growth)), key="par", value = "val", -set) %>%
-#   mutate(condition = "POST")
-# 
-# 
-# RSApars_15ageX_long <- gather(as.data.frame(RSApars_15ageX) %>% 
-#                                 mutate(set=1:nrow(RSApars_15ageX)) %>% 
-#                                 select(-c(tenyr_growth)), key="par", value = "val", -set) %>%
-#   mutate(condition = "INVALID")
-# 
-# 
-# RSA_long_comparison <- as.data.frame(rbind(RSApars_long, RSApars_15age_long, RSApars_15ageX_long)) %>%
-#   mutate(
-#     condition = factor(condition, levels = c("PRE", "POST", "INVALID")),
-#     par = factor(par, levels = c("max_yrs_F",
-#                                  "max_yrs_M",
-#                                  "min_off", 
-#                                  "min_repro",
-#                                  "birth_rate",
-#                                  "mort_Y",
-#                                  "mort_A", 
-#                                  "off_mY",
-#                                  "off_mA",
-#                                  "off_f")))
-# 
-# # Density plot
-# ggplot(RSA_long_comparison, aes(x=val))+
-#   geom_density(aes(col=condition), linewidth = 1)+
-#   facet_wrap(~par, scales="free")
-
-
+if(plotsave){
+  ggsave(paste0("plots/RSA/",filename_RSAage), plot = RSAage, width = 25, height = 10, units = "cm")
+}
