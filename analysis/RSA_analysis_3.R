@@ -13,10 +13,7 @@ plotsave <- F
 ################
 
 # Define the custom theme
-custom_theme <- theme_bw() +
-  theme(
-    text = element_text(family = "Times New Roman", size = 12)
-  )
+custom_theme <- theme_bw()+theme(text = element_text(family = "Times New Roman", size = 9))
 
 # Set the custom theme globally
 theme_set(custom_theme)

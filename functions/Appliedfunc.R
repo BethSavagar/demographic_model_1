@@ -359,8 +359,30 @@ App_func <- function(
     annMortM612 <- 1- (1-monMortM612)^2
     mortM612 <- annMortM612
     
+    # Male 6m+ 
+    M18end <- outMort %>% filter(w == 78, age == 78) %>% pull("mpop")
+    annMortM6end <- 1 - M18end / M6init # annual 
+    mortM6end <- annMortM6end
+    
+    # All Mortality
+    mortinit <- outMort %>% filter(w == 1, age == 1) %>% pull("sum_pop")
+    mortend <- outMort %>% filter(w == 52, age == 52) %>% pull("sum_pop")
+    mortAll <- 1-(mortend / mortinit)
+    
+    # Female Offtake Annual
+    Finit <- outMort %>% filter(w==1) %>% summarise(sum(fpop)) %>% pull()
+    Fend <- outMort %>% filter(w==52) %>% summarise(sum(fpop)) %>% pull()
+    mortF <- 1- (Fend / Finit)
+    
+    # Male Offtake Annual
+    Minit <- outMort %>% filter(w==1) %>% summarise(sum(mpop)) %>% pull()
+    Mend <- outMort %>% filter(w==52) %>% summarise(sum(mpop)) %>% pull()
+    mortM <- 1- (Mend / Minit)
+    
+    
     res <- c("mortF012"=mortF012, "mortF12end"=mortF12end, "mortM012"=mortM012, "mortM12end"=mortM12end,
-             "mortF06"=mortF06, "mortF612"=mortF612, "mortM06"=mortM06, "mortM612"=mortM612)
+             "mortF06"=mortF06, "mortF612"=mortF612, "mortM06"=mortM06, "mortM612"=mortM612, "mortM6end" = mortM6end,
+             "mortF" = mortF, "mortM" = mortM, "mortAll" = mortAll)
     
   }
   
@@ -423,12 +445,29 @@ App_func <- function(
     annOffM612 <- 1- (1-monOffM612)^2
     offM612 <- annOffM612
     
+    # Male 6m+ offtake
+    M18end <- outOff %>% filter(w == 78, age == 78) %>% pull("mpop")
+    annOffM6end <- 1 - M18end / M6init # annual offtake
+    offM6end <- annOffM6end
+    
+    # All Offtake
     offinit <- outOff %>% filter(w == 1, age == 1) %>% pull("sum_pop")
     offend <- outOff %>% filter(w == 52, age == 52) %>% pull("sum_pop")
     offAll <- 1-(offend / offinit)
     
+    # Female Offtake Annual
+    Finit <- outOff %>% filter(w==1) %>% summarise(sum(fpop)) %>% pull()
+    Fend <- outOff %>% filter(w==52) %>% summarise(sum(fpop)) %>% pull()
+    offF <- 1- (Fend / Finit)
+    
+    # Male Offtake Annual
+    Minit <- outOff %>% filter(w==1) %>% summarise(sum(mpop)) %>% pull()
+    Mend <- outOff %>% filter(w==52) %>% summarise(sum(mpop)) %>% pull()
+    offM <- 1- (Mend / Minit)
+    
     res <- c("offF012"=offF012, "offF12end"=offF12end, "offM012"=offM012, "offM12end"=offM12end,
-             "offF06"=offF06, "offF612"=offF612, "offM06"=offM06, "offM612"=offM612, "offAll"=offAll)
+             "offF06"=offF06, "offF612"=offF612, "offM06"=offM06, "offM612"=offM612,"offM6end"=offM6end,
+             "offF" = offF, "offM" = offM, "offAll"=offAll)
     
   }
   

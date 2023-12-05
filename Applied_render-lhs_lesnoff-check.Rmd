@@ -18,8 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r library}
 # ibraries not accounted for in setup script
 library(GGally)
-
-
+plotsave <- F
 ```
 
 ```{r modSetup1}
@@ -68,7 +67,7 @@ p1<- ggplot(checkRanges %>% filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_
   labs(x = "Parameter")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-        legend.position = "none",
+        
         text = element_text(size=16))
 
 p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), 
@@ -78,9 +77,19 @@ p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_ma
   labs(x = "Parameter")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+        legend.position = "none",
         text = element_text(size=16))
 
-ggarrange(p1,p2)
+ggarrange(p1,p2, nrow = 2)
+
+
+
+ranges_lesnoff <- ggarrange(p1,p2, nrow = 2)
+filename_ranges <- "ranges_lesnoff.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_ranges), plot = ranges_lesnoff, width = 25, height = 20, units = "cm")
+}
 
 
 ```
@@ -288,6 +297,17 @@ fadeout_dynplot
 agesex_dynplot
 ggarrange(growth_dynplot, agesex_dynplot, ncol = 1)
 
+
+filename_growthDyn <- "growthDyn_lesnoff.png"
+filename_fadeoutDyn <- "fadeoutDyn_lesnoff.png"
+filename_agesexDyn <- "agesexDyn_lesnoff.png"
+
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_growthDyn), plot = growth_dynplot, width = 20, height = 10, units = "cm")
+   ggsave(paste0("plots/",filename_fadeoutDyn), plot = fadeout_dynplot, width = 20, height = 10, units = "cm")
+  ggsave(paste0("plots/",filename_agesexDynG), plot = agesex_dynplot, width = 20, height = 20, units = "cm")
+}
 ```
 
 
@@ -443,7 +463,13 @@ agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
   
 agesex_boxplot
 
-ggarrange(growth_boxplot, growth_hist, agesex_boxplot, ncol = 1)
+summary_lesnoff <- ggarrange(growth_boxplot, growth_hist, agesex_boxplot, ncol = 1)
+
+filename_summary <- "summary_lesnoff.png"
+
+if(plotsave){
+  ggsave(paste0("plots/",filename_summary), plot = summary_lesnoff, width = 20, height = 20, units = "cm")
+}
 ```
 
 
@@ -531,5 +557,28 @@ lesnoffPars.valid <- var_input_backup %>%
 
 
 pairs(lesnoffPars.valid %>% select(-c(tenyr_growth,tenyr_05age,tenyr_15age)))
+
+parsOutput <- lesnoffPars.valid %>% select(-c(tenyr_growth,tenyr_05age,tenyr_15age))
+pars_filename <- "Applied_validPars_Lesnoff-check.csv"
+write.csv(parsOutput, file = paste0("output/Applied/", pars_filename), row.names = F)
+
+```
+
+
+
+```{r validAgeSex}
+
+lesnoffOut.validLong <- lesnoffOut.valid %>%
+  select(starts_with("pf"), starts_with("pm")) %>% 
+  gather(key = "par", value = "prop")
+
+stable_agesex <- lesnoffOut.validLong %>% 
+  group_by(par) %>%
+  summarise(median = median(prop))
+
+agesex_filename <- "Applied_AgeSex_Lesnoff.csv"
+# write.csv(stable_agesex, file = paste0("output/Applied/stableAgeSex/", agesex_filename), row.names = F)
+
+# shift to wide format
 
 ```

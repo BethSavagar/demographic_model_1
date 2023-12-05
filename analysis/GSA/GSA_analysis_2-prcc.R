@@ -10,6 +10,8 @@ plotsave <- F
 library(tidyverse)
 library(sensobol)
 library(epiR)
+library(ggpubr)
+
 
 
 ################
@@ -77,52 +79,12 @@ pmAdu.min <- 0.01; pmAdu.max <- 0.15
 ####################
 ## GSA ANALYSIS 1 ##
 ####################
-
-# Sobol sensitivity analysis on complete data.frame
-
-# Join parameters dataframe with outputs of interest:
-# (i) overall population growth
-# (ii) tenyr population growth
-# (iii) immunity at 6m
-# (iv) immunity at 12m
-# (v) immunity < 70%
-
-
-# params for sobol matrices
-N <- 1e4 # scaling factor, set to at least 1000
 params <- colnames(sobol_input %>% select(-GSAset))
-order <- "first"
 
 # (i) overall population growth
 GSAoutput <- GSAoutput %>%
   mutate(pop_growth = replace_na(pop_growth,0),
          tenyr_growth = replace_na(tenyr_growth,0),)
-ind_popgrowth <- sobol_indices(Y = GSAoutput$pop_growth, N = N, params = params) # compute indices
-plot(ind_popgrowth)+labs(title = "(Total) Population Growth") # first and total order indices
-
-# (ii) tenyr population growth
-ind_tenyr <- sobol_indices(Y = GSAoutput$tenyr_growth, N = N, params = params) # compute indices
-plot(ind_tenyr)
-
-# (iii) immunity at 6m
-ind_imm6m <- sobol_indices(Y = GSAoutput$imm_6m, N = N, params = params) # compute indices
-p1 <- plot(ind_imm6m)+labs(title = "Immunity at 6m")+theme(legend.position="none")
-
-# (iv) immunity at 12m
-ind_imm12m <- sobol_indices(Y = GSAoutput$imm_12m, N = N, params = params) # compute indices
-p2 <- plot(ind_imm12m)+labs(title = "Immunity at 12m")+theme(legend.position="none")
-
-# (v) immunity < 70%
-ind_imm70 <- sobol_indices(Y = GSAoutput$imm70_w, N = N, params = params) # compute indices
-p3 <- plot(ind_imm70)+labs(title = "Weeks to immunity <70%")+theme(legend.position="bottom")
-
-ggarrange(p1,p2,p3,ncol=1)
-
-# Additional Plotting Options:
-plot_multiscatter(data = sobol_input %>% select(-GSAset), N = N, Y = GSAoutput$pop_growth, params = params)
-plot_scatter(data = sobol_input %>% select(-GSAset), Y = GSAoutput$pop_growth, N = N, params = params)
-plot_uncertainty(Y = GSAoutput$pop_growth, N = N)
-
 
 # PRCC on complete data frame
 
@@ -147,55 +109,56 @@ GSAgrowth_prcctable
 filename_GSAgrowthprcc <- "GSAgrowth_prccplot.png"
 
 if(plotsave){
-  ggsave(paste0("plots/GSA/",filename_RSAboxplot), plot = GSAgrowth_prccplot, width = 7.5, height = 7.5, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAgrowthprcc), plot = GSAgrowth_prccplot, width = 7.5, height = 7.5, units = "cm")
 }
 
 # Immunity at 6m
 dat.2 <- sobol_input %>% select(-GSAset) %>% cbind(GSAoutput %>% select(imm_6m))
 prcc_imm6m <- epi.prcc(dat.2, sided.test = 2, conf.level = 0.95)
 
-ggplot(prcc_imm6m, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
-
 # Immunity at 12m
 dat.3 <- sobol_input %>% select(-GSAset) %>% cbind(GSAoutput %>% select(imm_12m))
 prcc_imm12m <- epi.prcc(dat.3, sided.test = 2, conf.level = 0.95)
-
-ggplot(prcc_imm6m, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
 
 # Immunity below 70%
 dat.4 <- sobol_input %>% select(-GSAset) %>% cbind(GSAoutput %>% select(imm70_w))
 prcc_imm70 <- epi.prcc(dat.4, sided.test = 2, conf.level = 0.95)
 
-ggplot(prcc_imm70, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
-
-
-
 # Bar plot comparing prcc for each output
 prcc.all <- rbind(prcc_popgrowth %>% select(var,est) %>% mutate(output = "popgrowth"),
                  prcc_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
                  prcc_imm12m %>% select(var,est) %>% mutate(output = "imm12m"),
-                 prcc_imm70 %>% select(var,est) %>% mutate(output = "imm70")    )
+                 prcc_imm70 %>% select(var,est) %>% mutate(output = "imm70")) %>%
+  mutate(output = factor(output, levels = c("imm6m", "imm12m", "imm70", "popgrowth")))
 
-ggplot(prcc.all, aes(x=var, y=est, group = output, fill = output))+
+GSAall_prcc <- ggplot(prcc.all, aes(x=est, y=var, group = output, fill = output))+
   geom_col(position = "dodge")+
-  labs(x="par", y="prcc")+
-  theme_bw()
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+GSAall_prcc
+
+GSAall_prcc2 <- ggplot(prcc.all, aes(x=est, y=var, group = output, fill = output))+
+  geom_col(position = "dodge")+
+  facet_wrap(~output)+
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+GSAall_prcc2
+
+filename_GSAallprcc <- "GSAall_prccplot.png"
+filename_GSAallprcc2 <- "GSAall_prccplot2.png"
+
+if(plotsave){
+  ggsave(paste0("plots/GSA/",filename_GSAallprcc), plot = GSAall_prcc, width = 15, height = 7.5, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAallprcc2), plot = GSAall_prcc2, width = 15, height = 7.5, units = "cm")
+
+}
+
 
 ##########################################################################
 ####################
 ## GSA ANALYSIS 2 ##
 ####################
 ##########################################################################
-
 
 ## SETUP ##
 
@@ -245,20 +208,6 @@ par_subset <- sobol_par_subset %>%
 
 pairs(par_subset, pch=18)
 ggpairs(par_subset)
-# Sobol
-# - I don't think it's possible because sobol_indices requires arguments of N which is the original sampling frame size and and outputs (which aren't the same rows)
-
-# params for sobol matrices
-N <- nrow(sobol_par_subset) # scaling factor, set to at least 1000
-params <- colnames(sobol_input %>% select(-GSAset))
-order <- "first"
-
-# # (i) imm6m
-# ind_popgrowth <- sobol_indices(Y = sobol_par_subset$imm_6m, N = N, params = params) # compute indices
-# plot(ind_popgrowth) # first and total order indices
-
-
-## ANALYSIS ##
 
 # PRCC on subset
 
@@ -272,11 +221,6 @@ dat.1b <- sobol_par_subset %>% select(-c(GSAset,
 
 prccb_imm6m <- epi.prcc(dat.1b, sided.test = 2, conf.level = 0.95)
 
-ggplot(prccb_imm6m, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
-
 dat.2b <- sobol_par_subset %>% select(-c(GSAset,
                                         "pop_growth",
                                         "tenyr_growth",
@@ -285,13 +229,6 @@ dat.2b <- sobol_par_subset %>% select(-c(GSAset,
                                         "tenyr_15age"))
 
 prccb_imm12m <- epi.prcc(dat.2b, sided.test = 2, conf.level = 0.95)
-
-ggplot(prccb_imm12m, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
-
-
 
 dat.3b <- sobol_par_subset %>% select(-c(GSAset,
                                         "pop_growth",
@@ -302,11 +239,6 @@ dat.3b <- sobol_par_subset %>% select(-c(GSAset,
 
 prccb_imm70 <- epi.prcc(dat.3b, sided.test = 2, conf.level = 0.95)
 
-ggplot(prccb_imm70, aes(x=var, y=est))+
-  geom_col()+
-  labs(x="par", y="prcc")+
-  theme_bw()
-
 dat.4b <- sobol_par_subset %>% select(-c(GSAset,
                                         "pop_growth",
                                         "imm_6m",
@@ -316,31 +248,50 @@ dat.4b <- sobol_par_subset %>% select(-c(GSAset,
 
 prccb_growth <- epi.prcc(dat.4b, sided.test = 2, conf.level = 0.95)
 
-ggplot(prccb.growth, aes(x=var, y=est, group = output, fill = output))+
+GSAsubset_prccgrowth <- ggplot(prccb.growth, aes(x=var, y=est, group = output, fill = output))+
   geom_col(position = "dodge")+
   labs(x="par", y="prcc", title = "VALID ONLY")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-
+GSAsubset_prccgrowth
 
 # Bar plot comparing prcc for each output
 prccb.all <- rbind(prccb_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
                   prccb_imm12m %>% select(var,est) %>% mutate(output = "imm12m"),
-                  prccb_imm70 %>% select(var,est) %>% mutate(output = "imm70")    )
+                  prccb_imm70 %>% select(var,est) %>% mutate(output = "imm70"), 
+                  prccb_growth %>% select(var,est) %>% mutate(output = "pop_growth"))
 
-B <- ggplot(prccb.all, aes(x=var, y=est, group = output, fill = output))+
+
+GSAsubset_prccimmunity <- ggplot(prcc.all %>% filter(!output == "popgrowth"), 
+       aes(x=est, y=var, group = output, fill = output))+
   geom_col(position = "dodge")+
-  labs(x="par", y="prcc", title = "VALID ONLY")+
-  theme_bw()+
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+GSAsubset_prccimmunity
 
-A <- ggplot(prcc.all %>% filter(!output == "popgrowth"), aes(x=var, y=est, group = output, fill = output))+
+GSAsubset_prccall <- ggplot(prcc.all, aes(x=est, y=var, group = output, fill = output))+
   geom_col(position = "dodge")+
-  labs(x="par", y="prcc", title = "ALL")+
-  theme_bw()+
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+GSAsubset_prccall
 
+GSAsubset_prccall2 <- ggplot(prcc.all, aes(x=est, y=var, group = output, fill = output))+
+  geom_col(position = "dodge")+
+  facet_wrap(~output, nrow =1)+
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+GSAsubset_prccall2
+
+filename_GSAsubset_prccall <- "GSAsubset_prccall.png"
+filename_GSAsubset_prccall2 <- "GSAsubset_prccall2.png"
+filename_GSAsubset_prccimmunity <- "GSAsubset_prccimmunity.png"
+
+if(plotsave){
+  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccall), plot = GSAsubset_prccall, width = 12, height = 7.5, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccall2), plot = GSAsubset_prccall2, width = 20, height = 10, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccimmunity), plot = GSAsubset_prccimmunity, width = 12, height = 7.5, units = "cm")
+  
+}
 
 prcc_summary <- prccb_imm6m %>% 
   select(var,est,p.value) %>% 
@@ -359,7 +310,6 @@ prcc_summary <- prccb_imm6m %>%
 
 knitr::kable(prcc_summary)
 
-library(ggpubr)
 ggarrange(A, B, ncol = 2)
 
 prcc.all2 <- rbind(prcc.all %>% mutate(Cond = "ALL"),
@@ -368,29 +318,21 @@ prcc.all2 <- rbind(prcc.all %>% mutate(Cond = "ALL"),
                      mutate(output = "popgrowth",
                             Cond="VALID")
                    )
-
-ggplot(prcc.all2 %>% filter(!output == "popgrowth"), aes(x=var, y=est, group = Cond, fill = Cond))+
+# Plot of PRCC for each output (immunity nad popgrowth), for Valid and All par sets
+prcc_comparison <- ggplot(prcc.all2, aes(x=est, y=var, group = Cond, fill = Cond))+
   geom_col(position = "dodge")+
-  facet_wrap(~output)+
+  facet_wrap(~output, nrow = 1)+
   labs(x="par", y="prcc", title = "")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
+filename_prcc_comparison <- "prcc_comparison.png"
 
-ggplot(prcc.all2, aes(x=var, y=est, group = Cond, fill = Cond))+
-  geom_col(position = "dodge")+
-  facet_wrap(~output)+
-  labs(x="par", y="prcc", title = "")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+if(plotsave){
+  ggsave(paste0("plots/GSA/",filename_prcc_comparison), plot = prcc_comparison, width = 20, height = 10, units = "cm")
 
-
-
-ggplot(prcc.all2 %>% filter(var == "min_repro", 
-                            output == "popgrowth"))+
-  geom_point()
-
-
+  
+}
 ##########################################################
 
 

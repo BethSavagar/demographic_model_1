@@ -1,0 +1,15 @@
+﻿parameter,oc.goat.aridP.min,oc.goat.aridP.max,oc.goat.semiaridP.min,oc.goat.semiaridP.max,oc.goat.semiaridM.min,oc.goat.semiaridM.max,oc.goat.subhumidM.min,oc.goat.subhumidM.max,oc.goat.humidM.min,oc.goat.humidM.max,oc.shp.aridP.min,oc.shp.aridP.max,oc.shp.semiaridP.min,oc.shp.semiaridP.max,oc.shp.semiaridM.min,oc.shp.semiaridM.max,oc.shp.subhumidM.min,oc.shp.subhumidM.max,oc.shp.humidM.min,oc.shp.humidM.max
+NET_offtake_y,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+NET_offtake_m,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+NET_offtake_m2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+NET_offtake_f,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+mortality_y,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+mortality_a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+mortality_end,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+birth_rate,0.88,1.876,0.74766,3.2656,1.06488,3.2656,1.12404,2.916,1.2,3.2391,0.9,1.35763,0.5,1.66212,0.918,2.1868,0.618,2.096,0.918,2.02526
+ppr_mortality_y,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ppr_mortality_a,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+adu_f_max_yrs,7,12,7,12,7,12,7,12,7,12,7,12,7,12,7,12,7,12,7,12
+adu_m_max_yrs,3,5,3,5,3,5,3,5,3,5,3,5,3,5,3,5,3,5,3,5
+min_age_offtake,9,14,9,14,9,14,9,14,9,14,9,14,9,14,9,14,9,14,9,14
+min_age_repro,15,16.8,8.3,30,9.2,60,14.2,17,9.4,15,18,19,11.5,30,11,48,14.1,21.6,10,18

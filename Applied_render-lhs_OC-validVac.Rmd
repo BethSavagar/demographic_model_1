@@ -1,14 +1,12 @@
 ---
-title: "oc_validation"
+title: "oc_validVac"
 author: "Beth Savagar"
 date: "2023-11-13"
 output: html_document
 ---
 
 # APPLIED EXAMPLES LHS - PRELIMINARY ANALYSIS 
-- Analyse baseline demographics of applied examples with LHS of parameter space
-- review population dynamics and age-sex structure, comparing against RSA demographic parameters
-- check "validity" of output against initial conditions (RSA conditions): 15% growth, age-sex structure conditions
+- Run model for valid pars
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -18,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 # libraries not accounted for in setup script
 library(GGally)
 plotsave <- F
+custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+theme_set(custom_theme)
 ```
 
 ```{r modSetup1}
@@ -45,119 +45,20 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ```
 
-## Demographic Parameters Check:
-
-```{r ranges}
-# how to valid parameters fit in the RSA GSA range
-
-## Load parameters
-datafile <- "-OC_check"
-demographics <- read_csv(paste0("data/Applied_parameters/demographics",datafile,".csv"), col_names=T) 
-
-checkRanges <- demographics %>%
-  gather(key = "datasource", value = "value",-parameter) %>%
-  mutate(
-    datasource = gsub("\\.min|\\.max", "", datasource))
-
-RSAonly <- checkRanges %>% 
-  filter(datasource == "RSA") %>%
-  mutate(datasource = "RSA.goat")
-
-checkRanges <- checkRanges %>%
-  rbind(RSAonly) %>%
-  mutate(datasource = ifelse(datasource == "RSA", "RSA.shp", as.character(datasource)),
-         data_group = ifelse(grepl("*shp*", datasource), "shp", "goat")) %>% 
-  mutate(
-    datasource = factor(
-      datasource,
-      levels = c(
-        "oc.goat.aridP",
-        "oc.goat.semiaridP",
-        "oc.goat.semiaridM",
-        "oc.goat.subhumidM",
-        "oc.goat.humidM",
-        "oc.shp.aridP",
-        "oc.shp.semiaridP",
-        "oc.shp.semiaridM",
-        "oc.shp.subhumidM",
-        "oc.shp.humidM",
-        "RSA.shp",
-        "RSA.goat"
-      )
-    )
-  )
-
-
-# Define the Dark2 palette with additional colors
-custom_palette <- c(
-  brewer.pal(8, "Dark2"),
-  "#FFA07A",  # LightSalmon
-  "#20B2AA",  # LightSeaGreen
-  "#9370DB",  # MediumPurple
-  "#32CD32",  # LimeGreen
-  "#FFD700",  # Gold
-  "#8A2BE2",  # BlueViolet
-  "#FF4500",  # OrangeRed
-  "#00CED1",  # DarkTurquoise
-  "#000000"   # Black
-)
-
-myPal <- custom_palette[1:12]
-myPal[11] <- "#000000"
-myPal[12] <- "#000001"
-
-p1<- ggplot(checkRanges %>% filter(parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro")), aes(x=parameter, y=value, col = datasource))+
-  geom_point(position=position_dodge(width=0.2))+
-  geom_line(size = 1, position=position_dodge(width=0.2))+
-  labs(x = "Parameter")+
-  facet_wrap(~data_group, scales = "free")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-       
-        text = element_text(size=14))+
-  scale_colour_manual(values = myPal)
-
-p2 <- ggplot(checkRanges %>% filter(!parameter %in% c("adu_f_max_yrs", "adu_m_max_yrs","min_age_offtake","min_age_repro", "ppr_mortality_y", "ppr_mortality_a")), 
-       aes(x=parameter, y=value, col = datasource))+
-  geom_point(position=position_dodge(width=0.2))+
-  geom_line(size = 1, position=position_dodge(width=0.2))+
-  labs(x = "Parameter")+
-  facet_wrap(~data_group, scales = "free")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
-         legend.position = "none",
-        text = element_text(size=14))+
-  scale_colour_manual(values = myPal)
-
-ggarrange(p1,p2, nrow = 2)
-
-
-ranges_OC <- ggarrange(p1,p2, nrow = 2)
-filename_ranges <- "ranges_OC.png"
-
-if(plotsave){
-  ggsave(paste0("plots/",filename_ranges), plot = ranges_OC, width = 30, height = 25, units = "cm")
-}
-
-
-```
-
-
-## 1. Verify Flock Dynamics
-- For each profile run a sample of 50 parameter sets with full population dynamics simulated
-- Plot the flock growth over time and the age-sex structure over time for preliminary analysis of model-profile behaviour
 
 ```{r selectData}
 # 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
 
-applied_example <- F
+applied_example <- T
 
 ## Load parameters
-datafile <- "-oc_check"
-source(paste0(filepath, "scripts/applied/applied_load_data2.R")) 
+datafile <- "-oc_validPars"
+fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
 
 ## Datasets
-datasets <- fix_age_data_full %>% select(-c(parameter, RSA)) %>% colnames()
+datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
 ```
 
 ```{r modSetup2}
@@ -197,10 +98,10 @@ t1 <- TimeStop_dynamics
 ## LHS SETUP  ##
 ##################################
 
-lhs <- T
-lhs_n <- 1e4 # number of sets (parameter combinations)
+lhs <- F
+lhs_n <- 0 # number of sets (parameter combinations)
 pairs_plot <- F
-SA <- TRUE
+SA <- F
 
 ```
 
@@ -244,35 +145,23 @@ print("start-model")
 ## LOOP ##
 #####################
 
-for(d in 1:length(datasets)){
-  dataset <- datasets[d]
-  data_filename <- gsub("\\.","",dataset)
+dataset <- datasets
 
-  ##################################
-  ## LHS DEMOGRAPHIC PARS ##
-  ##################################
+if (dataset == "lesnoff.ft") {
+  rates <- "wkly"
+} else{
+  rates <- "yrly"
+}
+
+fixdata <- dataset # set dataset for state_vars
+vardata <- dataset
   
-  data_filename <- gsub("\\.", "", dataset)
-  
-  if (dataset == "lesnoff.ft") {
-    rates <- "wkly"
-  } else{
-    rates <- "yrly"
-  }
-  
-  # set seed
-  set.seed(1) # so that results are consistent
-  
-  pars_min <- paste0(dataset, ".min") # minimum val
-  pars_max <-  paste0(dataset, ".max") # maximum val
-  fixdata <- dataset # set dataset for state_vars
-  vardata <- dataset
-  
+if(lhs){
   source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
-  
-  
-  # Format demographic parameter sets:
-  var_input_backup <- var_input_df %>% as.data.frame() %>% slice_sample(n = 10)
+}
+
+profOrder <- var_demo_data_full %>% select(prof) %>% pull()
+var_input_backup <- var_demo_data_full %>% select(-prof)
   
   ################
   ## SIMULATION ##
@@ -301,9 +190,6 @@ for(d in 1:length(datasets)){
                                   )
                                 }
   
-  ocOut.dynamics[[d]] <- Out.dynamics
-}
-
 stopCluster(cl)
 
 ```
@@ -311,105 +197,47 @@ stopCluster(cl)
 
 ```{r analysisDynamics}
 
-# ocOut.dynamics
 
-# Transform Out (list) into a df of dynamics with each set identified:
-dynamicsList <- lapply(ocOut.dynamics, function(x){
- do.call(rbind,x) %>% mutate(set = rep(1:10, each = TimeStop_dynamics))
-  }) 
-  
-Out_dynamics <- dynamicsList %>%
-  do.call(rbind, .) %>%
-  mutate(prof = rep(datasets, each = 10400)) %>%
-  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
-    prof = factor(
-      prof,
-      levels = c(
-        "oc.goat.aridP",
-        "oc.goat.semiaridP",
-        "oc.goat.semiaridM",
-        "oc.goat.subhumidM",
-        "oc.goat.humidM",
-        "oc.shp.aridP",
-        "oc.shp.semiaridP",
-        "oc.shp.semiaridM",
-        "oc.shp.subhumidM",
-        "oc.shp.humidM"
-      )
-    )
+custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
+
+# ocOut.dynamics
+immDynamics <- lapply(Out.dynamics, select, prop_immune) %>%
+  bind_cols() %>%
+  t() %>%
+  as.data.frame()
+
+colnames(immDynamics) <- 1:ncol(immDynamics)
+rownames(immDynamics) <- 1:nrow(immDynamics)
+
+immDynamics.clean <- immDynamics %>%
+  select((t2):ncol(immDynamics)) %>%
+  mutate(prof = profOrder)
+
+immDynamics.long <- immDynamics.clean %>%
+  gather(key = "weeks", value = "prop_immune", -prof) %>%
+  mutate(weeks = as.numeric(weeks))
+
+# Calculate mean and confidence interval
+summary_data <- immDynamics.long %>%
+  group_by(prof,weeks) %>%
+  summarise(
+    mean_value = mean(prop_immune),
+    lower_ci = quantile(prop_immune, 0.025),
+    upper_ci = quantile(prop_immune, 0.975)
   )
 
+plot_immVar <- ggplot(summary_data, aes(x = weeks, y = mean_value, group = prof)) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), fill = "grey", alpha = 0.5) +
+  geom_line(aes(col = prof)) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_wrap(~prof, nrow = 2)+
+  labs(x="Time (weeks)", y = "Proportion Immune", col = "Profile")+
+  coord_cartesian(xlim = c(500,750))+
+  scale_colour_manual(values = custom_palette)
 
 
-# Population Growth plot:
-growth_dynplot <- ggplot(Out_dynamics, 
-       aes(x = w, y = log(sum_pop), group = set)) + 
-  labs(x="weeks", 
-       y = "Population Size",
-       title = "Population growth over 20 years, oc, (LHS Parameter Sets)")+
-  geom_line()+
-  facet_wrap(~prof, ncol = 5)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-
-fadeout <- Out_dynamics %>% filter(sum_pop==0) %>% distinct(set) %>% pull()
-fadeout_dynplot <- ggplot(Out_dynamics %>% filter(set %in% fadeout), 
-       aes(x = w, y = sum_pop, group = set)) + 
-  labs(x="weeks", 
-       y = "Population Size",
-       title = "Population growth over 20 years, oc, (LHS Parameter Sets)")+
-  geom_line()+
-    facet_wrap(~prof)+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-# AgeSex Dynamics df: 
-Out_agesex <- Out_dynamics %>% 
-  select(c("w", "set", "prof", "prof_group", starts_with("pf"), starts_with("pm"))) %>% 
-  gather(key = "par", value = value, -c(w,set,prof, prof_group)) %>%
-  mutate(par = factor(par, levels = c("pfAdu", "pfSub", "pfKid", 
-                                         "pmAdu","pmSub","pmKid",
-                                         "pF")))
-
-# Age-Sex Plot:
-agesex_dynplotG <- ggplot(Out_agesex %>% filter(prof_group=="goat"), 
-       aes(x = w, y = value, group = set, col = prof)) + 
-  geom_line()+
-  facet_grid(par~prof)+
-  labs(x="Weeks", 
-       y = "Proportion",
-       title = "Age-Sex dynamics, oc, (LHS Parameter Sets)")+
-  theme_bw()+
-  scale_colour_manual(values = myPal)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-agesex_dynplotSh <-  ggplot(Out_agesex %>% filter(prof_group=="shp"), 
-       aes(x = w, y = value, group = set, col = par)) + 
-  geom_line()+
-  facet_grid(par~prof)+
-  labs(x="Weeks", 
-       y = "Proportion",
-       title = "Age-Sex dynamics, oc, (LHS Parameter Sets)")+
-  theme_bw()+
-  scale_colour_manual(values = myPal)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-growth_dynplot
-# fadeout_dynplot
-agesex_dynplotG
-agesex_dynplotSh
-
-filename_growthDyn <- "growthDyn_OC.png"
-filename_agesexDynG <- "agesexDyn_OCG.png"
-filename_agesexDynSh <- "agesexDyn_OCSh.png"
-
-if(plotsave){
-  ggsave(paste0("plots/",filename_growthDyn), plot = growth_dynplot, width = 20, height = 10, units = "cm")
-  ggsave(paste0("plots/",filename_agesexDynG), plot = agesex_dynplotG, width = 20, height = 20, units = "cm")
-  ggsave(paste0("plots/",filename_agesexDynSh), plot = agesex_dynplotSh, width = 20, height = 20, units = "cm")
-
-}
+filename_immVar <- "ImmDyn100_OCvalid.png"
+ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
 
 ```
 
@@ -924,9 +752,5 @@ if(plotsave){
 ggsave(paste0("plots/applied/",filename_pairsGt), plot = plot_pairsGt, width = 25, height = 20, units = "cm")
 ggsave(paste0("plots/applied/",filename_ImmSum), plot = plot_ImmSum, width = 25, height = 20, units = "cm")
 }
-
-saveValidPars <- ocPars.valid %>% select(NET_offtake_y:prof)
-filename_savePars <- paste0("applied_outValidPars_OC_", Sys.Date(), ".csv")
-write.csv(saveValidPars, file = paste0("output/Applied/", filename_savePars), row.names = F)
 
 ```

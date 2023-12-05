@@ -87,8 +87,7 @@ t1 <- TimeStop_dynamics
 
 
 lhs <- T
-lhs_n <- 1e4 # number of sets (parameter combinations)
-lhs_n <- 100
+lhs_n <- 1e3 # number of sets (parameter combinations)
 pairs_plot <- F
 SA <- TRUE
 
@@ -100,7 +99,6 @@ SA <- TRUE
 
 var_demo_data_full <- var_demo_dataOff
 
-lhs_n <- 1000
 ## Model Output
 output <- "off_only" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
@@ -229,7 +227,6 @@ for(d in 1:length(datasets)){
 
 var_demo_data_full <- var_demo_dataMort
 
-lhs_n <- 100
 ## Model Output
 output <- "mort_only" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
