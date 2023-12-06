@@ -14,7 +14,8 @@ dynmod_func <- function(
     Sub,
     Adu_F,
     Vstart,
-    Vprog
+    Vprog,
+    birthpeak_w
 ){
   
   fIm <- f_list[["fIm"]]

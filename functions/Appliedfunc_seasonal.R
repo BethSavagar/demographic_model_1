@@ -12,7 +12,8 @@ App_func <- function(
     Vstart, # time of vaccination
     Vprog,
     fixdata,
-    vardata
+    vardata,
+    birthpeak_w
 ){
   
   #########################
@@ -301,7 +302,8 @@ App_func <- function(
     Sub,
     Adu_F,
     Vstart,
-    Vprog
+    Vprog,
+    birthpeak_w
   )
   
   # only works for summary all needs updating for summary (only)
