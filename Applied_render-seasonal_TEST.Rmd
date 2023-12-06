@@ -134,7 +134,7 @@ summary_df <- output_func(TimeStop_dynamics, output)
 
 # validOut = list to store outputs
 GSAoutput <- c(); 
-ocOut.seasonal <- list()
+Out.seasonal <- list()
 
 #####################
 ## DATA SELECTION ##
@@ -191,7 +191,7 @@ if(seasonal){
   var_input_full <- as.data.frame(var_input_backup)
 }
                                   
-ocOut.seasonal <- App_func(
+Out.seasonal <- App_func(
                   imm_decay_corrected,
                   var_input_full,
                   fix_age_data_full,
@@ -215,7 +215,7 @@ ocOut.seasonal <- App_func(
 ```{r nonseasonalMod}
 
 seasonal <- F                                 
-ocOut.constant <- App_func(
+Out.constant <- App_func(
                   imm_decay_corrected,
                   var_input_full,
                   fix_age_data_full,
@@ -240,8 +240,8 @@ ocOut.constant <- App_func(
 ```{r birthcomparison}
 # Verify rate over time is equal between seasonal and non-seasonal (constant birth rate)
 
-births.comparison <- bind_rows(ocOut.constant %>% select(w,sum_pop) %>% mutate(id = "constant"),
-                               ocOut.seasonal %>% select(w,sum_pop) %>% mutate(id = "seasonal"))
+births.comparison <- bind_rows(Out.constant %>% select(w,sum_pop) %>% mutate(id = "constant"),
+                               Out.seasonal %>% select(w,sum_pop) %>% mutate(id = "seasonal"))
 
 
 

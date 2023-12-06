@@ -72,7 +72,7 @@ dynmod_func <- function(
     
     # SET birth rate:
     #seasonal:
-    if(seasonal){
+    if(seasonal& w>=t2/2){
       if(w %in% birthpeak_w){
         birth <- birthH
       }else{
