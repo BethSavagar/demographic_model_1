@@ -13,7 +13,8 @@ App_func <- function(
     Vprog,
     fixdata,
     vardata,
-    birthpeak_w
+    birthpeak_w,
+    seasonal
 ){
   
   #########################
@@ -124,11 +125,8 @@ App_func <- function(
   
   birth_H <- birth_r*p_births
   birth_L <- birth_r*(1-p_births)
-
-  if(seasonal){
-    birth_rL <- birth_L/48 # low birth rate for 11months
-    birth_rH <- birth_H/4 # high birth rate for 1 month
-  }
+  birth_rL <- birth_L/48 # low birth rate for 11months
+  birth_rH <- birth_H/4 # high birth rate for 1 month
   
   ## Convert to weekly rates ##
   # (if yearly):
@@ -303,7 +301,8 @@ App_func <- function(
     Adu_F,
     Vstart,
     Vprog,
-    birthpeak_w
+    birthpeak_w,
+    seasonal
   )
   
   # only works for summary all needs updating for summary (only)
