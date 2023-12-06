@@ -1,0 +1,15 @@
+﻿parameter,seasonal.test
+NET_offtake_y,0
+NET_offtake_m,0
+NET_offtake_m2,0
+NET_offtake_f,0
+mortality_y,0
+mortality_a,0
+mortality_end,1
+birth_rate,1.6
+ppr_mortality_y,0
+ppr_mortality_a,0
+adu_f_max_yrs,10
+adu_m_max_yrs,3
+min_age_offtake,9
+min_age_repro,12
