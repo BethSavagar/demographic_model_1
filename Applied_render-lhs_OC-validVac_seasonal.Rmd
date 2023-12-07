@@ -549,7 +549,7 @@ plot_immComp <- ggplot(summary_combined, aes(x = weeks, y = mean_value, group = 
   coord_cartesian(xlim = c(500,750))+
   scale_colour_manual(values = custom_palette)+
   scale_fill_manual(values = custom_palette)
-plot_immVar
+plot_immComp
 
 # filename_immVar <- "ImmDyn100_OCvalid.png"
 # ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
@@ -706,18 +706,19 @@ validImm <- ocOut.summdf %>%
   mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "tenyr_growth" )))
 
 plot_immSh <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m"), prof_group == "shp"), 
-       aes(x = peakmnth, y = value), fill = "grey")+ #, col = peakmnth
-  geom_boxplot(alpha = 0.5) +
-  geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_grid(prof~stat, scales = "free")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "none")
+       aes(x = peakmnth, y = value))+ #, col = peakmnth
+    geom_boxplot(alpha = 0.5, aes(fill = stat)) +
+    geom_hline(yintercept = 0.7, linetype = "dashed")+
+    facet_grid(prof~stat)+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+          legend.position = "none")+
+  scale_fill_brewer(palette = "Dark2")
 plot_immSh
 
 plot_imm70Sh <- ggplot(validImm %>% filter(stat %in% c("imm70_w"),prof_group == "shp"), 
-            aes(x = peakmnth, y = value), fill = "grey")+ #, col = peakmnth
-  geom_boxplot(alpha = 0.5) +
+            aes(x = peakmnth, y = value))+ #, col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey") +
  facet_grid(prof~stat, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
@@ -725,8 +726,8 @@ plot_imm70Sh <- ggplot(validImm %>% filter(stat %in% c("imm70_w"),prof_group == 
 plot_imm70Sh
 
 plot_tenyrSh <- ggplot(validImm %>% filter(stat %in% c("tenyr_growth"),prof_group == "shp"), 
-            aes(x = peakmnth, y = value), fill = "grey")+ # , col = peakmnth
-  geom_boxplot(alpha = 0.5) +
+            aes(x = peakmnth, y = value))+ # , col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey") +
   facet_grid(prof~stat, scales = "free")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
