@@ -9,7 +9,8 @@ GSA_func <- function(
     output, # model output: tracker or summary stats
     summary_df, #
     clean_environment,
-    Vstart
+    Vstart,
+    Vprog
 ){
   
   # use demographic matrix: 
@@ -257,7 +258,8 @@ GSA_func <- function(
     Kid,
     Sub,
     Adu_F,
-    Vstart
+    Vstart,
+    Vprog
   )
   
   # # output_df contains system dynamics from week 1 - TimeStop_dynamics
