@@ -45,6 +45,9 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 ```
 
+Load data for O&C profiles: 
+- parameter sets are output of validation step (validated against pop growth & age-sex structure)
+- Run vaccination and post-vaccination immunity analysis on valid parameter sets only. 
 
 ```{r selectData}
 # 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
@@ -194,6 +197,7 @@ stopCluster(cl)
 
 ```
 
+# Plot Immunity Dynamics of valid OC flock profiles:
 
 ```{r analysisDynamics}
 
@@ -235,15 +239,22 @@ plot_immVar <- ggplot(summary_data, aes(x = weeks, y = mean_value, group = prof)
   coord_cartesian(xlim = c(500,750))+
   scale_colour_manual(values = custom_palette)
 
+plot_immVar
 
 filename_immVar <- "ImmDyn100_OCvalid.png"
-ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+# ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
 
 ```
 
+# Plot Immunity Stats of valid OC flock profiles:
+
 
 ```{r loopSummary}
-lhs_n <- 1e3
+
+###################
+## MODEL OUTPUT ##
+###################
+
 ## Model Output
 output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
@@ -251,8 +262,7 @@ summary_df <- output_func(TimeStop_dynamics, output)
 
 # validOut = list to store outputs
 GSAoutput <- c(); 
-ocOut.sum <- list()
-ocPars <- list()
+ocOut.summary <- list()
 
 #####################
 ## PARALLELISATION ##
@@ -278,42 +288,30 @@ print("start-model")
 ## LOOP ##
 #####################
 
-for(d in 1:length(datasets)){
-  dataset <- datasets[d]
-  data_filename <- gsub("\\.","",dataset)
+dataset <- datasets
+
+if (dataset == "lesnoff.ft") {
+  rates <- "wkly"
+} else{
+  rates <- "yrly"
+}
+
+fixdata <- dataset # set dataset for state_vars
+vardata <- dataset
   
-  ##################################
-  ## LHS DEMOGRAPHIC PARS ##
-  ##################################
-  
-  data_filename <- gsub("\\.", "", dataset)
-  
-  if (dataset == "lesnoff.ft") {
-    rates <- "wkly"
-  } else{
-    rates <- "yrly"
-  }
-  
-  # set seed
-  set.seed(1) # so that results are consistent
-  
-  pars_min <- paste0(dataset, ".min") # minimum val
-  pars_max <-  paste0(dataset, ".max") # maximum val
-  fixdata <- dataset # set dataset for state_vars
-  vardata <- dataset
-  
+if(lhs){
   source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
-  
-  
-  # Format demographic parameter sets:
-  var_input_backup <- var_input_df %>% as.data.frame()
+}
+
+profOrder <- var_demo_data_full %>% select(prof) %>% pull()
+var_input_backup <- var_demo_data_full %>% select(-prof)
   
   ################
   ## SIMULATION ##
   ################
   Out.summary <- foreach (i = 1:nrow(var_input_backup),
                                 .packages = c("dplyr", "tibble"),
-                          .combine = "rbind") %dopar% {
+                           .combine = "rbind") %dopar% {
                                   print(i)
                                   
                                   var_input_full <- unlist(var_input_backup[i, ])
@@ -336,377 +334,38 @@ for(d in 1:length(datasets)){
                                   )
                                 }
   
-  ocOut.sum[[d]] <- Out.summary
-  ocPars[[d]] <- var_input_backup
-}
-
 stopCluster(cl)
 
 ```
 
 
-```{r analysisSummary}
+```{r summaryAnalysis}
 
-################################
-## POP & AGE-SEX SUMMARY ##
-################################
-
-# ocOut.summary is a dataframe of summary data for each parameter set 
-
-## Plot population growth stats: 
-# - Total Growth (20y), 
-# - tenyr Growth (10y), 
-# - Finyr Growth (1y)
-
-summaryList <- ocOut.sum
-ocOut.summary <- summaryList %>%
-  do.call(rbind, .) %>%
-  mutate(prof = rep(datasets, each = lhs_n), 
-         set = rep(1:lhs_n, length(datasets))) %>% 
-  replace(is.na(.), 0) %>%
-  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
-    prof = factor(
-      prof,
-      levels = c(
-        "oc.goat.aridP",
-        "oc.goat.semiaridP",
-        "oc.goat.semiaridM",
-        "oc.goat.subhumidM",
-        "oc.goat.humidM",
-        "oc.shp.aridP",
-        "oc.shp.semiaridP",
-        "oc.shp.semiaridM",
-        "oc.shp.subhumidM",
-        "oc.shp.humidM"
-      )
-    )
-  )
-
-ocParsls <- ocPars
-ocPars.df <- ocParsls %>%
-  do.call(rbind, .) %>%
-  mutate(prof = rep(datasets, each = lhs_n), 
-         set = rep(1:lhs_n, length(datasets))) %>% 
-  replace(is.na(.), 0) %>%
-  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
-    prof = factor(
-      prof,
-      levels = c(
-        "oc.goat.aridP",
-        "oc.goat.semiaridP",
-        "oc.goat.semiaridM",
-        "oc.goat.subhumidM",
-        "oc.goat.humidM",
-        "oc.shp.aridP",
-        "oc.shp.semiaridP",
-        "oc.shp.semiaridM",
-        "oc.shp.subhumidM",
-        "oc.shp.humidM"
-      )
-    )
-  )
-
-# df of population growth stats:
-popgrowth <- ocOut.summary %>% 
-  select(prof, prof_group, ends_with("growth")) %>% 
-  gather(key = "par", value = "prop", -c(prof,prof_group)) %>% 
-  mutate(par = factor(par, levels = c("pop_growth",
-                                      "tenyr_growth", 
-                                      "twoyr_growth",
-                                      "finyr_growth")))
-
-growth_boxplot <- ggplot(popgrowth, aes(x=prof, y = prop, col = prof))+
-  geom_boxplot(alpha = 0.5)+
-  facet_wrap(~par, scales = "free", nrow = 1)+
-  labs(x = "Growth Stat", 
-       y = "Pop Growth",
-       title = "Growth statistics for oc data, LHS parameter sets")+
-  theme_bw()+
-  scale_colour_manual(values = myPal)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-growth_histGoat <- ggplot(popgrowth %>% filter(prof_group == "goat"), aes(prop))+
-  geom_histogram()+
-  facet_grid(prof~par, scales = "free")+
-  labs(x = "Pop Growth", 
-       y = "Count")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-growth_histShp <- ggplot(popgrowth %>% filter(prof_group == "shp"), aes(prop))+
-  geom_histogram()+
-  facet_grid(prof~par, scales = "free")+
-  labs(x = "Pop Growth", 
-       y = "Count")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-growth_hist <- ggplot(popgrowth, aes(prop))+
-  geom_histogram()+
-  facet_grid(prof~par, scales = "free")+
-  labs(x = "Pop Growth", 
-       y = "Count")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-growth_boxplot
-growth_histGoat
-growth_histShp
-##
-##
-
-## Analyse age-sex dynamics:
-
-# - Age-Sex plots
-agesex <- ocOut.summary %>% 
-  select(prof, prof_group, starts_with("pf"), starts_with("pm")) %>% 
-  gather(key = "par", value = "prop", -c(prof,prof_group))
-
-agesex_boxplot <- ggplot(agesex, aes(x=par, y = prop))+
-  geom_boxplot(fill = "grey", 
-               alpha = 0.5)+
-  labs(x="Age-Sex Group", 
-       y = "Proportion",
-       title = "Stable Age-Sex structure, oc, (LHS parameter sets)")+
-  theme_bw()+
-  facet_wrap(~prof, ncol = 5)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-agesex_boxplot2 <- ggplot(agesex, aes(x=prof, y = prop))+
-  geom_boxplot(fill = "grey", 
-               alpha = 0.5)+
-  labs(x="Age-Sex Group", 
-       y = "Proportion",
-       title = "Stable Age-Sex structure, oc, (LHS parameter sets)")+
-  theme_bw()+
-  facet_wrap(~par, ncol = 4)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-  
-agesex_boxplot
-
-summary_ShG <- ggarrange(growth_boxplot, agesex_boxplot, growth_histGoat, growth_histShp, nrow = 2, ncol = 2)
-summary_ShG
-filename_summary <- "summary_OCShG.png"
-
-if(plotsave){
-  ggsave(paste0("plots/",filename_summary), plot = summary_ShG, width = 40, height = 20, units = "cm")
-}
-```
-
-
-```{r outValid}
-#------------------------------------------------------------------------------
-## VALID RESULTS ##
-
-##################################
-## Valid Age-Sex Conditions ##
-##################################
-
-## Min and max proportions for each sex-age group (see age-sex SS)
-pfKid.min <- 0.05; pfKid.max <- 0.19
-pfSub.min <- 0.06; pfSub.max <- 0.19
-pfAdu.min <- 0.21; pfAdu.max <- 0.62
-
-pmKid.min <- 0.05; pmKid.max <- 0.16
-pmSub.min <- 0.04; pmSub.max <- 0.15
-pmAdu.min <- 0.01; pmAdu.max <- 0.15
-  
-
-#########################################################
-# Retain behavioral parameter sets
-#########################################################
-
-# Edit Out to contain identifier variables for pop growth (5%,15%) and pop growth with age-sex structure 
-ocOut.growth <- ocOut.summary %>%
-  mutate(tenyr_growth = replace_na(tenyr_growth, 0),
-         # add variables to identify parameter sets with growth between 5% and 15%
-         tenyr_15 = ifelse(tenyr_growth>=0.85 & tenyr_growth <=1.15, 1, 0),
-         tenyr_05 = ifelse(tenyr_growth>=0.95 & tenyr_growth <=1.05, 1, 0)) %>%
-  
-  # add variables to identify parameter sets with growth between 5% and 15% AND age-sex conditions
-  mutate(
-    tenyr_15age = ifelse(
-      tenyr_15 == 1 &
-        pfKid >= pfKid.min & pfKid <= pfKid.max &
-        pfSub >= pfSub.min & pfSub <= pfSub.max &
-        pfAdu >= pfAdu.min & pfAdu <= pfAdu.max &
-        
-        pmKid >= pmKid.min & pmKid <= pmKid.max &
-        pmSub >= pmSub.min & pmSub <= pmSub.max &
-        pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0),
-    
-    tenyr_05age = ifelse(
-      tenyr_05 == 1 &
-        pfKid >= pfKid.min & pfKid <= pfKid.max &
-        pfSub >= pfSub.min & pfSub <= pfSub.max &
-        pfAdu >= pfAdu.min & pfAdu <= pfAdu.max &
-        
-        pmKid >= pmKid.min & pmKid <= pmKid.max &
-        pmSub >= pmSub.min & pmSub <= pmSub.max &
-        pmAdu >= pmAdu.min & pmAdu <= pmAdu.max,1,0)
-  )
-
-ocOut.growth %>% group_by(prof,tenyr_15age) %>% count() %>% kable()
-
-# Growth easily within RSA conditions
-
-
-# ##################
-# ## Valid Output ##
-# ##################
-
-ocOut.valid <- ocOut.growth %>%
-  filter(tenyr_15age == 1)
-
-## Refine parameter dataframe:
-ocPars.out <- ocPars.df %>%
-  left_join(ocOut.growth %>%
-              select(tenyr_growth, 
-                     starts_with("imm"), 
-                     prof, 
-                     prof_group, 
-                     set, 
-                     tenyr_15age), 
-            by = c("set", "prof", "prof_group"))
-
-ocPars.valid <- ocPars.out %>%
-  filter(tenyr_15age == 1, mortality_y>mortality_a)
-
-pairs(ocPars.valid %>% select(NET_offtake_y:min_age_repro))
-
-```
-
-
-```{r validAgeSex}
-
-ocOut.validLong <- ocOut.valid %>%
-  select(prof, prof_group, starts_with("pf"), starts_with("pm")) %>% 
-  gather(key = "par", value = "prop", -c(prof,prof_group))
-
-
-stable_agesex <- ocOut.validLong %>% 
-  group_by(prof, par) %>% 
-  summarise(median = median(prop)) %>%
-    pivot_wider(names_from = prof, values_from = median)
-stable_agesex
-
-agesex_filename <- "Applied_AgeSex_OC.csv"
-# write.csv(stable_agesex, file = paste0("output/Applied/stableAgeSex/", agesex_filename), row.names = F)
-
-# ahift to wide format
-
-```
-
-
-```{r validAnalysis}
-
-ocPars.long <- ocPars.valid %>%
-  select(-c(set, tenyr_15age)) %>%
-  gather(key = "parameter", value = "par_val", -c(tenyr_growth, starts_with("imm"), prof, prof_group))
-
-
-ggplot(ocPars.long, aes(x=par_val, y = tenyr_growth))+
-  geom_point(aes(col = prof))+
-  facet_wrap(~parameter, scales = "free")
-
-ggplot(ocPars.long, aes(x=par_val, y = imm_V0))+
-  geom_point(aes(col = prof))+
-  facet_wrap(~parameter, scales = "free")
-
-ggplot(ocPars.long, aes(x=par_val, y = imm_6m))+
-  geom_point(aes(col = prof))+
-  facet_wrap(~parameter, scales = "free")
-
-ggplot(ocPars.long, aes(x=par_val, y = imm_12m))+
-  geom_point(aes(col = prof))+
-  facet_wrap(~parameter, scales = "free")
-```
-
-
-
-
-```{r validpars_analysis}
-library(RColorBrewer)
-# Load the Dark2 palette
 dark2_palette <- c(brewer.pal(n = 8, name = "Dark2"), "#FF8C00", "#1E90FF", "#333333")
 
 dark2_palette
 
-
-validpars_GSA <- read_csv("data/GSA_parameters/GSA_valid-pars-only.csv", col_names = T)
-validpars_RSA <- read_csv("data/GSA_parameters/GSA_var_input-PRCC.csv", col_names=T)
-
-# Collate all valid parameters from GSA RSA
-validPars_SA <- rbind(validpars_GSA, validpars_RSA) %>%
-  # select pars to compare
-  select(
-    "off_mY",
-    "off_mA",
-    "off_f",      
-    "mort_Y",     
-    "mort_A",     
-    "birth_rate", 
-    # "max_yrs_F",  
-    # "max_yrs_M",  
-    "min_off",
-    "min_repro",
-  ) %>% 
-  mutate(prof = "SA", prof_group = "SA")
-
-validPars_oc <- ocPars.valid %>%
-  select(
-    "off_mY" = NET_offtake_m2,
-    "off_mA" = NET_offtake_m,
-    "off_f" = NET_offtake_f,     
-    "mort_Y" = mortality_y,   
-    "mort_A" = mortality_a,
-    "birth_rate",
-    # "max_yrs_F",  
-    # "max_yrs_M",  
-    "min_off" = min_age_offtake,
-    "min_repro" = min_age_repro,
-    prof,
-    prof_group
-  )
-
-# join the RSA-GSA pars with the Applied pars:
-
-validPars_df <- rbind(validPars_SA,
-                      validPars_oc %>% select(colnames(validPars_SA))) %>% 
-  as.data.frame()
-
-# PAIRS PLOTS #
-
-plot_pairsGt <- ggpairs(validPars_df %>% filter(prof_group != "shp"),
-        columns = 1:8,
-        legend = 1,
-        aes(colour = prof,
-            alpha = 0.5),
-        upper = "blank", 
-        progress = F)+
-  scale_fill_manual(values = c(dark2_palette[1:5], "#333333"))+
-  scale_colour_manual(values = c(dark2_palette[1:5], "#333333"))+
-  theme(legend.position = "bottom")
-
-plot_pairsSh <- ggpairs(validPars_df %>% filter(prof_group != "goat"),
-        columns = 1:8,
-        legend = 1,
-        aes(colour = prof,
-            alpha = 0.5),
-        upper = "blank",
-        progress = F)+
-   scale_fill_manual(values = c(dark2_palette[6:10], "#333333"))+
-  scale_colour_manual(values = c(dark2_palette[6:10], "#333333"))+
-  theme(legend.position = "bottom")
-
-plot_pairsGt
-plot_pairsSh
-
 ######################################
 ## Vaccination Uncertainty Examples ##
 ######################################
-
-validImm <- ocOut.valid %>%
+validImm <- Out.summary %>%
+  mutate(prof = profOrder,
+         prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+         prof = factor(
+      prof,
+      levels = c(
+        "oc.goat.aridP",
+        "oc.goat.semiaridP",
+        "oc.goat.semiaridM",
+        "oc.goat.subhumidM",
+        "oc.goat.humidM",
+        "oc.shp.aridP",
+        "oc.shp.semiaridP",
+        "oc.shp.semiaridM",
+        "oc.shp.subhumidM",
+        "oc.shp.humidM"
+      )
+    )) %>%
   select(tenyr_growth, starts_with("imm"), prof, prof_group) %>%
   gather(key = "stat", value = "value", -c(prof,prof_group)) %>%
   mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "tenyr_growth" )))
@@ -715,20 +374,40 @@ plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m"
        aes(x = prof, y = value, fill = stat))+ 
   geom_boxplot() +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_wrap(~stat, scales = "free")+
+  facet_wrap(~stat)+
+  labs(x="Profile", y = "Weeks")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "none")+
   scale_fill_manual(values = dark2_palette[1:3])
 
 plot_imm70 <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
-            aes(x = prof, y = value, fill = stat))+ 
-  geom_boxplot() +
+            aes(x = value, y = prof))+ 
+  geom_boxplot(fill = "grey", alpha = 0.5) +
   facet_wrap(~stat, scales = "free")+
+  labs(x="Weeks", y = "Profile")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "none")+
-  scale_fill_manual(values = dark2_palette[4])
+        legend.position = "none")
+
+validImm %>% filter(stat =="imm70_w") %>% summarise(min = min(value), 
+                                                                           max = max(value), 
+                                                                           median = median(value),
+                                                                           mean = mean(value))
+validImm %>% filter(stat =="imm70_w") %>% group_by(prof_group) %>% summarise(min = min(value), 
+                                                                           max = max(value), 
+                                                                           median = median(value),
+                                                                           mean = mean(value))
+
+validImm %>% group_by(stat) %>% summarise(min = min(value), 
+                                                                           max = max(value), 
+                                                                           median = median(value),
+                                                                           mean = mean(value)) %>% kable()
+
+validImm %>% group_by(stat, prof) %>% summarise(min = min(value), 
+                                                                           max = max(value), 
+                                                                           median = median(value),
+                                                                           mean = mean(value)) %>% kable()
 
 
 plot_tenyr <- ggplot(validImm %>% filter(stat %in% c("tenyr_growth")), 
@@ -739,7 +418,8 @@ plot_tenyr <- ggplot(validImm %>% filter(stat %in% c("tenyr_growth")),
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "none")+
   scale_fill_manual(values = dark2_palette[5])
-
+plot_imm
+plot_imm70
 plot_ImmSum <- ggarrange(plot_imm,plot_imm70,plot_tenyr, ncol = 1)
 
 
@@ -752,5 +432,7 @@ if(plotsave){
 ggsave(paste0("plots/applied/",filename_pairsGt), plot = plot_pairsGt, width = 25, height = 20, units = "cm")
 ggsave(paste0("plots/applied/",filename_ImmSum), plot = plot_ImmSum, width = 25, height = 20, units = "cm")
 }
+
+
 
 ```
