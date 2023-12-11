@@ -199,7 +199,7 @@ print("start-model")
 
 var_input_full <- unlist(var_input_backup[1, ])
 
-                                  
+                             
 ocOut.seasonalF <- App_func(
                   imm_decay_corrected,
                   var_input_full,
@@ -222,16 +222,57 @@ ocOut.seasonalF <- App_func(
   
 stopCluster(cl)
 
+
+seasonal <- F                      
+ocOut.constantF <- App_func(
+                  imm_decay_corrected,
+                  var_input_full,
+                  fix_age_data_full,
+                  f_list,# initial state of female population
+                  m_list, # initial state of male population
+                  TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                  TimeStop_transmission, # 1 day, hourly timestep for transission component
+                  output,# model output: tracker or summary stats
+                  summary_df, #
+                  clean_environment,
+                  Vstart,
+                  Vprog,
+                  fixdata,
+                  vardata,
+                  birthpeak_w,
+                  seasonal
+                )
+                              
 ```
 
 ```{r ocSeasonalV}
 
 source(paste0(filepath, "functions/dynmod-vac_seasonal.R")) # flock dynamics model function
 source(paste0(filepath, "functions/Appliedfunc_seasonal.R")) # flock dynamics model function
-
+seasonal <- T
 summary_df <- output_func(TimeStop_dynamics, output) 
                                   
 ocOut.seasonalV <- App_func(
+                  imm_decay_corrected,
+                  var_input_full,
+                  fix_age_data_full,
+                  f_list,# initial state of female population
+                  m_list, # initial state of male population
+                  TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                  TimeStop_transmission, # 1 day, hourly timestep for transission component
+                  output,# model output: tracker or summary stats
+                  summary_df, #
+                  clean_environment,
+                  Vstart,
+                  Vprog,
+                  fixdata,
+                  vardata,
+                  birthpeak_w,
+                  seasonal
+                )
+
+seasonal <- F                              
+ocOut.constantV <- App_func(
                   imm_decay_corrected,
                   var_input_full,
                   fix_age_data_full,
@@ -255,8 +296,10 @@ ocOut.seasonalV <- App_func(
 # Review whether population dynamics fluctuate around same average between seasonal and non-seasonal
 ```{r ocComparison}
 
-ocOut.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixed"),
-                   ocOut.seasonalV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variable"))
+ocOut.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixedseasonal"),
+                   ocOut.seasonalV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableseasonal"), 
+                   ocOut.constantF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixednNS"),
+                   ocOut.constantV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableNS"))
 
 
 
