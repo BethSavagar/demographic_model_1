@@ -304,6 +304,32 @@ ggplot() +
   coord_cartesian(xlim=c(450,800))
 ```
 
+```{r ocAgeSexCOmparison}
+
+
+agesex.comparison <- bind_rows(ocOut.constant %>% select(w, sum_pop, starts_with("pf"), starts_with("pm")) %>% mutate(id = "constant"),
+                   ocOut.seasonal %>% select(w, sum_pop, starts_with("pf"), starts_with("pm")) %>% mutate(id = "seasonal"))
+
+
+agesex.long <- agesex.comparison %>%
+  gather(key = "age_group", value = "prop", -c(w,id)) %>%
+  mutate(age_group = factor(age_group, levels = c("pfAdu", "pfSub","pfKid","pmAdu","pmSub","pmKid","pF")))
+
+
+ggplot(agesex.long %>% filter(!age_group == "sum_pop"), 
+       aes(x=w,y=prop), group = id)+
+  geom_line(aes(col = id))+
+  facet_wrap(~age_group, ncol = 3)
+
+
+ggplot(agesex.long %>% filter(age_group %in% c("pfAdu", "pfSub","pfKid"), 
+                              id == "seasonal"),
+       aes(x=w,y=prop))+
+  geom_line(aes(col = age_group))+
+  theme_bw()
+
+```
+
 
 ```{r seasonalDynLoop}
 
