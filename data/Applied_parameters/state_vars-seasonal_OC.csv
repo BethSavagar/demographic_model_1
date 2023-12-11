@@ -1,11 +1,11 @@
 ﻿parameter,seasonal.test
 N_tot,1000
-kid_m_prop,0.13
-kid_f_prop,0.13
+kid_m_prop,0.12
+kid_f_prop,0.12
 sub_m_prop,0.1
 sub_f_prop,0.1
 adu_m_prop,0.1
-adu_f_prop,0.54
+adu_f_prop,0.46
 kid_max,6
 sub_max,12
 f_prop,1
