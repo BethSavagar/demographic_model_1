@@ -296,15 +296,18 @@ ocOut.constantV <- App_func(
 # Review whether population dynamics fluctuate around same average between seasonal and non-seasonal
 ```{r ocComparison}
 
-ocOut.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixedseasonal"),
-                   ocOut.seasonalV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableseasonal"), 
-                   ocOut.constantF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixednNS"),
-                   ocOut.constantV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableNS"))
+ocOut.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixedSeasonal", births = "fixedBirths"),
+                   ocOut.seasonalV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableSeasonal", births = "variableBirths"), 
+                   ocOut.constantF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixedNonSeasonal", births = "fixedBirths"),
+                   ocOut.constantV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variableNonSeasonal", births = "variableBirths"))
 
 
+mean.seasonalF <- ocOut.seasonalF %>% select(w, sum_pop) %>% mutate(yr = rep(1:(TimeStop_dynamics/52), each = 52)) %>% group_by(yr) %>% summarise(meanpop = mean(sum_pop)) %>% mutate(yr_wks = 52*yr)
+mean.seasonalV <- ocOut.seasonalV %>% select(w, sum_pop) %>% mutate(yr = rep(1:(TimeStop_dynamics/52), each = 52)) %>% group_by(yr) %>% summarise(meanpop = mean(sum_pop)) %>% mutate(yr_wks = 52*yr)
 
 # Check births are implemented at peak times as intended: 
 startpos <- which(c(TRUE, diff(birthpeak_w) > 1))
+mean.seasonalF <- ocOut.seasonalF %>% select(w, sum_pop) %>% mutate(yr = rep(1:(TimeStop_dynamics/52), each = 52)) %>% group_by(yr) %>% summarise(meanpop = mean(sum_pop)) %>% mutate(yr_wks = 52*yr)
 endpos <- c(startpos[-1] - 1, length(birthpeak_w))
 peakrect <- data.frame(startpeak = birthpeak_w[startpos],
                       endpeak = birthpeak_w[endpos])
@@ -328,32 +331,62 @@ ggplot() +
        col = "birth pattern", 
        title = "Comparison of seasonal vs non-seasonal (constant) birth pattern")
 
-
-###########
-## IMMUNITY 
-##########
-
-ggplot() +
-  geom_rect(
-   data = peakrect,
-    aes(
-      xmin = startpeak,
-      xmax = endpeak,
-      ymin = -Inf,
-      ymax = +Inf
-    ),
-    fill = "lightblue",
-    alpha = 0.5,
-    color = NA
-  )+
-   geom_line(data = ocOut.comparison, aes(x = w, y = prop_immune, col = id), size = 1)+
+ggplot(ocOut.comparison %>% filter(births == "fixedBirths")) +
+   geom_line(aes(x = w, y = sum_pop, col = id), size = 1)+
+  geom_point(data = mean.seasonalF, aes(x=yr_wks, y = meanpop), col = "black")+
   labs(x = "weeks (10 year)", 
        y = "population size", 
        col = "birth pattern", 
-       title = "Immunity rates in Pastoral Goats with seasonal and non-seasonal (constant) births")+
-  coord_cartesian(xlim=c(450,800))
+       title = "Comparison of seasonal vs non-seasonal (fixed) birth pattern")
+
+A <- ggplot(ocOut.comparison %>% filter(id %in% c("variableSeasonal", "fixedSeasonal"))) +
+   geom_line(aes(x = w, y = sum_pop, col = id), size = 1)+
+  labs(x = "weeks (10 year)", 
+       y = "population size", 
+       col = "birth pattern", 
+       title = "Seasonal fixed vs seasonal variable birth pattern")
+
+B <- ggplot() +
+   geom_point(data = mean.seasonalF, aes(x=yr_wks, y = meanpop), col = "red")+
+     geom_line(data = mean.seasonalF, aes(x=yr_wks, y = meanpop), col = "red")+
+
+    geom_point(data = mean.seasonalV, aes(x=yr_wks, y = meanpop), col = "blue")+
+      geom_line(data = mean.seasonalV, aes(x=yr_wks, y = meanpop), col = "blue")+
+
+  labs(x = "weeks (10 year)", 
+       y = "population size", 
+       col = "birth pattern", 
+       title = "Mean Annual Population Size")
+
+ggarrange(A,B,nrow=1)
+ 
+###########
+## IMMUNITY 
+##########
+# 
+# ggplot() +
+#   geom_rect(
+#    data = peakrect,
+#     aes(
+#       xmin = startpeak,
+#       xmax = endpeak,
+#       ymin = -Inf,
+#       ymax = +Inf
+#     ),
+#     fill = "lightblue",
+#     alpha = 0.5,
+#     color = NA
+#   )+
+#    geom_line(data = ocOut.comparison, aes(x = w, y = prop_immune, col = id), size = 1)+
+#   labs(x = "weeks (10 year)", 
+#        y = "population size", 
+#        col = "birth pattern", 
+#        title = "Immunity rates in Pastoral Goats with seasonal and non-seasonal (constant) births")+
+#   coord_cartesian(xlim=c(450,800))
 
 ```
+
+
 # Review age-sex structure between seasonal and non-seasonal
 ```{r ocAgeSexCOmparison}
 
