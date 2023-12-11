@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r library}
 # libraries not accounted for in setup script
 library(GGally)
+library(RColorBrewer)
 plotsave <- F
 ```
 
@@ -415,7 +416,6 @@ if(plotsave){
 
 
 ```{r loopSummary}
-lhs_n <- 1e3
 ## Model Output
 output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
