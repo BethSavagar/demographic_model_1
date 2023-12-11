@@ -313,7 +313,7 @@ agesex.comparison <- bind_rows(ocOut.constant %>% select(w, sum_pop, starts_with
 
 agesex.long <- agesex.comparison %>%
   gather(key = "age_group", value = "prop", -c(w,id)) %>%
-  mutate(age_group = factor(age_group, levels = c("pfAdu", "pfSub","pfKid","pmAdu","pmSub","pmKid","pF")))
+  mutate(age_group = factor(age_group, levels = c("pfAdu", "pfSub","pfKid","pmAdu","pmSub","pmKid","pF", "sum_pop")))
 
 
 ggplot(agesex.long %>% filter(!age_group == "sum_pop"), 
@@ -322,10 +322,22 @@ ggplot(agesex.long %>% filter(!age_group == "sum_pop"),
   facet_wrap(~age_group, ncol = 3)
 
 
-ggplot(agesex.long %>% filter(age_group %in% c("pfAdu", "pfSub","pfKid"), 
-                              id == "seasonal"),
-       aes(x=w,y=prop))+
-  geom_line(aes(col = age_group))+
+ggplot()+
+  geom_rect(
+   data = peakrect,
+    aes(
+      xmin = startpeak,
+      xmax = endpeak,
+      ymin = -Inf,
+      ymax = +Inf
+    ),
+    fill = "lightblue",
+    alpha = 0.5,
+    color = NA
+  )+
+  geom_line(data = agesex.long %>% filter(!age_group %in% c("sum_pop", "pF") ),
+            aes(x=w,y=prop,col = id, group = id))+
+  facet_wrap(~age_group, scales = "free", ncol = 2)+
   theme_bw()
 
 ```
