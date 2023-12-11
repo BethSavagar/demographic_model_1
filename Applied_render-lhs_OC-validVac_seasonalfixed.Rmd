@@ -17,6 +17,8 @@ library(GGally)
 plotsave <- F
 custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
 theme_set(custom_theme)
+custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
+
 ```
 
 ```{r modSetup1}
@@ -36,9 +38,9 @@ if(local){
 source(paste0(filepath,"scripts/setup.R")) 
 
 ## Functions:
-source(paste0(filepath, "functions/Appliedfunc_seasonal.R")) # wrapper function
+source(paste0(filepath, "functions/Appliedfunc_seasonalfixed.R")) # wrapper function
 source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
-source(paste0(filepath, "functions/dynmod-vac_seasonal.R")) # flock dynamics model function
+source(paste0(filepath, "functions/dynmod-vac_seasonalfixed.R")) # flock dynamics model function
 source(paste0(filepath, "functions/output.R")) # what to include in output df
 source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
 
@@ -63,6 +65,7 @@ datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
 #combine nBirths with other demogrpahics
 var_demo_data_full <- var_demo_data_full %>%
   mutate(nBirths_yr = nBirths_df$mean)
+
 ```
 
 ```{r modSetup2}
@@ -131,6 +134,7 @@ SA <- F
 
 ```
 
+# Test implementation of births with 1 example from OC dataset
 
 ```{r ocSeasonal}
 
@@ -244,12 +248,8 @@ ocOut.constant <- App_func(
 
 ```
 
-
+# Review whether population dynamics fluctuate around same average between seasonal and non-seasonal
 ```{r ocComparison}
-
-
-custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
-
 
 ocOut.comparison <- bind_rows(ocOut.constant %>% select(w, sum_pop, prop_immune) %>% mutate(id = "constant"),
                    ocOut.seasonal %>% select(w, sum_pop, prop_immune) %>% mutate(id = "seasonal"))
@@ -307,8 +307,9 @@ ggplot() +
        col = "birth pattern", 
        title = "Immunity rates in Pastoral Goats with seasonal and non-seasonal (constant) births")+
   coord_cartesian(xlim=c(450,800))
-```
 
+```
+# Review age-sex structure between seasonal and non-seasonal
 ```{r ocAgeSexCOmparison}
 
 
@@ -346,7 +347,7 @@ ggplot()+
   theme_bw()
 
 ```
-
+# Simulate full immunity dynamics following vaccination for all OC profiles with seasonal and non-seasonal reproduction
 
 ```{r seasonalDynLoop}
 
@@ -442,7 +443,6 @@ ocOut.seasonal <- foreach (i = 1:nrow(var_input_backup),
 
 
 ```{r seasonalDynAnalysis}
-custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
 
 # ocOut.dynamics
 immDynamics <- lapply(ocOut.seasonal, select, prop_immune) %>%
@@ -542,14 +542,11 @@ ocOut.constant <- foreach (i = 1:nrow(var_input_backup),
                                seasonal
                              )
                            }
-stop(cl)
+stopCluster(cl)
 
 ```
-
-
+# PLot immunity dyanmics post vaccination after 100% vacciantion coverage for seasonal and non-seasonal births in OC profiles
 ```{r constantDynAnalysis}
-custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
-custom_palette <- c(custom_palette, rep("#000000", 10))
 
 # ocOut.dynamics
 immDynamics.constant <- lapply(ocOut.constant, select, prop_immune) %>%
@@ -590,6 +587,7 @@ plot_immComp <- ggplot(summary_combined, aes(x = weeks, y = mean_value, group = 
   facet_wrap(~prof, nrow = 2)+
   labs(x="Time (weeks)", y = "Proportion Immune", col = "Profile")+
   coord_cartesian(xlim = c(500,750))
+
 plot_immComp
 
 # filename_immVar <- "ImmDyn100_OCvalid.png"
@@ -597,7 +595,7 @@ plot_immComp
 
 ```
 
-
+# Calculate summary statistics for post-vacciantion immunity with different pV levels, for seasonal and non-seasonal births, in all OC profiles
 
 ```{r seasonalVacSummary}
 
