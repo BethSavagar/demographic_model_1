@@ -1,0 +1,351 @@
+---
+title: "oc_validVac_seasonal"
+author: "Beth Savagar"
+date: "2023-11-13"
+output: html_document
+---
+
+# SEASONAL OC
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r library}
+# libraries not accounted for in setup script
+library(GGally)
+plotsave <- F
+custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+theme_set(custom_theme)
+custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
+
+```
+
+```{r modSetup1}
+############
+## SETUP ##
+############
+local <- T
+# local filepath: 
+if(local){
+  filepath <- ""
+}else{
+  # cluster filepath
+  filepath <- "/storage/users/bsavagar/"
+}
+
+## Libraries
+source(paste0(filepath,"scripts/setup.R")) 
+
+## Functions:
+source(paste0(filepath, "functions/Appliedfunc_seasonalfixed.R")) # wrapper function
+source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
+source(paste0(filepath, "functions/dynmod-vac_seasonalfixed.R")) # flock dynamics model function
+source(paste0(filepath, "functions/output.R")) # what to include in output df
+source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
+
+```
+
+
+```{r selectData}
+# 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
+
+applied_example <- T
+
+## Load parameters
+datafile <- "-OC_validPars-seasonal"
+fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
+# load mean annual birth rate (calc from validVac non-seasonal.Rmd)
+nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
+
+## Datasets
+datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
+#combine nBirths with other demogrpahics
+var_demo_data_full <- var_demo_data_full %>%
+  mutate(nBirths_yr = nBirths_df$mean)
+
+```
+
+```{r modSetup2}
+
+######################
+## MODEL SETUP ##
+######################
+
+## Simulation:
+TimeStop_dynamics <- 20*52 # 2 years only interested in rates for 1 y
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
+min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+pV <- 1
+source("scripts/applied/applied_vaccination.R")
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+##################
+## RUN MODEL ##
+##################
+
+turnover <- F; 
+dynamics <- T; 
+transmission <- F; 
+clean_environment <- T
+seasonal <- T
+
+# timepoints for population growth
+t2 <- TimeStop_dynamics/2 # 5 year pop growth
+t1 <- TimeStop_dynamics
+
+
+##################################
+## BIRTH PEAKS  ##
+##################################
+
+# id which week of the year each month starts on:
+wkmnthids <- data.frame(
+  mnth = 1:12,
+  mnthwk = seq(1,53, by = 4.345) %>% round()
+)
+
+peakmnth <- 3  # Month of peak
+peakstart <- wkmnthids %>% filter(mnth == peakmnth) %>% pull()
+pkwk1 <- seq(from=peakstart, by=1, length.out=4)
+birthpeak_w <- c()
+time_yrs <- TimeStop_dynamics/52
+for(i in 1:time_yrs-1){
+  seqjump <- i*52
+  pkwki <- pkwk1+seqjump
+  birthpeak_w <- c(birthpeak_w,pkwki)
+}
+
+##################################
+## LHS SETUP  ##
+##################################
+
+lhs <- F
+lhs_n <- 0 # number of sets (parameter combinations)
+pairs_plot <- F
+SA <- F
+
+```
+
+# Test implementation of births with 1 example from OC dataset
+
+```{r ocSeasonal}
+
+###################
+## MODEL OUTPUT ##
+###################
+
+## Model Output
+output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+ocOut.seasonal <- list()
+
+
+#####################
+## DATA SELECTION ##
+#####################
+
+dataset <- datasets
+
+if (dataset == "lesnoff.ft") {
+  rates <- "wkly"
+} else{
+  rates <- "yrly"
+}
+
+fixdata <- dataset # set dataset for state_vars
+vardata <- dataset
+  
+if(lhs){
+  source("scripts/applied/applied_lhs.R") # output var_input_df contains all parameter combinations for uncertain demographics.
+}
+
+profOrder <- var_demo_data_full %>% select(prof) %>% pull()
+var_input_backup <- var_demo_data_full %>% select(-prof)
+
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+  
+  ##########################################
+  ## SIMULATION - TEST 1 EXAMPLE ##
+  ##########################################
+
+var_input_full <- unlist(var_input_backup[1, ])
+
+                                  
+ocOut.seasonalF <- App_func(
+                  imm_decay_corrected,
+                  var_input_full,
+                  fix_age_data_full,
+                  f_list,# initial state of female population
+                  m_list, # initial state of male population
+                  TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                  TimeStop_transmission, # 1 day, hourly timestep for transission component
+                  output,# model output: tracker or summary stats
+                  summary_df, #
+                  clean_environment,
+                  Vstart,
+                  Vprog,
+                  fixdata,
+                  vardata,
+                  birthpeak_w,
+                  seasonal
+                )
+                                
+  
+stopCluster(cl)
+
+```
+
+```{r ocSeasonalV}
+
+source(paste0(filepath, "functions/dynmod-vac_seasonal.R")) # flock dynamics model function
+source(paste0(filepath, "functions/Appliedfunc_seasonal.R")) # flock dynamics model function
+
+summary_df <- output_func(TimeStop_dynamics, output) 
+                                  
+ocOut.seasonalV <- App_func(
+                  imm_decay_corrected,
+                  var_input_full,
+                  fix_age_data_full,
+                  f_list,# initial state of female population
+                  m_list, # initial state of male population
+                  TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                  TimeStop_transmission, # 1 day, hourly timestep for transission component
+                  output,# model output: tracker or summary stats
+                  summary_df, #
+                  clean_environment,
+                  Vstart,
+                  Vprog,
+                  fixdata,
+                  vardata,
+                  birthpeak_w,
+                  seasonal
+                )
+
+```
+
+# Review whether population dynamics fluctuate around same average between seasonal and non-seasonal
+```{r ocComparison}
+
+ocOut.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, prop_immune) %>% mutate(id = "fixed"),
+                   ocOut.seasonalV %>% select(w, sum_pop, prop_immune) %>% mutate(id = "variable"))
+
+
+
+# Check births are implemented at peak times as intended: 
+startpos <- which(c(TRUE, diff(birthpeak_w) > 1))
+endpos <- c(startpos[-1] - 1, length(birthpeak_w))
+peakrect <- data.frame(startpeak = birthpeak_w[startpos],
+                      endpeak = birthpeak_w[endpos])
+
+ggplot() +
+  geom_rect(
+   data = peakrect,
+    aes(
+      xmin = startpeak,
+      xmax = endpeak,
+      ymin = -Inf,
+      ymax = +Inf
+    ),
+    fill = "lightblue",
+    alpha = 0.5,
+    color = NA
+  )+
+   geom_line(data = ocOut.comparison, aes(x = w, y = sum_pop, col = id), size = 1)+
+  labs(x = "weeks (10 year)", 
+       y = "population size", 
+       col = "birth pattern", 
+       title = "Comparison of seasonal vs non-seasonal (constant) birth pattern")
+
+
+###########
+## IMMUNITY 
+##########
+
+ggplot() +
+  geom_rect(
+   data = peakrect,
+    aes(
+      xmin = startpeak,
+      xmax = endpeak,
+      ymin = -Inf,
+      ymax = +Inf
+    ),
+    fill = "lightblue",
+    alpha = 0.5,
+    color = NA
+  )+
+   geom_line(data = ocOut.comparison, aes(x = w, y = prop_immune, col = id), size = 1)+
+  labs(x = "weeks (10 year)", 
+       y = "population size", 
+       col = "birth pattern", 
+       title = "Immunity rates in Pastoral Goats with seasonal and non-seasonal (constant) births")+
+  coord_cartesian(xlim=c(450,800))
+
+```
+# Review age-sex structure between seasonal and non-seasonal
+```{r ocAgeSexCOmparison}
+
+
+agesex.comparison <- bind_rows(ocOut.seasonalF %>% select(w, sum_pop, starts_with("pf"), starts_with("pm")) %>% mutate(id = "fixed"),
+                   ocOut.seasonalV %>% select(w, sum_pop, starts_with("pf"), starts_with("pm")) %>% mutate(id = "variable"))
+
+
+agesex.long <- agesex.comparison %>%
+  gather(key = "age_group", value = "prop", -c(w,id)) %>%
+  mutate(age_group = factor(age_group, levels = c("pfAdu", "pfSub","pfKid","pmAdu","pmSub","pmKid","pF", "sum_pop")))
+
+
+ggplot(agesex.long %>% filter(!age_group == "sum_pop"), 
+       aes(x=w,y=prop), group = id)+
+  geom_line(aes(col = id))+
+  facet_wrap(~age_group, ncol = 3)
+
+
+ggplot()+
+  geom_rect(
+   data = peakrect,
+    aes(
+      xmin = startpeak,
+      xmax = endpeak,
+      ymin = -Inf,
+      ymax = +Inf
+    ),
+    fill = "lightblue",
+    alpha = 0.5,
+    color = NA
+  )+
+  geom_line(data = agesex.long %>% filter(!age_group %in% c("sum_pop", "pF") ),
+            aes(x=w,y=prop,col = id, group = id))+
+  facet_wrap(~age_group, scales = "free", ncol = 2)+
+  theme_bw()
+
+```
