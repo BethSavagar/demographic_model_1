@@ -197,6 +197,89 @@ stopCluster(cl)
 
 ```
 
+```{r popdyn}
+
+custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
+
+# ocOut.dynamics
+popDynamics <- lapply(Out.dynamics, select, sum_pop) %>%
+  bind_cols() %>%
+  t() %>%
+  as.data.frame()
+
+colnames(popDynamics) <- 1:ncol(popDynamics)
+rownames(popDynamics) <- 1:nrow(popDynamics)
+
+popDynamics.clean <- popDynamics %>%
+  mutate(prof = profOrder,
+         set = 1:nrow(.))
+
+popDynamics.long <- popDynamics.clean %>%
+  gather(key = "weeks", value = "sum_pop", -c(prof,set)) %>%
+  mutate(weeks = as.numeric(weeks))
+
+plot_popDyn <- ggplot(popDynamics.long, aes(x = weeks, y = sum_pop)) +
+  geom_line(aes(group = set), col = "grey") +
+  facet_wrap(~prof, nrow = 2)+
+  labs(x="Time (weeks)", y = "Sum Pop ", col = "Profile")
+
+plot_popDyn
+
+
+
+# ocOut.dynamics
+Births <- lapply(Out.dynamics, select, c(nBirths)) %>%
+  bind_cols() %>%
+  t() %>%
+  as.data.frame()
+
+colnames(Births) <- 1:ncol(Births)
+rownames(Births) <- 1:nrow(Births)
+
+births.clean <- Births %>%
+  mutate(prof = profOrder,
+         set = 1:nrow(.)
+  )
+
+
+births.long <- births.clean %>%
+  gather(key = "weeks", value = "nBirths", -c(prof,set)) %>%
+  mutate(weeks = as.numeric(weeks),
+          yr = rep(
+           rep(1:(TimeStop_dynamics/52), each = 52), 
+           length(profOrder)
+           )) 
+
+plot_births <- ggplot(births.long, aes(x = weeks, y = nBirths)) +
+  geom_line(aes(group = set), col = "grey") +
+  facet_wrap(~prof, nrow = 2)+
+  labs(x="Time (weeks)", y = "Sum Pop ", col = "Profile")
+
+plot_births
+
+births.sum <- births.long %>%
+  group_by(set,prof,yr) %>%
+  summarise(yrBirths = sum(nBirths))
+
+plot_sumbirths <- ggplot(births.sum, aes(x = yr, y = yrBirths)) +
+  geom_line(aes(group = set), col = "grey") +
+  facet_wrap(~prof, nrow = 2)+
+  labs(x="Time (weeks)", y = "Sum Pop ", col = "Profile")
+
+plot_sumbirths
+
+
+births.mean <- births.sum %>%
+  ungroup() %>%
+  group_by(set, prof) %>%
+  summarise(mean = mean(yrBirths))
+
+kable(births.mean)
+filename_nBirths <- "Applied_nBirths_OC.csv"
+write.csv(births.mean, file = paste0("output/Applied/stableAgeSex/", filename_nBirths), row.names = F)
+
+```
+
 # Plot Immunity Dynamics of valid OC flock profiles:
 
 ```{r analysisDynamics}
