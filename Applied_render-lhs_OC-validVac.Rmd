@@ -276,7 +276,10 @@ births.mean <- births.sum %>%
 
 kable(births.mean)
 filename_nBirths <- "Applied_nBirths_OC.csv"
-write.csv(births.mean, file = paste0("output/Applied/stableAgeSex/", filename_nBirths), row.names = F)
+if(plotsave){
+  write.csv(births.mean, file = paste0("output/Applied/stableAgeSex/", filename_nBirths), row.names = F)
+
+}
 
 ```
 
