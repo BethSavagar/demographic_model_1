@@ -59,15 +59,21 @@ summary_demos <- function(
     
     # proportion female
     pF <- sum(fpop)/sum(pop_tot)
+    
+    # number of births
+    nBirths <- pop_tot[1]
   }
   
   # add row to summary stats dataframe
   if (output == "summary") {
     summary_df[w, ] <-c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pKid,pSub,pAdu)
-  } else if (output %in% c("summary_all","dynamics")) {
+  } else if (output %in% c("summary_all")) {
     summary_df[w, ] <- c(w,sum_pop,prop_immune,pR_noIm,prop_inf,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
+  } else if (output %in% c("dynamics")) {
+    # nBirths
+    summary_df[w, ] <- c(w,sum_pop,prop_immune,pR_noIm,prop_inf,nBirths,pF,pfKid,pfSub,pfAdu,pmKid,pmSub,pmAdu)
   } else if (output %in% c("pop_tracker", "mort_only", "off_only")) {
-    pop_w <- cbind(w,fpop,mpop,pop_tot, sum_pop)
+    pop_w <- cbind(w,fpop,mpop,pop_tot,sum_pop)
     summary_df <- rbind(summary_df,pop_w)
     count_df <- c()
   }
