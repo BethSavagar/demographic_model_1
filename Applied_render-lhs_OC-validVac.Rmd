@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # libraries not accounted for in setup script
 library(GGally)
 plotsave <- F
-custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 11))
 theme_set(custom_theme)
 ```
 
@@ -58,6 +58,9 @@ applied_example <- T
 datafile <- "-oc_validPars"
 fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
 var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
+# use  par sets from LHS validated again tenyr_growth & age-sex (GSA) conditions (11/12/2023)
+# - see lhs_OC-check.Rmd for details
+# var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
 
 ## Datasets
@@ -424,7 +427,7 @@ stopCluster(cl)
 
 ```
 
-
+# Immunity Boxplots:
 ```{r summaryAnalysis}
 
 dark2_palette <- c(brewer.pal(n = 8, name = "Dark2"), "#FF8C00", "#1E90FF", "#333333")
@@ -434,6 +437,8 @@ dark2_palette
 ######################################
 ## Vaccination Uncertainty Examples ##
 ######################################
+Out.summary %>% mutate(prof = profOrder) %>% group_by(prof) %>% count()
+
 validImm <- Out.summary %>%
   mutate(prof = profOrder,
          prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
@@ -441,31 +446,33 @@ validImm <- Out.summary %>%
       prof,
       levels = c(
         "oc.goat.aridP",
-        "oc.goat.semiaridP",
-        "oc.goat.semiaridM",
-        "oc.goat.subhumidM",
-        "oc.goat.humidM",
         "oc.shp.aridP",
+        "oc.goat.semiaridP",   
         "oc.shp.semiaridP",
+        "oc.goat.semiaridM",        
         "oc.shp.semiaridM",
+        "oc.goat.subhumidM", 
         "oc.shp.subhumidM",
+        "oc.goat.humidM",
         "oc.shp.humidM"
-      )
-    )) %>%
+      ))
+      ) %>%
   select(tenyr_growth, starts_with("imm"), prof, prof_group) %>%
   gather(key = "stat", value = "value", -c(prof,prof_group)) %>%
-  mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "tenyr_growth" )))
+  mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "tenyr_growth" ))) %>%
+  filter(value<145) %>% ungroup()
 
 plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m")), 
        aes(x = prof, y = value, fill = stat))+ 
-  geom_boxplot() +
+  geom_boxplot(fill = "grey", alpha = 0.5) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
   facet_wrap(~stat)+
   labs(x="Profile", y = "Weeks")+
   theme_bw()+
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "none")+
-  scale_fill_manual(values = dark2_palette[1:3])
+        legend.position = "none")
+  #scale_fill_manual(values = dark2_palette[1:3])+
+  #scale_fill_grey()
 
 plot_imm70 <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
             aes(x = value, y = prof))+ 
@@ -473,19 +480,20 @@ plot_imm70 <- ggplot(validImm %>% filter(stat %in% c("imm70_w")),
   facet_wrap(~stat, scales = "free")+
   labs(x="Weeks", y = "Profile")+
   theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+  theme( # axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "none")
 
-validImm %>% filter(stat =="imm70_w") %>% summarise(min = min(value), 
-                                                                           max = max(value), 
-                                                                           median = median(value),
-                                                                           mean = mean(value))
-validImm %>% filter(stat =="imm70_w") %>% group_by(prof_group) %>% summarise(min = min(value), 
+
+validImm %>% ungroup() %>% filter(stat =="imm70_w") %>% group_by(prof) %>% summarise(min = min(value), 
                                                                            max = max(value), 
                                                                            median = median(value),
                                                                            mean = mean(value))
 
 validImm %>% group_by(stat) %>% summarise(min = min(value), 
+                                                                           max = max(value), 
+                                                                           median = median(value),
+                                                                           mean = mean(value)) %>% kable()
+validImm %>% ungroup() %>% group_by(stat) %>% summarise(min = min(value), 
                                                                            max = max(value), 
                                                                            median = median(value),
                                                                            mean = mean(value)) %>% kable()
@@ -507,16 +515,20 @@ plot_tenyr <- ggplot(validImm %>% filter(stat %in% c("tenyr_growth")),
 plot_imm
 plot_imm70
 plot_ImmSum <- ggarrange(plot_imm,plot_imm70,plot_tenyr, ncol = 1)
-
+plot_ImmSum
 
 filename_pairsSh <- "pairsvalid_SAOCShp.png"
 filename_pairsGt <- "pairsvalid_SAOCGt.png"
-filename_ImmSum <- "ImmSum100_OC.png"
+filename_ImmV0612 <- "ImmV0612_OC.png"
+filename_Imm70 <- "ImmSum79_OC.png"
 
 if(plotsave){
   ggsave(paste0("plots/applied/",filename_pairsSh), plot = plot_pairsSh, width = 25, height = 20, units = "cm")
 ggsave(paste0("plots/applied/",filename_pairsGt), plot = plot_pairsGt, width = 25, height = 20, units = "cm")
 ggsave(paste0("plots/applied/",filename_ImmSum), plot = plot_ImmSum, width = 25, height = 20, units = "cm")
+ggsave(paste0("plots/applied/",filename_ImmV0612), plot = plot_imm, width = 20, height = 10, units = "cm")
+ggsave(paste0("plots/applied/",filename_Imm70), plot = plot_imm70, width = 10, height = 7.5, units = "cm")
+
 }
 
 
