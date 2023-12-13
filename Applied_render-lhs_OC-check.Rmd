@@ -514,7 +514,7 @@ for(d in 1:length(datasets)){
 
 stopCluster(cl)
 # save rds for OC output with 10,000 LHS parameter sets per OC profile
-saveRDS(ocOut.sum, file = "output/Applied/applied_output_OC-profile-LHS10000.RData")
+# saveRDS(ocOut.sum, file = "output/Applied/applied_output_OC-profile-LHS10000.RData")
 ```
 
 
@@ -525,6 +525,8 @@ saveRDS(ocOut.sum, file = "output/Applied/applied_output_OC-profile-LHS10000.RDa
 ################################
 
 # ocOut.summary is a dataframe of summary data for each parameter set 
+# ocOut.sum <- readRDS(file = "output/Applied/applied_output_OC-profile-LHS10000.RData")
+
 
 ## Plot population growth stats: 
 # - Total Growth (20y), 
