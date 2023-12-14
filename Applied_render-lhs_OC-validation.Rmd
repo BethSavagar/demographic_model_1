@@ -42,7 +42,7 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 ## Load parameters
 datafile1 <- "-OC_validation"
 # load data for Applied-Examples & Applied-LHS
-fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars","-OC_validation",".csv"),col_names=T)
+fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars","-OC_validation-agesex",".csv"),col_names=T)
 var_demo_dataMort <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationMORT",".csv"), col_names=T)
 var_demo_dataOff <- read_csv(paste0("data/Applied_parameters/demographics","-OC_validationOFF",".csv"), col_names=T)
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
@@ -198,7 +198,7 @@ for(d in 1:length(datasets)){
   rateMin <- paste0(dataset,".targ.min")
   rateMax <-  paste0(dataset,".targ.max")
   
-  # female mortality <12m target
+  # All Offtake target
   targ_min <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMin`)) %>% pull()
   targ_max <- OC_target %>% filter(parameter == "Off_all") %>% select(all_of(`rateMax`)) %>% pull()
   
