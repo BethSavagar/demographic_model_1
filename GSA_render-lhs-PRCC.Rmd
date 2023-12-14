@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r theme}
+library(ggplot2)
+library(ggpubr)
+library(epiR)
 custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 11))
 theme_set(custom_theme)
 ```
@@ -105,7 +108,7 @@ vardata <- "sim.1" # select dataset for test data, # test_1 dataset, all pars se
 
 ## Use RSA output as GSA input pars:
 
-# original local data source: read_csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
+# original local data source: var_demo_data_full <- read_csv("output/RSA_output/RSA_pars-set_2023-08-24.csv")
 var_input_set <- var_demo_data_full %>% rename(
   "NET_offtake_m"= off_mA,
   "NET_offtake_f"= off_f,
@@ -298,7 +301,10 @@ parOnly_subset <- par_subset %>%
 
 pairs(par_subset, pch=18)
 ggpairs(par_subset)
+```
 
+
+```{r prcc}
 # PRCC on subset
 
 # 6m Imm
@@ -368,7 +374,8 @@ prcc_summary <- prccb_imm6m %>%
   arrange(desc(abs(est70)))
 
 knitr::kable(prcc_summary)
-# varOrder <- prcc_summary %>% select(var) %>% pull()
+
+varOrder <- prcc_summary %>% select(var) %>% pull()
 # varOrder <- c("off_f", "off_mY", "off_mA", "mort_Y", "mort_A", "birth_rate", "min_off", "min_repro", "max_yrs_F","max_yrs_M")
 
 GSAsubset_prccimmunity <- ggplot(prccb.all %>% mutate(var = factor(var, levels = rev(varOrder))) %>% filter(!output == "pop_growth"), 
@@ -378,6 +385,15 @@ GSAsubset_prccimmunity <- ggplot(prccb.all %>% mutate(var = factor(var, levels =
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   scale_fill_grey()
 GSAsubset_prccimmunity
+
+
+GSAsubset_prccgrowth <- ggplot(prccb.all %>% mutate(var = factor(var, levels = rev(varOrder))) %>% filter(output == "pop_growth"), 
+       aes(x=est, y=var, group = output, fill = output))+
+  geom_col(position = "dodge")+
+  labs(x="PRCC", y="Demographic Parameter", fill = "Output", title = "")+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+  scale_fill_grey()
+GSAsubset_prccgrowth
 
 GSAsubset_prccall <- ggplot(prccb.all, aes(x=est, y=var, group = output, fill = output))+
   geom_col(position = "dodge")+
@@ -395,35 +411,38 @@ GSAsubset_prccall2
 filename_GSAsubset_prccall <- "GSAsubset_prccall.png"
 filename_GSAsubset_prccall2 <- "GSAsubset_prccall2.png"
 filename_GSAsubset_prccimmunity <- "GSAsubset_prccimmunity.png"
+filename_GSAsubset_prccgrowth <- "GSAsubset_prccgrowth.png"
+
 
 if(plotsave){
   ggsave(paste0("plots/GSA/",filename_GSAsubset_prccall), plot = GSAsubset_prccall, width = 12, height = 7.5, units = "cm")
   ggsave(paste0("plots/GSA/",filename_GSAsubset_prccall2), plot = GSAsubset_prccall2, width = 20, height = 10, units = "cm")
-  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccimmunity), plot = GSAsubset_prccimmunity, width = 20, height = 15, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccimmunity), plot = GSAsubset_prccimmunity, width = 15, height = 15, units = "cm")
+  ggsave(paste0("plots/GSA/",filename_GSAsubset_prccgrowth), plot = GSAsubset_prccgrowth, width = 15, height = 15, units = "cm")
   
 }
-
-prcc.all2 <- rbind(
-                   prccb.all %>% mutate(Cond = "VALID"),
-                   prccb_growth %>% select(var,est) %>% 
-                     mutate(output = "popgrowth",
-                            Cond="VALID")
-                   )
-# Plot of PRCC for each output (immunity nad popgrowth), for Valid and All par sets
-prcc_comparison <- ggplot(prcc.all2, aes(x=est, y=var, group = Cond, fill = Cond))+
-  geom_col(position = "dodge")+
-  facet_wrap(~output, nrow = 1)+
-  labs(x="par", y="prcc", title = "")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-
-filename_prcc_comparison <- "prcc_comparison.png"
-
-if(plotsave){
-  ggsave(paste0("plots/GSA/",filename_prcc_comparison), plot = prcc_comparison, width = 20, height = 10, units = "cm")
-
-  
-}
+# 
+# prcc.all2 <- rbind(
+#                    prccb.all %>% mutate(Cond = "VALID"),
+#                    prccb_growth %>% select(var,est) %>% 
+#                      mutate(output = "popgrowth",
+#                             Cond="VALID")
+#                    )
+# # Plot of PRCC for each output (immunity nad popgrowth), for Valid and All par sets
+# prcc_comparison <- ggplot(prcc.all2, aes(x=est, y=var, group = Cond, fill = Cond))+
+#   geom_col(position = "dodge")+
+#   facet_wrap(~output, nrow = 1)+
+#   labs(x="par", y="prcc", title = "")+
+#   theme_bw()+
+#   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+# 
+# filename_prcc_comparison <- "prcc_comparison.png"
+# 
+# if(plotsave){
+#   ggsave(paste0("plots/GSA/",filename_prcc_comparison), plot = prcc_comparison, width = 20, height = 10, units = "cm")
+# 
+#   
+# }
 
 
 ```
