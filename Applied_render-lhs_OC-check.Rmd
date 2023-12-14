@@ -525,7 +525,7 @@ stopCluster(cl)
 ################################
 
 # ocOut.summary is a dataframe of summary data for each parameter set 
-# ocOut.sum <- readRDS(file = "output/Applied/applied_output_OC-profile-LHS10000.RData")
+# ocOut.sum <- readRDS(file = "output/Applied/  ")
 
 
 ## Plot population growth stats: 
@@ -932,4 +932,5 @@ saveValidPars <- ocPars.valid %>% select(NET_offtake_y:prof)
 filename_savePars <- paste0("applied_outValidPars_OC_", Sys.Date(), ".csv")
 write.csv(saveValidPars, file = paste0("output/Applied/", filename_savePars), row.names = F)
 
+# saveRDS(ocOut.valid, file = "output/Applied/applied_outValid_OC-LHS10000_2023-12-11.RData")
 ```
