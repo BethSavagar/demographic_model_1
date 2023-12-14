@@ -248,19 +248,14 @@ App_func <- function(
     rm(fix_age_data,kid_f_prop,sub_f_prop,adu_f_prop,kid_m_prop,sub_m_prop,adu_m_prop,kid_max,sub_max, max_age_F,max_age_M,fIm_init,fS_init,fE_init,fI_init,fR_init,mIm_init,mS_init,mE_init,mI_init,mR_init,off_1,off_F,off_M,mort_1,mort_2,birth_r,ppr_mort_1,ppr_mort_2)
   }
   
-  
-  
-  ###
-  #--------------------------
-  ## Transmission parameters ##
-  #--------------------------
-  
-  # Only if transmission is incorporated
-  if(transmission == T){
-    source(here("scripts", "parameters", "set-pars-transmission-fixed.R"))
-  }
-  
-  
+  # #--------------------------
+  # ## Transmission parameters ##
+  # #--------------------------
+  # # Only if transmission is incorporated
+  # if(transmission == T){
+  #   source(here("scripts", "parameters", "set-pars-transmission-fixed.R"))
+  # }
+
   ###################
   ## 3. RUN DYNMOD ##
   ###################
