@@ -56,6 +56,7 @@ applied_example <- T
 datafile <- "-OC_validPars-seasonal"
 fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
 var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
 # load mean annual birth rate (calc from validVac non-seasonal.Rmd)
 nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
@@ -593,6 +594,8 @@ plot_immComp
 # filename_immVar <- "ImmDyn100_OCvalid.png"
 # ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
 
+# filename_immVar3m <- "ImmDynCompV3m_OCvalid.png"
+# ggsave(paste0("plots/applied/",filename_immVar3m), plot = plot_immComp, width = 20, height = 10, units = "cm")
 ```
 
 # Calculate summary statistics for post-vacciantion immunity with different pV levels, for seasonal and non-seasonal births, in all OC profiles
@@ -755,6 +758,17 @@ plot_immSh <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12
   scale_fill_brewer(palette = "Dark2")
 plot_immSh
 
+plot_immGt <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m"), prof_group == "goat"), 
+       aes(x = peakmnth, y = value))+ #, col = peakmnth
+    geom_boxplot(alpha = 0.5, aes(fill = stat)) +
+    geom_hline(yintercept = 0.7, linetype = "dashed")+
+    facet_grid(prof~stat)+
+    theme_bw()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+          legend.position = "none")+
+  scale_fill_brewer(palette = "Dark2")
+plot_immGt
+
 plot_imm70Sh <- ggplot(validImm %>% filter(stat %in% c("imm70_w"),prof_group == "shp"), 
             aes(x = peakmnth, y = value))+ #, col = peakmnth
   geom_boxplot(alpha = 0.5, fill = "grey") +
@@ -774,4 +788,7 @@ plot_tenyrSh <- ggplot(validImm %>% filter(stat %in% c("tenyr_growth"),prof_grou
 plot_tenyrSh
 
 
+
+plot_immSh
+plot_immGt
 ```
