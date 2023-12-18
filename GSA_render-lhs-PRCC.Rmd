@@ -198,19 +198,19 @@ summary_df <- output_func(TimeStop_dynamics, output) # create summary data frame
 
 # var_input_backup <- var_input_set %>% as.data.frame() %>% slice_sample(.,n=100)
 # update parameter sets:
-var_input_backup <- read_csv("data/GSA_parameters/GSA_var_input-PRCC.csv") %>% rename(
-  "NET_offtake_m"= off_mA,
-  "NET_offtake_f"= off_f,
-  "mortality_y"= mort_Y,
-  "mortality_a"= mort_A,
-  "birth_rate"= birth_rate,
-  "adu_f_max_yrs"= max_yrs_F,
-  "adu_m_max_yrs"= max_yrs_M,
-  "min_age_offtake"= min_off,
-  "min_age_repro"= min_repro,
-  "NET_offtake_m2"=off_mY 
-) %>%
-  as.data.frame()
+# var_input_backup <- read_csv("data/GSA_parameters/GSA_var_input-PRCC.csv") %>% rename(
+#   "NET_offtake_m"= off_mA,
+#   "NET_offtake_f"= off_f,
+#   "mortality_y"= mort_Y,
+#   "mortality_a"= mort_A,
+#   "birth_rate"= birth_rate,
+#   "adu_f_max_yrs"= max_yrs_F,
+#   "adu_m_max_yrs"= max_yrs_M,
+#   "min_age_offtake"= min_off,
+#   "min_age_repro"= min_repro,
+#   "NET_offtake_m2"=off_mY 
+# ) %>%
+#   as.data.frame()
 
 ```
 
@@ -248,11 +248,15 @@ outGSA <- foreach (i = 1:nrow(var_input_backup),
                               )
                             }
 stopCluster(cl)
-
+# saveRDS(outGSA, file = paste0("output/GSA_output/GSA_output_PRCC_", Sys.Date(), ".RData"))
 ```
 
 # Preliminary analysis:
 ```{r summaryAnalysis1, eval = F}
+
+# outGSA <- load(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.RData")
+# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv")
+# var_input_backup <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
 
 # take a look at the data: 
 str(outGSA)
@@ -342,13 +346,19 @@ ggpairs(parsGSA.valid,
         progress = F)
 
 # save plot without tenyr growth: 
-RSApairs <- ggpairs(parsGSA.valid,
+RSApairs <- ggpairs(parsGSA.valid %>% select(-tenyr_growth),
                     upper = list(continuous = wrap("cor", size = 4,family = "Times New Roman")),
-                    progress = F)
+                    progress = F)+theme(panel.grid.major = element_blank(), panel.grid.minor =element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+filename_RSApairs <- paste0("validpairs", ".png")
 
-
+if(plotsave){
+  ggsave(paste0("plots/",filename_RSApairs), plot = RSApairs, width = 20, height = 20, units = "cm")
+}
 ```
-# PRCC Analysis
+
+# PRCC Analysis (Subset)
 
 ```{r prcc}
 
@@ -369,29 +379,10 @@ prccb_imm70 <- epi.prcc(prccGSA.valid %>% select(-c("tenyr_growth","imm_6m","imm
 
 prccb_growth <- epi.prcc(prccGSA.valid %>% select(-c("imm_6m","imm_12m","imm70_w")), 
                          sided.test = 2, conf.level = 0.95)
-
-##############################
-## PRCC GSA - with All pars ##
-##############################
-# 
-# prccGSA <- parsGSA.valid %>%
-#   # add immunity dynamics:
-#   bind_cols(outGSA.valid %>% select(imm_6m,imm_12m,imm70_w)) 
-# 
-# prccb_growthAll <- epi.prcc(prccGSA.valid %>% select(-c("imm_6m","imm_12m","imm70_w")), 
-#                          sided.test = 2, conf.level = 0.95)
-
 ```
 
 
 ```{r prccAnalysis}
-
-GSAsubset_prccgrowth <- ggplot(prccb_growth, aes(x=var, y=est, group = output, fill = output))+
-  geom_col(position = "dodge")+
-  labs(x="par", y="prcc", title = "VALID ONLY")+
-  theme_bw()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
-GSAsubset_prccgrowth
 
 # Bar plot comparing prcc for each output
 prccb.all <- rbind(prccb_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
@@ -399,23 +390,23 @@ prccb.all <- rbind(prccb_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
                   prccb_imm70 %>% select(var,est) %>% mutate(output = "imm70"), 
                   prccb_growth %>% select(var,est) %>% mutate(output = "pop_growth"))
 
-
-prcc_summary <- prccb_imm6m %>% 
+prcc_summary <- 
+  prccb_imm70 %>% 
+          select(var,est,p.value) %>% 
+          transmute(var = var,
+                    est70=round(est,digits=3),
+                    p70= round(p.value, digits=3)) %>%
+  cbind(prccb_imm6m %>% 
   select(var,est,p.value) %>% 
-  transmute(var = var,
-            est6m=round(est,digits=3),
-            p6m= round(p.value, digits=3)) %>%
+  transmute(est6m=round(est,digits=3),
+            p6m= round(p.value, digits=3))) %>%
   cbind(prccb_imm12m %>% 
           select(var,est,p.value) %>% 
           transmute(est12m=round(est,digits=3),
                     p12m= round(p.value, digits=3))) %>%
-  cbind(prccb_imm70 %>% 
-          select(var,est,p.value) %>% 
-          transmute(est70=round(est,digits=3),
-                    p70= round(p.value, digits=3))) %>%
   arrange(desc(abs(est70)))
 
-knitr::kable(prcc_summary)
+prcc_summary
 
 varOrder <- prcc_summary %>% select(var) %>% pull()
 # varOrder <- c("off_f", "off_mY", "off_mA", "mort_Y", "mort_A", "birth_rate", "min_off", "min_repro", "max_yrs_F","max_yrs_M")
@@ -427,7 +418,6 @@ GSAsubset_prccimmunity <- ggplot(prccb.all %>% mutate(var = factor(var, levels =
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
   scale_fill_grey()
 GSAsubset_prccimmunity
-
 
 GSAsubset_prccgrowth <- ggplot(prccb.all %>% mutate(var = factor(var, levels = rev(varOrder))) %>% filter(output == "pop_growth"), 
        aes(x=est, y=var, group = output, fill = output))+
@@ -453,7 +443,53 @@ if(plotsave){
   ggsave(paste0("plots/GSA/",filename_GSAsubset_prccimmunity), plot = GSAsubset_prccimmunity, width = 15, height = 15, units = "cm")
   ggsave(paste0("plots/GSA/",filename_GSAsubset_prccgrowth), plot = GSAsubset_prccgrowth, width = 15, height = 15, units = "cm")
   ggsave(paste0("plots/GSA/",filename_GSAsubset_prccall), plot = GSAsubset_prccall, width = 12, height = 7.5, units = "cm")
+  write_csv(prcc_summary, paste("tables/GSAvalid_prccimmunity.csv"))
 }
 
 ```
 
+
+```{r PRCCall}
+##############################
+## PRCC GSA - with All pars ##
+##############################
+# 
+prccGSA <- parsGSA %>%
+  select(-set) %>%
+  bind_cols(outGSA %>% select(tenyr_growth))
+
+prccb_growthAll <- epi.prcc(prccGSA, sided.test = 2, conf.level = 0.95)
+
+prcc_growth <- prccb_growthAll %>%
+  select(var, est, p.value) %>%
+  transmute(
+    var = var,
+    growth = round(est, digits = 3),
+    pgrowth = round(p.value, digits = 3)
+  ) %>%
+  arrange(desc(abs(growth)))
+
+growthOrder <- prcc_growth %>% select(var) %>% pull()
+
+GSAall_prccgrowth <- ggplot(prcc_growth %>% mutate(var = factor(var, levels = rev(varOrder))), # growthOrder
+      aes(x=growth, y=var))+
+    geom_col()+
+    labs(x="PRCC", y="Demographic Parameter", title = "All Sets, tenyr_growth")+
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
+    scale_fill_grey()
+GSAall_prccgrowth
+
+filename_GSAall_prccgrowth <- "GSAall_prccgrowth.png"
+
+if(plotsave) {
+  ggsave(
+    paste0("plots/GSA/", filename_GSAall_prccgrowth),
+    plot = GSAall_prccgrowth,
+    width = 7.5,
+    height = 7.5,
+    units = "cm"
+  )
+  write_csv(prcc_growth, "tables/GSAall_prccgrowth.csv")
+}
+     
+```
