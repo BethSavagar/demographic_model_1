@@ -1,0 +1,11 @@
+var,growth,pgrowth
+birth_rate,0.946,0
+mort_A,-0.943,0
+off_f,-0.92,0
+min_repro,-0.743,0
+mort_Y,-0.704,0
+min_off,0.217,0
+max_yrs_F,0.164,0
+off_mA,-0.001,0.712
+off_mY,-0.001,0.603
+max_yrs_M,-0.001,0.662
