@@ -15,9 +15,18 @@ GSA_output <- function(output_df, Vstart){
   Imm_12m <- output_df[(Vstart+wk_12m)-1, "prop_immune"] #minus 1 to account for annual campaigns
   Imm70_w <- output_df %>%
     filter(w>=Vstart, 
-           prop_immune<0.7) %>%
-    pull(w) %>% 
-    min()
+           w<Vstart+52, # 1 year after initial vaccination programme
+           prop_immune>=0.7) %>% 
+    nrow()
+  
+  Imm70_wAll <- output_df %>%
+    filter(w>=Vstart, 
+           w<Vstart+(52*4), # 4 year vaccination programme
+           prop_immune>=0.7) %>%
+    nrow()
+  
+  
+  
   
   output <- output_df %>% 
     filter(w==max(w)) %>%
@@ -28,7 +37,8 @@ GSA_output <- function(output_df, Vstart){
           imm_V0 = Imm_V0,
           imm_6m=Imm_6m,
           imm_12m=Imm_12m,
-          imm70_w=Imm70_w-Vstart) %>%
+          imm70_w=Imm70_w,
+          imm70_wAll = Imm70_wAll) %>%
     select(w, 
            sum_pop, 
            pop_growth, 
@@ -40,6 +50,7 @@ GSA_output <- function(output_df, Vstart){
            imm_6m, 
            imm_12m,
            imm70_w,
+           imm70_wAll,
            pR_noIm, 
            prop_inf, 
            starts_with("pf"),
