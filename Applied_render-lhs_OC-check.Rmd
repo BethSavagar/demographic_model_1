@@ -6,9 +6,10 @@ output: html_document
 ---
 
 # APPLIED EXAMPLES LHS - PRELIMINARY ANALYSIS 
-- Analyse baseline demographics of applied examples with LHS of parameter space
+- Analyse baseline demographics of applied examples with LHS of parameter space (10,000 sets per profile)
 - review population dynamics and age-sex structure, comparing against RSA demographic parameters
 - check "validity" of output against initial conditions (RSA conditions): 15% growth, age-sex structure conditions
+- valid parameters and model output is saved in "applied_outValidPars_OC_2023-12-11.csv"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -148,7 +149,7 @@ if(plotsave){
 - For each profile run a sample of 50 parameter sets with full population dynamics simulated
 - Plot the flock growth over time and the age-sex structure over time for preliminary analysis of model-profile behaviour
 
-```{r selectData}
+```{r selectData, eval = F}
 # 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
 
 applied_example <- F
@@ -161,7 +162,7 @@ source(paste0(filepath, "scripts/applied/applied_load_data2.R"))
 datasets <- fix_age_data_full %>% select(-c(parameter, RSA)) %>% colnames()
 ```
 
-```{r modSetup2}
+```{r modSetupDynamics, eval = F}
 
 ######################
 ## MODEL SETUP ##
@@ -206,7 +207,7 @@ SA <- TRUE
 ```
 
 
-```{r loopDynamics}
+```{r loopDynamics, eval = F}
 
 ###################
 ## MODEL OUTPUT ##
@@ -310,7 +311,7 @@ stopCluster(cl)
 ```
 
 
-```{r analysisDynamics}
+```{r analysisDynamics, eval = F}
 
 # ocOut.dynamics
 
@@ -413,7 +414,7 @@ if(plotsave){
 }
 
 ```
-
+# Summary stats for 10,000 LHS sets per flock profile
 
 ```{r loopSummary}
 ## Model Output
@@ -667,7 +668,7 @@ if(plotsave){
   ggsave(paste0("plots/",filename_summary), plot = summary_ShG, width = 40, height = 20, units = "cm")
 }
 ```
-
+# Subset valid output
 
 ```{r outValid}
 #------------------------------------------------------------------------------
@@ -751,7 +752,7 @@ pairs(ocPars.valid %>% select(NET_offtake_y:min_age_repro))
 
 ```
 
-
+# stable age-sex structure of valid output
 ```{r validAgeSex}
 
 ocOut.validLong <- ocOut.valid %>%
@@ -772,7 +773,7 @@ agesex_filename <- "Applied_AgeSex_OC.csv"
 
 ```
 
-
+# correlation between demogaphic parameters, growth and immunity metrics
 ```{r validAnalysis}
 
 ocPars.long <- ocPars.valid %>%
@@ -796,23 +797,20 @@ ggplot(ocPars.long, aes(x=par_val, y = imm_12m))+
   geom_point(aes(col = prof))+
   facet_wrap(~parameter, scales = "free")
 ```
-
-
-
+# Valid parameter set dependencies
 
 ```{r validpars_analysis}
-library(RColorBrewer)
 # Load the Dark2 palette
 dark2_palette <- c(brewer.pal(n = 8, name = "Dark2"), "#FF8C00", "#1E90FF", "#333333")
 
 dark2_palette
 
-
-validpars_GSA <- read_csv("data/GSA_parameters/GSA_valid-pars-only.csv", col_names = T)
-validpars_RSA <- read_csv("data/GSA_parameters/GSA_var_input-PRCC.csv", col_names=T)
+ocPars.valid <- read_csv("output/Applied/applied_outValidPars_OC_2023-12-11.csv", col_names = T) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"))
+validpars_GSA <- read_csv("output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv", col_names = T)
 
 # Collate all valid parameters from GSA RSA
-validPars_SA <- rbind(validpars_GSA, validpars_RSA) %>%
+validPars_SA <- validpars_GSA %>%
   # select pars to compare
   select(
     "off_mY",
