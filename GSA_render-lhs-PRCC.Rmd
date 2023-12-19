@@ -255,8 +255,8 @@ stopCluster(cl)
 ```{r summaryAnalysis1, eval = F}
 
 # outGSA <- load(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.RData")
-# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv")
-# var_input_backup <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
+# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv", row.names = F)
+# var_input_set <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
 
 # take a look at the data: 
 str(outGSA)
@@ -355,6 +355,8 @@ filename_RSApairs <- paste0("validpairs", ".png")
 
 if(plotsave){
   ggsave(paste0("plots/",filename_RSApairs), plot = RSApairs, width = 20, height = 20, units = "cm")
+  write.csv(outGSA.valid %>% select(-c(`...1`,set, tenyr_15, tenyr_15age)), file = "output/GSA_output/GSA_outputValid_PRCC_2023-12-16.csv", row.names = F)
+   write.csv(parsGSA.valid %>% select(-c(tenyr_growth)), file = "output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv", row.names = F)
 }
 ```
 
