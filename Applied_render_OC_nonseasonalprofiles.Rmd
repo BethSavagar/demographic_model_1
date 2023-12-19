@@ -15,8 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 # libraries not accounted for in setup script
 library(GGally)
 plotsave <- F
-custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+custom_theme <- theme_bw() + 
+  theme(text = element_text(family = "Times New Roman", size = 10))
 theme_set(custom_theme)
+
 # custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
 
 ```
@@ -290,7 +292,9 @@ stopCluster(cl)
 
 ```
 
-```{r DynamicsAnalysis}
+```{r DynamicsSave}
+
+# save csv to avoid rerunning full script
 
 immDynamics.clean <- c() # dataframe for expanded immunity dynamics
 
@@ -315,27 +319,18 @@ for(l in 1:length(pVs)){
     
 }
 
-# library(purrr)
-# 
-# immDynamics.clean <- map_dfr(ocOut.nonseasonal.list, function(dynamics_i) {
-#   immDynamics <- lapply(dynamics_i, select, prop_immune) %>%
-#     bind_cols() %>%
-#     t() %>%
-#     as.data.frame()
-# 
-#   colnames(immDynamics) <- 1:ncol(immDynamics)
-#   rownames(immDynamics) <- 1:nrow(immDynamics)
-# 
-#   immDynamics %>%
-#     select((t2):ncol(immDynamics)) %>%
-#     mutate(prof = profOrder, pV = pVs) %>%
-#     bind_rows()
-# })
+filename_immDyn_nonseasonal12 <- "immDyn_nonseasonalV12.csv"
+# write.csv(immDynamics.clean, file = paste0("output/Applied/", filename_immDyn_nonseasonal12))
+immDynamics.clean <- read.csv("output/Applied/immDyn_nonseasonalV12.csv", row.names = F)
 
+```
+
+```{r DynamicsAnalysis}
 
 immDynamics.long <- immDynamics.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
-  mutate(weeks = as.numeric(weeks))
+  mutate(weeks = as.numeric(weeks)) %>%
+  mutate(prof = gsub("oc.", "", prof))
 
 # Calculate mean and confidence interval
 summary_data <- immDynamics.long %>%
@@ -348,17 +343,37 @@ summary_data <- immDynamics.long %>%
 
 plot_immVar <- ggplot(summary_data, aes(x = weeks, y = mean_value)) +
   geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
-  geom_line(aes(col = factor(pV))) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_wrap(~prof)+ # facet_grid(pV~prof)+
+  facet_wrap(~prof)+ 
   guides(fill = "none")+
   labs(x="Time (weeks)", y = "Proportion Immune", col = "pV")+
-  coord_cartesian(xlim = c(500,750))
+  coord_cartesian(xlim = c(500,750))+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")
 
 plot_immVar
 
-filename_immVar <- "OC_nonseasonalDyn_V12m.png"
-ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+plot_immVar.noUncertainty <- ggplot(summary_data, aes(x = weeks, y = mean_value)) +
+  # geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_wrap(~prof)+ 
+  guides(fill = "none")+
+  labs(x="Time (weeks)", y = "Proportion Immune", col = "pV")+
+  coord_cartesian(xlim = c(500,750))+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")
+
+plot_immVar.noUncertainty
+
+if(plotsave){
+  filename_immVar <- "OC_nonseasonalDyn_V12m.png"
+  ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+  
+  filename_immVarN <- "OC_nonseasonalDyn-noUncertainty_V12m.png"
+  ggsave(paste0("plots/applied/",filename_immVarN), plot = plot_immVar.noUncertainty, width = 20, height = 10, units = "cm")
+}
 
 ```
 
@@ -440,15 +455,20 @@ ocOut.nonseasonalSumm <- bind_rows(ocOut.nonseasonalSumm,
 
 stopCluster(cl)
 
+#  Start from here if not wanting to run the model:
+# filename_immDyn_nonseasonalSumm12 <- "immDyn_nonseasonalSummV12.csv"
+# write.csv(ocOut.nonseasonalSumm, file = paste0("output/Applied/", filename_immDyn_nonseasonalSumm12))
+# ocOut.nonseasonalSumm <- read.csv("output/Applied/immDyn_nonseasonalSummV12.csv", row.names = F)
+
 ```
 
 # Summary Stats
-
-
-## add weeks over 70% to the output (in 4 year period)
-
-from Vstart to Vstart+4y, tally 1 if over 70%, 0 if not, count the 1s
-
+- Plots for: 
+    - immunity at onset (V0)
+    - immunity at 6m post-vac (imm_V6)
+    - immunity at 12m post-vac (imm_V12)
+    - weeks with immunity >=70% after round 1
+    - total weeks with immunity >= 70% in 4 year period
 
 ```{r ocOut.seasonalSumm}
 
