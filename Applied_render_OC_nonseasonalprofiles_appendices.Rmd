@@ -327,7 +327,7 @@ filename_immDyn_nonseasonal12 <- "immDyn_nonseasonalV12.csv"
 
 ```{r DynamicsAnalysis}
 # Load data?
-# immDynamics.clean <- read.csv("output/Applied/immDyn_nonseasonalV12.csv", row.names = F)
+# immDynamics.clean <- read_csv("output/Applied/immDyn_nonseasonalV12.csv") %>% select(-c(`...1`))
 
 immDynamics.long <- immDynamics.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
@@ -1023,3 +1023,165 @@ if(plotsave){
 }
 
 ```
+
+
+
+```{r combinedanalysisDynamics}
+immDynamics.12 <- read_csv("output/Applied/immDyn_nonseasonalV12.csv") %>% 
+  select(-c(`...1`)) %>%
+  mutate(Vsched = "Annual")
+
+immDynamics.6 <- read_csv("output/Applied/immDyn_nonseasonalV6.csv") %>% 
+  select(-c(`...1`)) %>%
+  mutate(Vsched = "6-monthly")
+
+immDynamics.long <- immDynamics.12 %>%
+  bind_rows(immDynamics.6) %>%
+  gather(key = "weeks", value = "prop_immune", -c(prof, pV, Vsched)) %>%
+  mutate(weeks = as.numeric(weeks)) %>%
+  mutate(prof = gsub("oc.", "", prof)) %>%
+  mutate(prof = factor(prof, levels = c("goat.semiaridM","goat.subhumidM","goat.humidM","shp.semiaridM", "shp.subhumidM","shp.humidM")))
+
+# Calculate mean and confidence interval
+summary_data <- immDynamics.long %>%
+  group_by(Vsched,pV,prof,weeks) %>%
+  summarise(
+    mean_value = mean(prop_immune),
+    lower_ci = quantile(prop_immune, 0.025),
+    upper_ci = quantile(prop_immune, 0.975)
+  )
+
+plot_immVar <- ggplot(summary_data, aes(x = weeks, y = mean_value)) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(Vsched~prof)+ 
+  guides(fill = "none")+
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 52), labels = seq(520, 755, by = 52) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "top")
+
+plot_immVar
+
+plot_immVar.noUncertainty <- ggplot(summary_data, aes(x = weeks, y = mean_value)) +
+  # geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(Vsched~prof)+
+  guides(fill = "none")+
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 52), labels = seq(520, 755, by = 52) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "top")
+
+plot_immVar.noUncertainty
+
+if(plotsave){
+  filename_immVar <- "OC_nonseasonalDyn.png"
+  ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 25, height = 10, units = "cm")
+  
+  filename_immVarN <- "OC_nonseasonalDyn-noUncertainty.png"
+  ggsave(paste0("plots/applied/",filename_immVarN), plot = plot_immVar.noUncertainty, width = 25, height = 10, units = "cm")
+}
+
+```
+
+
+```{r combinedAnalysisSummary}
+
+# load data?
+ocOut.nonseasonalSumm <- read.csv("output/Applied/immDyn_nonseasonalSummV12.csv") %>% 
+  select(-c("X")) %>%
+  mutate(Vsched = "Annual")
+ocOut.nonseasonal6Summ <- read.csv("output/Applied/immDyn_nonseasonalSummV6.csv") %>% 
+  select(-c("X")) %>%
+  mutate(Vsched = "6-monthly")
+
+ocOut.summdf <- ocOut.nonseasonalSumm %>%
+  bind_rows(ocOut.nonseasonal6Summ) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+         prof = gsub("oc.", "", prof)) %>%
+  mutate(prof = factor(prof, levels = c("goat.semiaridM","shp.semiaridM","goat.subhumidM", "shp.subhumidM","goat.humidM","shp.humidM")))
+
+validImm <- ocOut.summdf %>%
+  select(tenyr_growth, starts_with("imm"), Vsched, pV, prof, prof_group) %>%
+  gather(key = "stat", value = "value", -c(prof,prof_group, pV, Vsched)) %>%
+  mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "imm70_wAll", "tenyr_growth" )))
+
+plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m")), 
+                   aes(x = prof, y = value, col = Vsched))+ 
+  geom_boxplot(alpha = 0.5, fill = "grey") +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(pV~stat)+
+  labs(x = "Flock profile", y="Flock proportion immune")+
+  coord_cartesian(ylim=c(0,1))+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+          legend.position = "none")
+plot_imm
+
+imm70_alt <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
+       aes(x = value, y=Vsched, col = prof))+ #, col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey")+
+  facet_grid(~pV)+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "1-year programme")+
+  coord_cartesian(xlim=c(0,55))+
+  scale_colour_brewer(palette = "Dark2")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+imm70All_alt <- ggplot(validImm %>% filter(stat %in% c("imm70_wAll")), 
+       aes(x = value, y=Vsched, col = prof))+ #, col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey")+
+  facet_grid(~pV)+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "4-year programme")+
+  coord_cartesian(xlim=c(0,210))+
+  scale_colour_brewer(palette = "Dark2")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  
+plot_imm70s_alt <- ggarrange(imm70_alt, imm70All_alt, ncol = 1, common.legend = TRUE, legend = "bottom")
+plot_imm70s_alt
+
+filename_imm <- "OC_nonseasonalImm.png"
+filename_imm70s_alt <- "OC_nonseasonalImm70s_alt.png"
+
+if(plotsave){
+  ggsave(paste0("plots/applied/",filename_imm), plot = plot_imm, width = 10, height = 15, units = "cm")
+  ggsave(paste0("plots/applied/",filename_imm70s_alt), plot = plot_imm70s_alt, width = 30, height = 15, units = "cm")
+}
+```
+
+
+```{r pvir70_combined}
+####################
+## PVIR70 Table ##
+###################
+
+validImm_summary <- validImm %>% group_by(Vsched, stat, pV, prof) %>%
+  summarise(mean = mean(value) %>% round(.,digits = 2),
+            median = median(value) %>% round(.,digits = 2), 
+            min = min(value) %>% round(.,digits = 2), 
+            max = max(value) %>% round(.,digits = 2)
+            ) %>%
+  mutate(median_range = paste0(median," (",min,"-",max,")"))
+
+pvir70_summary <- validImm_summary %>%
+  mutate(mean = round(mean, digits = 0), 
+         median = round(median, digits = 0), 
+         min = round(min, digits = 0),
+         max = round(max, digits = 0)) %>%
+  filter(stat %in% c("imm70_w", "imm70_wAll")) %>%
+  select(-c(median,min,max)) 
+
+if(plotsave){
+  write_csv(pvir70_summary, file = "tables/applied/nonseasonal_pvir70.csv")
+}
+
+```
+
+
