@@ -128,15 +128,14 @@ SA <- F
 ```
 
 Vaccination simulations:
-- 4 rounds: year 1-2: >4m, year 3-4: 4m-12m
+- 4 rounds: year 1: >4m, year 2-4: 4m-12m
 - coverages: 70,80,90,100
-- schedules: 3m,6m,9m before birth peak
+- schedules: V1 = 3m before birth peak, V2-V4 = 4m after birth peak
 Appendices:
 - Optimal vaccination schedule: 
     - y1 = ~6m before birth peak (high proportion of eligible animals & mat antibodies passed on to offspring)
-    - y2 onwards = 3-4m after birth peak when offspring have lost maternal immunity
+    - y2 onwards = 3-4m after end of birth peak when all offspring have lost maternal immunity
     --> V1 (-6m), V2 = +10m after V1, V3 = +1y after V2, 
-
 
 ```{r vaccinationSchedule}
 
@@ -148,14 +147,14 @@ pVs <-c(0.7,0.8,0.9,1)
 pV <- 1
 
 ## GSCE Vaccination: 
-V_rounds <- 3 # number of campaigns (GSCE recommended)
+V_rounds <- 4 # number of campaigns (GSCE recommended)
 V_breaks <- 52 # uneven
 
 # 6 months before birth peak:
 V1 = round(t2+(6*4.345),0)
-V2 = round(V1 + 11*4.345) # 10m after first vaccination (when offspring become susceptible)
+V2 = round(V1 + 11*4.345) # 11m after first vaccination (3m following initial vaccination+4m following end of birth peak)
 V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
-# V4 = V3 + 10*4.345
+V4 = round(V3 + 52)
 
 V_age_min <- round(4 *4.345,0) # 4 months (4.345 weeks per month)
 # *** Update to 16m so no animal is missed ***
@@ -163,10 +162,10 @@ V_age_max <- round(12*4.345,0) # 12 months (4.345 weeks per month) for partial c
 
 Vprog <- data.frame(
   Vround = 1:V_rounds,
-  Vtype = c("full","partial","partial"),
-  Vweek = c(V1,V2,V3),
+  Vtype = c("full","partial","partial","partial"),
+  Vweek = c(V1,V2,V3,V4),
   Vmin = V_age_min,
-  Vmax = c(NA, V_age_max, V_age_max),
+  Vmax = c(NA, V_age_max, V_age_max, V_age_max),
   pV = rep(pV, V_rounds)
 )
 
@@ -328,12 +327,31 @@ plotA_immVar <- ggplot(Asummary_data, aes(x = weeks, y = mean_value, group = fac
   coord_cartesian(xlim = c(500,750))
 
 plotA_immVar
+
+
+plot_immVarApp <-ggplot(Asummary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+  # geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(~prof)+
+  guides(fill = "none")+
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+plot_immVarApp
 # 
 # filename_immVar <- "OC_seasonalDyn.png"
 # ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
 
 ```
 
+##############################
+## VACCINATION 2Mo ##
+##############################
 
 
 ```{r vaccinationSchedule}
@@ -346,25 +364,25 @@ pVs <-c(0.7,0.8,0.9,1)
 pV <- 1
 
 ## GSCE Vaccination: 
-V_rounds <- 3 # number of campaigns (GSCE recommended)
+V_rounds <- 4 # number of campaigns (GSCE recommended)
 V_breaks <- 52 # uneven
 
 # 6 months before birth peak:
 V1 = round(t2+(6*4.345),0)
-V2 = round(V1 + 9*4.345) # 10m after first vaccination (when offspring become susceptible)
+V2 = round(V1 + 10*4.345) # 11m after first vaccination (3m following initial vaccination+4m following end of birth peak)
 V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
-# V4 = V3 + 10*4.345
+V4 = round(V3 + 52)
 
-V_age_min <- round(2*4.345,0) # 4 months (4.345 weeks per month)
+V_age_min <- round(3*4.345,0) # 4 months (4.345 weeks per month)
 # *** Update to 16m so no animal is missed ***
 V_age_max <- round(12*4.345,0) # 12 months (4.345 weeks per month) for partial campaigns
 
 Vprog <- data.frame(
   Vround = 1:V_rounds,
-  Vtype = c("full","partial","partial"),
-  Vweek = c(V1,V2,V3),
+  Vtype = c("full","partial","partial","partial"),
+  Vweek = c(V1,V2,V3,V4),
   Vmin = V_age_min,
-  Vmax = c(NA, V_age_max, V_age_max),
+  Vmax = c(NA, V_age_max, V_age_max, V_age_max),
   pV = rep(pV, V_rounds)
 )
 
@@ -373,52 +391,10 @@ Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 ```
 
 
-# Simulate full immunity dynamics following vaccination for all OC profiles with non-seasonal reproduction
-
-```{r DynLoop}
-
-###################
-## MODEL OUTPUT ##
-###################
-seasonal <- T
-## Model Output
+```{r runMod}
 output <- "dynamics" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
 # create empty dataframe to store output
 summary_df <- output_func(TimeStop_dynamics, output) 
-
-# validOut = list to store outputs
-GSAoutput <- c(); 
-ocOut.seasonal <- list()
-
-#####################
-## DATA SELECTION ##
-#####################
-
-dataset <- datasets
-
-if (dataset == "lesnoff.ft") {
-  rates <- "wkly"
-} else{
-  rates <- "yrly"
-}
-
-fixdata <- dataset # set dataset for state_vars
-vardata <- dataset
-  
-# filter to profiles with non-seasonal reproduction
-var_demo_data_profs <- var_demo_data_full %>%
-  filter(prof %in% c("oc.goat.aridP",
-                     "oc.goat.semiaridP",
-                     "oc.shp.aridP",
-                     "oc.shp.semiaridP"))
-
-profOrder <- var_demo_data_profs %>% select(prof) %>% pull()
-var_input_backup <- var_demo_data_profs %>% select(-prof)
-
-```
-
-```{r runMod}
-
 #####################
 ## PARALLELISATION ##
 #####################
@@ -438,8 +414,8 @@ if(local){
 print("parallel-verified")
 print("start-model")
 
-A.seasonal <- c()
-Adyn_i.clean <- c() # dataframe for expanded immunity dynamics
+A2.seasonal <- c()
+A2dyn_i.clean <- c() # dataframe for expanded immunity dynamics
 
 
 for(v in 1:length(pVs)){
@@ -448,7 +424,7 @@ for(v in 1:length(pVs)){
     
   Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
   
-  A.seasonal <- foreach (i = 1:nrow(var_input_backup),
+  A2.seasonal <- foreach (i = 1:nrow(var_input_backup),
                            .packages = c("dplyr", "tibble")) %dopar% {
                              print(i)
                              
@@ -480,18 +456,18 @@ for(v in 1:length(pVs)){
                              )
                            }
   
-  Adyn_i <- lapply(A.seasonal , select, prop_immune) %>%
+  A2dyn_i <- lapply(A2.seasonal , select, prop_immune) %>%
   bind_cols() %>%
   t() %>%
   as.data.frame()
   
-  colnames(Adyn_i) <- 1:ncol(Adyn_i)
-  rownames(Adyn_i) <- 1:nrow(Adyn_i)
+  colnames(A2dyn_i) <- 1:ncol(A2dyn_i)
+  rownames(A2dyn_i) <- 1:nrow(A2dyn_i)
   
-  Adyn_i.clean <- Adyn_i.clean %>% 
+  A2dyn_i.clean <- A2dyn_i.clean %>% 
     bind_rows(
-      Adyn_i %>%
-        select((t2):ncol(Adyn_i)) %>%
+      A2dyn_i %>%
+        select((t2):ncol(A2dyn_i)) %>%
         mutate(prof = profOrder,
                pV = pVs[v])
     )
@@ -501,33 +477,360 @@ stopCluster(cl)
 
 ```
 
-```{r DynamicsAnalysis}
+```{r A2dynamics}
 
-AimmDynamics.long <- Adyn_i.clean %>%
-  gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
-  mutate(weeks = as.numeric(weeks))
 
+A2immDynamics.long <- AimmDynamics.long %>%
+  mutate(Vmin = "17w") %>%
+  bind_rows(
+    A2dyn_i.clean %>%
+    gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
+    mutate(weeks = as.numeric(weeks), Vmin = "11w")
+  )
+  
 # Calculate mean and confidence interval
-Asummary_data <- AimmDynamics.long %>%
-  group_by(pV,prof,weeks) %>%
+A2summary_data <- A2immDynamics.long %>%
+  group_by(pV,prof,weeks,Vmin) %>%
   summarise(
     mean_value = mean(prop_immune),
     lower_ci = quantile(prop_immune, 0.025),
     upper_ci = quantile(prop_immune, 0.975)
   )
 
-plotA_immVar <- ggplot(Asummary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
-  #geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
-  geom_line(aes(col = factor(pV))) +
+plot_immVarApp2 <-ggplot(A2summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+  # geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_wrap(~prof)+ # facet_grid(pV~prof)+
+  facet_grid(Vmin~prof)+
   guides(fill = "none")+
-  labs(x="Time (weeks)", y = "Proportion Immune", col = "pV")+
-  coord_cartesian(xlim = c(500,750))
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
-plotA_immVar
+plot_immVarApp2
 
-# filename_immVar <- "OC_seasonalDyn.png"
-# ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+if(plotsave){
+  filename_immVarApp2 <- "OC_seasonalDyn_App.png"
+  ggsave(paste0("plots/applied/",filename_immVarApp2), plot = plot_immVarApp2, width = 20, height = 10, units = "cm")
+}
+```
+
+
+######################
+## Summary output ##
+######################
+
+
+```{r vaccinationSchedule1}
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+pVs <-c(0.7,0.8,0.9,1)
+pV <- 1
+
+## GSCE Vaccination: 
+V_rounds <- 4 # number of campaigns (GSCE recommended)
+V_breaks <- 52 # uneven
+
+# 6 months before birth peak:
+V1 = round(t2+(6*4.345),0)
+V2 = round(V1 + 11*4.345) # 11m after first vaccination (4m following initial vaccination+4m following end of birth peak)
+V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
+V4 = round(V3 + 52)
+
+V_age_min <- round(4 *4.345,0) # 4 months (4.345 weeks per month)
+# *** Update to 16m so no animal is missed ***
+V_age_max <- round(12*4.345,0) # 12 months (4.345 weeks per month) for partial campaigns
+
+Vprog <- data.frame(
+  Vround = 1:V_rounds,
+  Vtype = c("full","partial","partial","partial"),
+  Vweek = c(V1,V2,V3,V4),
+  Vmin = V_age_min,
+  Vmax = c(NA, V_age_max, V_age_max, V_age_max),
+  pV = rep(pV, V_rounds)
+)
+
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+```
+
+```{r runMod2}
+
+seasonal <- T
+## Model Output
+output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+A.seasonalSumm <- c()
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+for (v in 1:length(pVs)) {
+  Vprog$pV <- rep(pVs[v], V_rounds)
+  
+  Vstart <- Vprog %>% filter(Vround == 1) %>% pull(Vweek)
+  
+  summ_i <- foreach (
+    i = 1:nrow(var_input_backup),
+    .packages = c("dplyr", "tibble"),
+    .combine = "rbind"
+  ) %dopar% {
+    print(i)
+    
+    var_input_full <-
+      unlist(var_input_backup[i, ])
+    
+    App_func(
+      imm_decay_corrected,
+      var_input_full,
+      fix_age_data_full,
+      f_list,
+      # initial state of female population
+      m_list,
+      # initial state of male population
+      TimeStop_dynamics,
+      # 1 year, weekly timestep for demographic component
+      TimeStop_transmission,
+      # 1 day, hourly timestep for transission component
+      output,
+      # model output: tracker or summary stats
+      summary_df,
+      #
+      clean_environment,
+      Vstart,
+      Vprog,
+      fixdata,
+      vardata,
+      birthpeak_w,
+      seasonal
+    )
+  }
+  
+  
+  A.seasonalSumm <- bind_rows(A.seasonalSumm,
+                              summ_i %>%
+                                mutate(prof = profOrder,
+                                       pV = pVs[v]))
+}
+
+
+stopCluster(cl)
+
+
+#  Start from here if not wanting to run the model:
+# filename_immDyn_seasonalSumm <- "immDyn_seasonalSumm.csv"
+# write.csv(ocOut.seasonalSumm, file = paste0("output/Applied/", filename_immDyn_seasonalSumm))
+```
+
+
+```{r vaccinationSchedule1}
+
+#######################
+## Vaccination Setup ##
+#######################
+# see applied_vaccination
+pVs <-c(0.7,0.8,0.9,1)
+pV <- 1
+
+## GSCE Vaccination: 
+V_rounds <- 4 # number of campaigns (GSCE recommended)
+V_breaks <- 52 # uneven
+
+# 6 months before birth peak:
+V1 = round(t2+(6*4.345),0)
+V2 = round(V1 + 10*4.345) # 11m after first vaccination (3m following initial vaccination+4m following end of birth peak)
+V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
+V4 = round(V3 + 52)
+
+V_age_min <- round(3*4.345,0) # 4 months (4.345 weeks per month)
+# *** Update to 16m so no animal is missed ***
+V_age_max <- round(12*4.345,0) # 12 months (4.345 weeks per month) for partial campaigns
+
+Vprog <- data.frame(
+  Vround = 1:V_rounds,
+  Vtype = c("full","partial","partial","partial"),
+  Vweek = c(V1,V2,V3,V4),
+  Vmin = V_age_min,
+  Vmax = c(NA, V_age_max, V_age_max, V_age_max),
+  pV = rep(pV, V_rounds)
+)
+
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+```
+
+```{r runMod2}
+
+seasonal <- T
+## Model Output
+output <- "summary_all" # Output options: "summary" (stats with age-group prop), "summary_all" (stats with age-sex group prop), "dynamics" (pop metrics over time)
+# create empty dataframe to store output
+summary_df <- output_func(TimeStop_dynamics, output) 
+
+# validOut = list to store outputs
+GSAoutput <- c(); 
+A2.seasonalSumm <- c()
+#####################
+## PARALLELISATION ##
+#####################
+
+print("start-parallel")
+
+## Local parallelisation
+if(local){
+  cores=detectCores()
+  cl <- makeCluster(cores[1]-1)
+  registerDoParallel(cl)
+}else{
+  cores=detectCores()
+  cl <- makeCluster(10)
+  registerDoParallel(cl)
+}
+print("parallel-verified")
+print("start-model")
+
+
+for (v in 1:length(pVs)) {
+  Vprog$pV <- rep(pVs[v], V_rounds)
+  
+  Vstart <- Vprog %>% filter(Vround == 1) %>% pull(Vweek)
+  
+  summ_i <- foreach (
+    i = 1:nrow(var_input_backup),
+    .packages = c("dplyr", "tibble"),
+    .combine = "rbind"
+  ) %dopar% {
+    print(i)
+    
+    var_input_full <-
+      unlist(var_input_backup[i, ])
+    
+    App_func(
+      imm_decay_corrected,
+      var_input_full,
+      fix_age_data_full,
+      f_list,
+      # initial state of female population
+      m_list,
+      # initial state of male population
+      TimeStop_dynamics,
+      # 1 year, weekly timestep for demographic component
+      TimeStop_transmission,
+      # 1 day, hourly timestep for transission component
+      output,
+      # model output: tracker or summary stats
+      summary_df,
+      #
+      clean_environment,
+      Vstart,
+      Vprog,
+      fixdata,
+      vardata,
+      birthpeak_w,
+      seasonal
+    )
+  }
+  
+  
+  A2.seasonalSumm <- bind_rows(A2.seasonalSumm,
+                              summ_i %>%
+                                mutate(prof = profOrder,
+                                       pV = pVs[v]))
+}
+
+
+stopCluster(cl)
+
+
+#  Start from here if not wanting to run the model:
+# filename_immDyn_seasonalSumm <- "immDyn_seasonalSumm.csv"
+# write.csv(ocOut.seasonalSumm, file = paste0("output/Applied/", filename_immDyn_seasonalSumm))
+```
+
+# Summary Stats
+
+
+```{r ocOut.seasonalSumm}
+
+A.summdf <- A.seasonalSumm %>%
+  mutate(minV = "17w") %>%
+  bind_rows(A2.seasonalSumm %>% mutate(minV = "13w")) %>%
+  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+         prof = gsub("oc.","",prof),
+    prof = factor(
+      prof,
+      levels = c("goat.aridP","shp.aridP","goat.semiaridP","shp.semiaridP")))
+
+validImm <- A.summdf %>%
+  select(tenyr_growth, starts_with("imm"), pV, prof, prof_group, minV) %>%
+  gather(key = "stat", value = "value", -c(prof, prof_group, pV, minV)) %>%
+  mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "imm70_wAll", "tenyr_growth" )))
+
+####################
+## PVIR70 Table ##
+###################
+
+validImm_summary <- validImm %>% group_by(stat, pV, prof, minV) %>%
+  summarise(mean = mean(value) %>% round(.,digits = 2),
+            median = median(value) %>% round(.,digits = 2), 
+            min = min(value) %>% round(.,digits = 2), 
+            max = max(value) %>% round(.,digits = 2)
+            ) %>%
+  mutate(median_range = paste0(median," (",min,"-",max,")"))
+
+pvir70_summary <- validImm_summary %>%
+  mutate(mean = round(mean, digits = 0), 
+         median = round(median, digits = 0), 
+         min = round(min, digits = 0),
+         max = round(max, digits = 0)) %>%
+  filter(stat %in% c("imm70_w", "imm70_wAll")) %>%
+  select(-c(median,min,max)) 
+pvir70_summary
+
+allprofs <- validImm %>% group_by(stat, pV, minV) %>%
+  summarise(mean = mean(value) %>% round(.,digits = 2),
+            median = median(value) %>% round(.,digits = 2), 
+            min = min(value) %>% round(.,digits = 2), 
+            max = max(value) %>% round(.,digits = 2)
+            ) %>%
+  mutate(median_range = paste0(median," (",min,"-",max,")"))  %>% 
+  mutate(mean = round(mean, digits = 0), 
+         median = round(median, digits = 0), 
+         min = round(min, digits = 0),
+         max = round(max, digits = 0)) %>%
+  filter(stat %in% c("imm70_w", "imm70_wAll")) %>%
+  select(-c(median,min,max)) 
+allprofs
+
+if(plotsave){
+  write_csv(pvir70_summary, file = "tables/applied/seasonal_pvir70_app.csv")
+  write_csv(allprofs, file = "tables/applied/seasonal_pvir70_allprofs_app.csv")
+}
 
 ```
