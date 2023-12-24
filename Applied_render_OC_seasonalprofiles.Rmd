@@ -15,7 +15,9 @@ knitr::opts_chunk$set(echo = TRUE)
 # libraries not accounted for in setup script
 library(GGally)
 plotsave <- F
-custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+custom_theme <- theme_bw() + 
+  theme(text = element_text(family = "Times New Roman", size = 10),
+        panel.grid.minor = element_blank())
 theme_set(custom_theme)
 # custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
 
@@ -48,7 +50,6 @@ source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting f
 
 
 ```{r selectData}
-# 9/11/23: Run model with LHS of oc parameter space. Analyse results against original valid population conditions and against oc population growth reports. 
 
 applied_example <- T
 
@@ -62,6 +63,10 @@ imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv")
 
 ## Datasets
 datasets <- fix_age_data_full %>% select(-parameter) %>% colnames()
+
+fix_age_data_full <- fix_age_data_full %>% 
+  mutate(oc_valid = ifelse(parameter == "pBirths", 0.5, oc_valid))
+
 #combine nBirths with other demogrpahics
 var_demo_data_full <- var_demo_data_full %>%
   mutate(nBirths_yr = nBirths_df$mean)
@@ -182,7 +187,7 @@ Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
 ```
 
 
-# Simulate full immunity dynamics following vaccination for all OC profiles with non-seasonal reproduction
+# Simulate full immunity dynamics following vaccination for all OC profiles with seasonal reproduction
 
 ```{r DynLoop}
 
@@ -319,9 +324,14 @@ for(v in 1:length(pVs)){
 
 stopCluster(cl)
 
+filename_immDyn_seasonal <- "immDyn_seasonal.csv"
+# write.csv(dyn_i.clean, file = paste0("output/Applied/", filename_immDyn_seasonal))
+
 ```
 
 ```{r DynamicsAnalysis}
+# Load data?
+# immDynamics.clean <- read_csv("output/Applied/immDyn_seasonal.csv") %>% select(-c(`...1`))
 
 immDynamics.long <- dyn_i.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV, Vstart)) %>%
@@ -329,7 +339,9 @@ immDynamics.long <- dyn_i.clean %>%
          Vstart = case_when(Vstart == Vmonths[1] ~ "0/12m", 
                             Vstart == Vmonths[2] ~ "-9m",
                             Vstart == Vmonths[3] ~ "-6m",
-                            Vstart == Vmonths[4] ~ "-3m"))
+                            Vstart == Vmonths[4] ~ "-3m"),
+         prof = gsub("oc.","",prof),
+         prof = factor(prof, levels = c("goat.aridP", "shp.aridP", "goat.semiaridP","shp.semiaridP")))
 
 # Calculate mean and confidence interval
 summary_data <- immDynamics.long %>%
@@ -340,19 +352,46 @@ summary_data <- immDynamics.long %>%
     upper_ci = quantile(prop_immune, 0.975)
   )
 
-plot_immVar <- ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
-  #geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
-  geom_line(aes(col = factor(pV))) +
+plot_immVar <-ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_grid(prof~Vstart)+ # facet_grid(pV~prof)+
+  facet_grid(prof~Vstart)+
   guides(fill = "none")+
-  labs(x="Time (weeks)", y = "Proportion Immune", col = "pV")+
-  coord_cartesian(xlim = c(500,750))
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
 plot_immVar
 
-filename_immVar <- "OC_seasonalDyn.png"
-ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+plot_immVarN <-ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+  # show uncertainty for pV = 1 only
+  geom_ribbon(data = summary_data %>% filter(pV == 1), 
+              aes(x = weeks, ymin = lower_ci, ymax = upper_ci), 
+              fill = "#4575B4", alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(prof~Vstart)+
+  guides(fill = "none")+
+  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(520,755))+
+  scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+plot_immVarN
+
+if(plotsave){
+  filename_immVar <- "OC_seasonalDyn.png"
+  ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
+  
+  filename_immVarN <- "OC_seasonalDyn-noUncertainty.png"
+  ggsave(paste0("plots/applied/",filename_immVarN), plot = plot_immVarN, width = 20, height = 10, units = "cm")
+}
 
 ```
 
@@ -448,6 +487,10 @@ for(v in 1:length(pVs)){
 
 stopCluster(cl)
 
+
+#  Start from here if not wanting to run the model:
+# filename_immDyn_seasonalSumm <- "immDyn_seasonalSumm.csv"
+# write.csv(ocOut.seasonalSumm, file = paste0("output/Applied/", filename_immDyn_seasonalSumm))
 ```
 
 # Summary Stats
@@ -455,11 +498,21 @@ stopCluster(cl)
 
 ```{r ocOut.seasonalSumm}
 
+## Custom labeller function
+custom_labeller <- function(variable, value) {
+  label = paste(variable, "=", value)
+  return(label)
+}
+
+# load data?
+# ocOut.seasonalSumm <- read_csv("output/Applied/immDyn_seasonalSumm.csv") %>% select(-c(`...1`))
+
 ocOut.summdf <- ocOut.seasonalSumm %>%
   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+         prof = gsub("oc.","",prof),
     prof = factor(
       prof,
-      levels = c("oc.goat.aridP","oc.shp.aridP","oc.goat.semiaridP","oc.shp.semiaridP","oc.goat.semiaridM","oc.shp.semiaridM","oc.goat.subhumidM","oc.shp.subhumidM","oc.goat.humidM", "oc.shp.humidM")))
+      levels = c("goat.aridP","shp.aridP","goat.semiaridP","shp.semiaridP")))
 
 validImm <- ocOut.summdf %>%
   select(tenyr_growth, starts_with("imm"), pV, prof, prof_group, Vstart) %>%
@@ -470,44 +523,157 @@ validImm <- ocOut.summdf %>%
                             Vstart == Vmonths[3] ~ "-6m",
                             Vstart == Vmonths[4] ~ "-3m"))
 
-plot_imm <- ggplot(validImm %>% filter(pV == 1, 
-                                       stat %in% c("imm_V0", "imm_6m", "imm_12m")), 
-       aes(x = prof, y = value, group = prof))+ 
-    geom_boxplot(alpha = 0.5) +
-    geom_hline(yintercept = 0.7, linetype = "dashed")+
-    facet_grid(Vstart~stat)+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-          legend.position = "none")+
-  scale_fill_brewer(palette = "Dark2")
 
-plot_imm 
+plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m")),
+                     aes(x = Vstart, y = value, col = prof)) +
+  geom_boxplot(alpha = 0.5, fill = "grey") +
+  geom_hline(yintercept = 0.7, linetype = "dashed") +
+  facet_grid(pV~stat) +
+  coord_cartesian(ylim=c(0,1))+
+  labs(x="Flock profile", y="Flock proportion immune")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1))+
+  scale_colour_brewer(palette = "Dark2")
+plot_imm
+
+plot_immv1 <- ggplot(validImm %>% filter(pV == 1, 
+                                       stat %in% c("imm_V0", "imm_6m", "imm_12m")), 
+       aes(x = Vstart, y = value, col = prof))+ 
+    geom_boxplot(alpha = 0.5,fill = "grey") +
+    geom_hline(yintercept = 0.7, linetype = "dashed")+
+    facet_grid(~stat)+
+  coord_cartesian(ylim=c(0,1))+
+  labs(x="Flock profile", y="Flock proportion immune")+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))+
+  scale_colour_brewer(palette = "Dark2")
+plot_immv1 
+
+plot_immV0 <- ggplot(validImm %>% filter(stat %in% c("imm_V0")),
+                     aes(x = Vstart, y = value, col = prof)) +
+  geom_boxplot(alpha = 0.5, fill = "grey") +
+  geom_hline(yintercept = 0.7, linetype = "dashed") +
+  facet_grid(pV~stat) +
+  coord_cartesian(ylim=c(0,1))+
+  labs(x="Flock profile", y="Flock proportion immune")+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1))+
+  scale_colour_brewer(palette = "Dark2")
+plot_immV0
 
 plot_imm70 <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
             aes(x = value, y = prof))+ #, col = peakmnth
   geom_boxplot(alpha = 0.5, fill = "grey") +
   geom_vline(xintercept = 26, linetype = "dashed")+
- facet_grid(pV~Vstart, scales = "free")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "none")
+ facet_grid(pV~Vstart, labeller = custom_labeller, )+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "1-year programme")
 plot_imm70
 
 plot_imm70All <- ggplot(validImm %>% filter(stat %in% c("imm70_wAll")), 
             aes(x = value, y = prof))+ #, col = peakmnth
   geom_boxplot(alpha = 0.5, fill = "grey")+
- facet_grid(pV~Vstart, scales = "free")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-        legend.position = "none")
+ facet_grid(pV~Vstart, labeller = custom_labeller, )+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "4-year programme")+
+  coord_cartesian(xlim=c(0,210))
 plot_imm70All
 
-filename_imm <- "OC_seasonalImm_V12m.png"
-filename_imm70 <- "OC_seasonalImm70_V12m.png"
-filename_imm70All <- "OC_seasonalImm70All_V12m.png"
+plot_imm70s <- ggarrange(plot_imm70, plot_imm70All, ncol = 1)
+
+filename_imm <- "OC_seasonalImm.png"
+filename_immV0 <- "OC_seasonalImmV0.png"
+filename_imm70 <- "OC_seasonalImm70.png"
+filename_imm70All <- "OC_seasonalImm70All.png"
+filename_imm70s <- "OC_seasonalImm70s.png"
 
 if(plotsave){
-  ggsave(paste0("plots/applied/",filename_imm), plot = plot_imm, width = 10, height = 20, units = "cm")
-  ggsave(paste0("plots/applied/",filename_imm70), plot = plot_imm70, width = 10, height = 10, units = "cm")
-  ggsave(paste0("plots/applied/",filename_imm70All), plot = plot_imm70All, width = 10, height = 10, units = "cm")
+  ggsave(paste0("plots/applied/",filename_imm), plot = plot_imm, width = 15, height = 15, units = "cm")
+  # ggsave(paste0("plots/applied/",filename_immV0), plot = plot_immV0, width = 20, height = 10, units = "cm")
+  #ggsave(paste0("plots/applied/",filename_imm70), plot = plot_imm70, width = 10, height = 10, units = "cm")
+  #ggsave(paste0("plots/applied/",filename_imm70All), plot = plot_imm70All, width = 10, height = 10, units = "cm")
+  ggsave(paste0("plots/applied/",filename_imm70s), plot = plot_imm70s, width = 20, height = 15, units = "cm")
   
-  }
+}
 
+
+####################
+## PVIR70 Table ##
+###################
+
+validImm_summary <- validImm %>% group_by(stat, pV, prof, Vstart) %>%
+  summarise(mean = mean(value) %>% round(.,digits = 2),
+            median = median(value) %>% round(.,digits = 2), 
+            min = min(value) %>% round(.,digits = 2), 
+            max = max(value) %>% round(.,digits = 2)
+            ) %>%
+  mutate(median_range = paste0(median," (",min,"-",max,")"))
+
+V0_summary <- validImm_summary %>%
+  mutate(mean = round(mean, digits = 2), 
+         median = round(median, digits = 2), 
+         min = round(min, digits = 2),
+         max = round(max, digits = 2)) %>%
+  filter(stat %in% c("imm_V0")) %>%
+  select(-c(median,min,max)) 
+
+pvir70_summary <- validImm_summary %>%
+  mutate(mean = round(mean, digits = 0), 
+         median = round(median, digits = 0), 
+         min = round(min, digits = 0),
+         max = round(max, digits = 0)) %>%
+  filter(stat %in% c("imm70_w", "imm70_wAll")) %>%
+  select(-c(median,min,max)) 
+
+if(plotsave){
+  write_csv(pvir70_summary, file = "tables/applied/seasonal_pvir70.csv")
+  write_csv(allprofs, file = "tables/applied/seasonal_pvir70_allprofs.csv")
+  write_csv(V0_summary, file = "tables/applied/seasonal_V0summary.csv")
+
+}
+
+allprofs <- validImm %>% group_by(stat, pV, Vstart) %>%
+  summarise(mean = mean(value) %>% round(.,digits = 2),
+            median = median(value) %>% round(.,digits = 2), 
+            min = min(value) %>% round(.,digits = 2), 
+            max = max(value) %>% round(.,digits = 2)
+            ) %>%
+  mutate(median_range = paste0(median," (",min,"-",max,")"))  %>% 
+  mutate(mean = round(mean, digits = 0), 
+         median = round(median, digits = 0), 
+         min = round(min, digits = 0),
+         max = round(max, digits = 0)) %>%
+  filter(stat %in% c("imm70_w", "imm70_wAll")) %>%
+  select(-c(median,min,max)) 
+
+```
+
+
+```{r pvir70_altplot}
+
+imm70_alt <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
+       aes(x = value, y=Vstart, col = prof))+ #, col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey")+
+  facet_grid(~pV, labeller = custom_labeller, )+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "1-year programme")+
+  coord_cartesian(xlim=c(0,55))+
+  scale_colour_brewer(palette = "Dark2")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+
+imm70All_alt <- ggplot(validImm %>% filter(stat %in% c("imm70_wAll")), 
+       aes(x = value, y=Vstart, col = prof))+ #, col = peakmnth
+  geom_boxplot(alpha = 0.5, fill = "grey")+
+  facet_grid(~pV, labeller = custom_labeller, )+
+  labs(x = "Weeks post-vaccination", y = "Flock profile", title = "4-year programme")+
+  coord_cartesian(xlim=c(0,210))+
+  scale_colour_brewer(palette = "Dark2")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  
+  
+plot_imm70s_alt <- ggarrange(imm70_alt, imm70All_alt, ncol = 1, common.legend = TRUE, legend = "bottom")
+plot_imm70s_alt
+
+filename_imm70s_alt <- "OC_seasonalImm70s_alt.png"
+
+if(plotsave){
+  ggsave(paste0("plots/applied/",filename_imm70s_alt), plot = plot_imm70s_alt, width = 30, height = 15, units = "cm")
+}
 ```
