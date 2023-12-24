@@ -32,7 +32,7 @@ output <- "summary" # define output type "summary" or "count"
 
 # define parameter set to use: "fixed", "baobab"...
 flock_profile <- "imm_test" # "baobab"
-pars_filepath <- paste0("scripts/parameters/set-pars-",flock_profile,".R")
+pars_filepath <- paste0("scripts/parameters/set-pars-imm-test.R")
 source(pars_filepath) # within demographics script load in csvs for each set of parameters?
 
 ## Transmission Parameters ##
@@ -70,12 +70,16 @@ output_df <- dynmod_func(
   TimeStop_transmission, # 1 day, hourly timestep for transission component
   output, # model output: tracker or summary stats
   demographic_pars,
-  summary_df
+  summary_df,
+  Imm_b,
+  Kid,
+  Sub,
+  Adu_F
 )
 
 ## plotting and analysis
 
-summary_df <- summary_df %>%
+summary_df <- output_df %>%
   mutate(w = as.numeric(w))
 
 ggplot(summary_df,aes(x=w,y=sum_pop))+
