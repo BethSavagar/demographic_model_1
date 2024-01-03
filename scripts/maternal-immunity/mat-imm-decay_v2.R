@@ -71,3 +71,15 @@ ggplot(imm_decay, aes(x=wk, y=imm))+
   geom_point(data = bodjo_wk, aes(x=wk, y = imm_data), col="red")
 
 # write.csv(imm_decay_corrected, "data/imm_decay_bodjo_v2.csv", row.names = F)
+
+custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+theme_set(custom_theme)
+
+## Plot for Methods:
+plot_immBodjo <- ggplot(bodjo, aes(x=day, y=imm))+
+  geom_line()+
+  geom_point()+
+  labs(x = "Days (after birth)", y = "Proportion Immune")
+
+filename_immBodjo <- "immBodjo_decay.png"
+ggsave(paste0("plots/for-methods/",filename_immBodjo), plot = plot_immBodjo, width = 7.5, height = 7.5, units = "cm")
