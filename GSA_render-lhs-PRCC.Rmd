@@ -253,9 +253,7 @@ stopCluster(cl)
 
 # Preliminary analysis:
 ```{r summaryAnalysis1, eval = F}
-
-# outGSA <- load(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.RData")
-# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv", row.names = F)
+# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv")
 # var_input_set <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
 
 # take a look at the data: 
@@ -272,7 +270,7 @@ outGSA <- outGSA %>%
   mutate(set = 1:nrow(outGSA))
 
 # tidy parameters dataframe: 
-parsGSA <- var_input_backup %>%
+parsGSA <- var_input_set %>%
   select(NET_offtake_m, NET_offtake_m2, NET_offtake_f, everything()) %>%
   rename(off_mY = NET_offtake_m2,
          off_mA = NET_offtake_m,
@@ -284,7 +282,7 @@ parsGSA <- var_input_backup %>%
          min_off = min_age_offtake,
          min_repro = min_age_repro
   ) %>%
-  mutate(set = 1:nrow(var_input_backup))
+  mutate(set = 1:nrow(var_input_set))
 
 #########################################################
 # Analysis 1 - Identify behavioral parameter sets
@@ -339,6 +337,11 @@ parsGSA.valid <- parsGSA.conditions %>%
   filter(tenyr_15age == 1) %>%
   select(-c(tenyr_15age, set))
 
+
+# read in valid pars for pairs plot
+# parsGSA.valid <- read_csv(file = "output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv") %>%
+#   select("offtake_m1" = off_mY, "offtake_m2"=off_mA, "offtake_f"=off_f, "mortality_y"=mort_Y, "mortality_a"=mort_A, birth_rate, "age_exchange"=min_off, "age_reprod"=min_repro, "age_m"=max_yrs_M, "age_f"=max_yrs_F)
+
 # pairs plot:
 
 ggpairs(parsGSA.valid, 
@@ -346,7 +349,7 @@ ggpairs(parsGSA.valid,
         progress = F)
 
 # save plot without tenyr growth: 
-RSApairs <- ggpairs(parsGSA.valid %>% select(-tenyr_growth),
+RSApairs <- ggpairs(parsGSA.valid, # %>% select(-tenyr_growth)
                     upper = list(continuous = wrap("cor", size = 4,family = "Times New Roman")),
                     progress = F)+theme(panel.grid.major = element_blank(), panel.grid.minor =element_blank(),
 panel.background = element_blank(), axis.line = element_line(colour = "black"))
@@ -366,6 +369,17 @@ if(plotsave){
 
 # Calculate PRCC for tenyr_growth and immunity metrics, on valid parameters:
 prccGSA.valid <- parsGSA.valid %>%
+  select("offtake_mY" = off_mY, 
+         "offtake_mA"=off_mA, 
+         "offtake_f"=off_f, 
+         "mortality_y"=mort_Y, 
+         "mortality_a"=mort_A, 
+         birth_rate, 
+         "age_exchange"=min_off, 
+         "age_reprod"=min_repro, 
+         "age_m"=max_yrs_M, 
+         "age_f"=max_yrs_F, 
+         tenyr_growth) %>%
   # add immunity dynamics:
   bind_cols(outGSA.valid %>% select(imm_6m,imm_12m,imm70_w)) 
 
@@ -387,10 +401,11 @@ prccb_growth <- epi.prcc(prccGSA.valid %>% select(-c("imm_6m","imm_12m","imm70_w
 ```{r prccAnalysis}
 
 # Bar plot comparing prcc for each output
-prccb.all <- rbind(prccb_imm6m %>% select(var,est) %>% mutate(output = "imm6m"),
-                  prccb_imm12m %>% select(var,est) %>% mutate(output = "imm12m"),
-                  prccb_imm70 %>% select(var,est) %>% mutate(output = "imm70"), 
-                  prccb_growth %>% select(var,est) %>% mutate(output = "pop_growth"))
+prccb.all <- rbind(prccb_imm6m %>% select(var,est) %>% mutate(output = "imm_6M"),
+                  prccb_imm12m %>% select(var,est) %>% mutate(output = "imm_12M"),
+                  prccb_imm70 %>% select(var,est) %>% mutate(output = "imm_70%"), 
+                  prccb_growth %>% select(var,est) %>% mutate(output = "pop_growth")) %>%
+  mutate(output = factor(output, levels = c("imm_6M", "imm_12M", "imm_70%", "pop_growth")))
 
 prcc_summary <- 
   prccb_imm70 %>% 
@@ -457,7 +472,16 @@ if(plotsave){
 ##############################
 # 
 prccGSA <- parsGSA %>%
-  select(-set) %>%
+  select("offtake_mY" = off_mY, 
+         "offtake_mA"=off_mA, 
+         "offtake_f"=off_f, 
+         "mortality_y"=mort_Y, 
+         "mortality_a"=mort_A, 
+         birth_rate, 
+         "age_exchange"=min_off, 
+         "age_reprod"=min_repro, 
+         "age_m"=max_yrs_M, 
+         "age_f"=max_yrs_F) %>%
   bind_cols(outGSA %>% select(tenyr_growth))
 
 prccb_growthAll <- epi.prcc(prccGSA, sided.test = 2, conf.level = 0.95)
@@ -476,7 +500,7 @@ growthOrder <- prcc_growth %>% select(var) %>% pull()
 GSAall_prccgrowth <- ggplot(prcc_growth %>% mutate(var = factor(var, levels = rev(varOrder))), # growthOrder
       aes(x=growth, y=var))+
     geom_col()+
-    labs(x="PRCC", y="Demographic Parameter", title = "All Sets, tenyr_growth")+
+    labs(x="PRCC", y="Demographic Parameter")+
     theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))+
     scale_fill_grey()
 GSAall_prccgrowth
