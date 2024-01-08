@@ -124,8 +124,8 @@ App_func <- function(
   
   
   ## Seasonal Births ##
-  nbirthH <- (nBirths*p_births)/4 # high birth rate for 1 month (4wks)
-  nbirthL <- (nBirths*(1-p_births))/48 # low birth rate for 11months
+  nbirthH <- (nBirths*p_births)/8 # high birth rate for 1 month (4wks)
+  nbirthL <- (nBirths*(1-p_births))/44 # low birth rate for 11months
   nbirthW <-  nBirths/52  # weekly births
   
   ## Convert to weekly rates ##

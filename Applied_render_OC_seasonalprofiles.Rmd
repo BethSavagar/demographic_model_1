@@ -112,7 +112,7 @@ wkmnthids <- data.frame(
 
 peakmnth <- 1  # Month of peak
 peakstart <- wkmnthids %>% filter(mnth == peakmnth) %>% pull()
-pkwk1 <- seq(from=peakstart, by=1, length.out=4)
+pkwk1 <- seq(from=peakstart, by=1, length.out=8)
 birthpeak_w <- c()
 time_yrs <- TimeStop_dynamics/52
 for(i in 1:time_yrs-1){
@@ -336,23 +336,27 @@ filename_immDyn_seasonal <- "immDyn_seasonal.csv"
 immDynamics.long <- dyn_i.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV, Vstart)) %>%
   mutate(weeks = as.numeric(weeks),
-         Vstart = case_when(Vstart == Vmonths[1] ~ "0/12m", 
+         Vstart = case_when(Vstart == Vmonths[1] ~ "-0.5m", 
                             Vstart == Vmonths[2] ~ "-9m",
                             Vstart == Vmonths[3] ~ "-6m",
                             Vstart == Vmonths[4] ~ "-3m"),
+         Vweeks = case_when(Vstart == "-0.5m" ~ weeks - Vmonths[1], 
+                            Vstart == "-9m" ~ weeks - Vmonths[2],
+                            Vstart == "-6m" ~ weeks - Vmonths[3],
+                            Vstart == "-3m" ~ weeks - Vmonths[4]),
          prof = gsub("oc.","",prof),
          prof = factor(prof, levels = c("goat.aridP", "shp.aridP", "goat.semiaridP","shp.semiaridP")))
 
 # Calculate mean and confidence interval
 summary_data <- immDynamics.long %>%
-  group_by(Vstart,pV,prof,weeks) %>%
+  group_by(Vstart,pV,prof,weeks,Vweeks) %>%
   summarise(
     mean_value = mean(prop_immune),
     lower_ci = quantile(prop_immune, 0.025),
     upper_ci = quantile(prop_immune, 0.975)
   )
 
-plot_immVar <-ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+plot_immVar <-ggplot(summary_data %>% filter(weeks>=520 & mean_value>0), aes(x = weeks, y = mean_value, group = factor(pV))) +
   geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = factor(pV)), alpha = 0.5) +
   geom_line(aes(col = factor(pV)), size = 0.7) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
@@ -367,23 +371,43 @@ plot_immVar <-ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor
 
 plot_immVar
 
-plot_immVarN <-ggplot(summary_data, aes(x = weeks, y = mean_value, group = factor(pV))) +
+#  with weeks 
+# plot_immVarN <-ggplot(summary_data %>% filter(weeks >=520 & mean_value>0), # so x-axis starts at day 1 of vaccination
+#                       aes(x = weeks, y = mean_value, group = factor(pV))) +
+#   # show uncertainty for pV = 1 only
+#   geom_ribbon(data = summary_data %>% filter(pV == 1, weeks >=520 & mean_value>0), 
+#               aes(x = weeks, ymin = lower_ci, ymax = upper_ci), 
+#               fill = "#4575B4", alpha = 0.5) +
+#   geom_line(aes(col = factor(pV)), size = 0.7) +
+#   geom_hline(yintercept = 0.7, linetype = "dashed")+
+#   facet_grid(prof~Vstart, scales = "free_x")+
+#   guides(fill = "none")+
+#   labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
+#   coord_cartesian(xlim = c(NA,755), ylim = c(0,1))+
+#   scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+#   scale_colour_brewer(palette = "RdYlBu")+
+#   scale_fill_brewer(palette = "RdYlBu")+
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+# with Vweeks
+plot_immVarN2 <- ggplot(summary_data %>% filter(Vweeks >=0 & mean_value>0), # so x-axis starts at day 1 of vaccination
+                      aes(x = Vweeks, y = mean_value, group = factor(pV))) +
   # show uncertainty for pV = 1 only
-  geom_ribbon(data = summary_data %>% filter(pV == 1), 
-              aes(x = weeks, ymin = lower_ci, ymax = upper_ci), 
+  geom_ribbon(data = summary_data %>% filter(pV == 1, Vweeks >=0 & mean_value>0), 
+              aes(x = Vweeks, ymin = lower_ci, ymax = upper_ci), 
               fill = "#4575B4", alpha = 0.5) +
   geom_line(aes(col = factor(pV)), size = 0.7) +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_grid(prof~Vstart)+
-  guides(fill = "none")+
-  labs(x="Time (years)", y = "Flock proportion immune", col = "pV")+
-  coord_cartesian(xlim = c(520,755))+
-  scale_x_continuous(breaks = seq(520, 755, by = 26), labels = seq(520, 755, by = 26) / 52)+
+  facet_grid(prof~Vstart, scales = "free_x")+
+  guides(position = "top", fill = "none")+
+  labs(x="Time post-vaccination (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(NA,220), ylim = c(0,1))+
+  scale_x_continuous(breaks = seq(0, 220, by = 26), labels = seq(0, 220, by = 26) / 52)+
   scale_colour_brewer(palette = "RdYlBu")+
   scale_fill_brewer(palette = "RdYlBu")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "top")
 
-plot_immVarN
+plot_immVarN2
 
 if(plotsave){
   filename_immVar <- "OC_seasonalDyn.png"
@@ -391,6 +415,9 @@ if(plotsave){
   
   filename_immVarN <- "OC_seasonalDyn-noUncertainty.png"
   ggsave(paste0("plots/applied/",filename_immVarN), plot = plot_immVarN, width = 20, height = 10, units = "cm")
+  
+  filename_immVarN2 <- "OC_seasonalDyn-pV1uncertainty.png"
+  ggsave(paste0("plots/applied/",filename_immVarN2), plot = plot_immVarN2, width = 20, height = 20, units = "cm")
 }
 
 ```
@@ -510,15 +537,13 @@ custom_labeller <- function(variable, value) {
 ocOut.summdf <- ocOut.seasonalSumm %>%
   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
          prof = gsub("oc.","",prof),
-    prof = factor(
-      prof,
-      levels = c("goat.aridP","shp.aridP","goat.semiaridP","shp.semiaridP")))
+         prof = factor(prof,levels = c("goat.aridP","shp.aridP","goat.semiaridP","shp.semiaridP")))
 
 validImm <- ocOut.summdf %>%
   select(tenyr_growth, starts_with("imm"), pV, prof, prof_group, Vstart) %>%
   gather(key = "stat", value = "value", -c(prof, prof_group, pV, Vstart)) %>%
   mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "imm70_wAll", "tenyr_growth" )),
-         Vstart = case_when(Vstart == Vmonths[1] ~ "0/12m", 
+         Vstart = case_when(Vstart == Vmonths[1] ~ "-0.5m", 
                             Vstart == Vmonths[2] ~ "-9m",
                             Vstart == Vmonths[3] ~ "-6m",
                             Vstart == Vmonths[4] ~ "-3m"))
@@ -530,7 +555,7 @@ plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m"
   geom_hline(yintercept = 0.7, linetype = "dashed") +
   facet_grid(pV~stat) +
   coord_cartesian(ylim=c(0,1))+
-  labs(x="Flock profile", y="Flock proportion immune")+
+  labs(x="Time of vaccination", y="Flock proportion immune", col = "Flock Profile")+
   theme(axis.text.x = element_text(angle = 45,hjust = 1, vjust = 1))+
   scale_colour_brewer(palette = "Dark2")
 plot_imm
