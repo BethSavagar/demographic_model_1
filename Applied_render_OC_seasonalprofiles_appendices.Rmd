@@ -15,7 +15,9 @@ knitr::opts_chunk$set(echo = TRUE)
 # libraries not accounted for in setup script
 library(GGally)
 plotsave <- F
-custom_theme <- theme_bw() + theme(text = element_text(family = "Times New Roman", size = 9))
+custom_theme <- theme_bw() + 
+  theme(text = element_text(family = "Times New Roman", size = 10),
+        panel.grid.minor = element_blank())
 theme_set(custom_theme)
 # custom_palette <- c("#004D40", "#00695C", "#00796B", "#00897B", "#009688", "#4A148C", "#6A1B9A", "#7B1FA2", "#8E24AA", "#9C27B0")
 
@@ -107,7 +109,7 @@ wkmnthids <- data.frame(
 
 peakmnth <- 1  # Month of peak
 peakstart <- wkmnthids %>% filter(mnth == peakmnth) %>% pull()
-pkwk1 <- seq(from=peakstart, by=1, length.out=4)
+pkwk1 <- seq(from=peakstart, by=1, length.out=8)
 birthpeak_w <- c()
 time_yrs <- TimeStop_dynamics/52
 for(i in 1:time_yrs-1){
@@ -152,7 +154,7 @@ V_breaks <- 52 # uneven
 
 # 6 months before birth peak:
 V1 = round(t2+(6*4.345),0)
-V2 = round(V1 + 11*4.345) # 11m after first vaccination (3m following initial vaccination+4m following end of birth peak)
+V2 = round(V1 + 11*4.345) # 11m after first vaccination (6m following initial vaccination+3m following end of birth peak)
 V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
 V4 = round(V3 + 52)
 
@@ -343,7 +345,26 @@ plot_immVarApp <-ggplot(Asummary_data, aes(x = weeks, y = mean_value, group = fa
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
 plot_immVarApp
-# 
+
+# with Vweeks
+plot_immVarApp2 <- ggplot(Asummary_data %>% filter(Vweeks >=0 & mean_value>0), # so x-axis starts at day 1 of vaccination
+                      aes(x = Vweeks, y = mean_value, group = factor(pV))) +
+  # show uncertainty for pV = 1 only
+  geom_ribbon(data = summary_data %>% filter(pV == 1, Vweeks >=0 & mean_value>0), 
+              aes(x = Vweeks, ymin = lower_ci, ymax = upper_ci), 
+              fill = "#4575B4", alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(prof~Vstart, scales = "free_x")+
+  guides(position = "top", fill = "none")+
+  labs(x="Time post-vaccination (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(NA,220), ylim = c(0,1))+
+  scale_x_continuous(breaks = seq(0, 220, by = 26), labels = seq(0, 220, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "top")
+
+
 # filename_immVar <- "OC_seasonalDyn.png"
 # ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 20, height = 10, units = "cm")
 
@@ -369,7 +390,7 @@ V_breaks <- 52 # uneven
 
 # 6 months before birth peak:
 V1 = round(t2+(6*4.345),0)
-V2 = round(V1 + 10*4.345) # 11m after first vaccination (3m following initial vaccination+4m following end of birth peak)
+V2 = round(V1 + 47) # 6m following initial vaccination+ (8-week birth peak +) 13 weeks following end of birth peak (min age vaccination)
 V3 = round(V2 + 52) # 12m after second round (when offspring become susceptible)
 V4 = round(V3 + 52)
 
@@ -478,19 +499,24 @@ stopCluster(cl)
 ```
 
 ```{r A2dynamics}
+# 
+# A2immDynamics.long <- AimmDynamics.long %>%
+#   mutate(Vmin = "17w") %>%
+#   bind_rows(
+#     A2dyn_i.clean %>%
+#     gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
+#     mutate(weeks = as.numeric(weeks), Vmin = "11w")
+#   )
 
-
-A2immDynamics.long <- AimmDynamics.long %>%
-  mutate(Vmin = "17w") %>%
-  bind_rows(
-    A2dyn_i.clean %>%
+A2immDynamics.long <- A2dyn_i.clean %>%
     gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
-    mutate(weeks = as.numeric(weeks), Vmin = "11w")
-  )
+    mutate(weeks = as.numeric(weeks), 
+           Vweeks = weeks - V1,
+           Vmin = "13w")
   
 # Calculate mean and confidence interval
 A2summary_data <- A2immDynamics.long %>%
-  group_by(pV,prof,weeks,Vmin) %>%
+  group_by(pV,prof,weeks,Vweeks,Vmin) %>%
   summarise(
     mean_value = mean(prop_immune),
     lower_ci = quantile(prop_immune, 0.025),
@@ -512,9 +538,26 @@ plot_immVarApp2 <-ggplot(A2summary_data, aes(x = weeks, y = mean_value, group = 
 
 plot_immVarApp2
 
+plot_immVarAppN2 <- ggplot(A2summary_data %>% filter(Vweeks >=0 & mean_value>0), # so x-axis starts at day 1 of vaccination
+                      aes(x = Vweeks, y = mean_value, group = factor(pV))) +
+  # show uncertainty for pV = 1 only
+  geom_ribbon(data = A2summary_data %>% filter(pV == 1, Vweeks >=0 & mean_value>0), 
+              aes(x = Vweeks, ymin = lower_ci, ymax = upper_ci), 
+              fill = "#4575B4", alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(Vmin~prof, scales = "free_x")+
+  guides(position = "top", fill = "none")+
+  labs(x="Time post-vaccination (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(NA,220), ylim = c(0,1))+
+  scale_x_continuous(breaks = seq(0, 220, by = 26), labels = seq(0, 220, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "top")
+
 if(plotsave){
-  filename_immVarApp2 <- "OC_seasonalDyn_App.png"
-  ggsave(paste0("plots/applied/",filename_immVarApp2), plot = plot_immVarApp2, width = 20, height = 10, units = "cm")
+  filename_immVarAppN2 <- "OC_seasonalDyn_App.png"
+  ggsave(paste0("plots/applied/",filename_immVarAppN2), plot = plot_immVarAppN2, width = 20, height = 10, units = "cm")
 }
 ```
 
@@ -778,9 +821,17 @@ stopCluster(cl)
 
 ```{r ocOut.seasonalSumm}
 
-A.summdf <- A.seasonalSumm %>%
-  mutate(minV = "17w") %>%
-  bind_rows(A2.seasonalSumm %>% mutate(minV = "13w")) %>%
+# A.summdf <- A.seasonalSumm %>%
+#   mutate(minV = "17w") %>%
+#   bind_rows(A2.seasonalSumm %>% mutate(minV = "13w")) %>%
+#   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
+#          prof = gsub("oc.","",prof),
+#     prof = factor(
+#       prof,
+#       levels = c("goat.aridP","shp.aridP","goat.semiaridP","shp.semiaridP")))
+
+A.summdf <- A2.seasonalSumm %>% 
+  mutate(minV = "13w") %>%
   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
          prof = gsub("oc.","",prof),
     prof = factor(

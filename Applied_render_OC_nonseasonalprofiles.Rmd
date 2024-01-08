@@ -770,7 +770,7 @@ filename_immDyn_nonseasonal6 <- "immDyn_nonseasonalV6.csv"
 
 ```{r analysisDyn_V6}
 # Load data?
-# immDynamics6.clean <- read.csv("output/Applied/immDyn_nonseasonalV6.csv", row.names = F)
+# immDynamics6.clean <- read_csv("output/Applied/immDyn_nonseasonalV6.csv") %>% select(-"...1")
 
 immDynamics6.long <- immDynamics6.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%

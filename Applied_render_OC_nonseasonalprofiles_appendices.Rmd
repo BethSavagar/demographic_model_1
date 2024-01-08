@@ -1039,12 +1039,13 @@ immDynamics.long <- immDynamics.12 %>%
   bind_rows(immDynamics.6) %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV, Vsched)) %>%
   mutate(weeks = as.numeric(weeks)) %>%
+  mutate(Vweeks = weeks - 520) %>%
   mutate(prof = gsub("oc.", "", prof)) %>%
   mutate(prof = factor(prof, levels = c("goat.semiaridM","goat.subhumidM","goat.humidM","shp.semiaridM", "shp.subhumidM","shp.humidM")))
 
 # Calculate mean and confidence interval
 summary_data <- immDynamics.long %>%
-  group_by(Vsched,pV,prof,weeks) %>%
+  group_by(Vsched,pV,prof,weeks,Vweeks) %>%
   summarise(
     mean_value = mean(prop_immune),
     lower_ci = quantile(prop_immune, 0.025),
@@ -1083,12 +1084,36 @@ plot_immVar.noUncertainty <- ggplot(summary_data, aes(x = weeks, y = mean_value)
 
 plot_immVar.noUncertainty
 
+
+# with Vweeks
+plot_immVarN2 <- ggplot(summary_data,
+                      aes(x = Vweeks, y = mean_value, group = factor(pV))) +
+  # show uncertainty for pV = 1 only
+  geom_ribbon(data = summary_data %>% filter(pV == 1), 
+              aes(x = Vweeks, ymin = lower_ci, ymax = upper_ci), 
+              fill = "#4575B4", alpha = 0.5) +
+  geom_line(aes(col = factor(pV)), size = 0.7) +
+  geom_hline(yintercept = 0.7, linetype = "dashed")+
+  facet_grid(Vsched~prof)+
+  guides(fill = "none")+
+  labs(x="Time post-vaccination (years)", y = "Flock proportion immune", col = "pV")+
+  coord_cartesian(xlim = c(NA,220), ylim = c(0,1))+
+  scale_x_continuous(breaks = seq(0, 220, by = 26), labels = seq(0, 220, by = 26) / 52)+
+  scale_colour_brewer(palette = "RdYlBu")+
+  scale_fill_brewer(palette = "RdYlBu")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "top")
+
+plot_immVarN2
+
 if(plotsave){
   filename_immVar <- "OC_nonseasonalDyn.png"
   ggsave(paste0("plots/applied/",filename_immVar), plot = plot_immVar, width = 25, height = 10, units = "cm")
   
   filename_immVarN <- "OC_nonseasonalDyn-noUncertainty.png"
   ggsave(paste0("plots/applied/",filename_immVarN), plot = plot_immVar.noUncertainty, width = 25, height = 10, units = "cm")
+  
+  filename_immVarN2 <- "OC_nonseasonalDyn-pV1uncertainty.png"
+  ggsave(paste0("plots/applied/",filename_immVarN2), plot = plot_immVarN2, width = 25, height = 10, units = "cm")
 }
 
 ```
@@ -1115,15 +1140,21 @@ validImm <- ocOut.summdf %>%
   gather(key = "stat", value = "value", -c(prof,prof_group, pV, Vsched)) %>%
   mutate(stat = factor(stat, levels = c("imm_V0", "imm_6m", "imm_12m", "imm70_w", "imm70_wAll", "tenyr_growth" )))
 
+# New facet label names for supp variable
+supp.labs <- c("imm_V0", "imm_6M", "imm_12M")
+names(supp.labs) <- c("imm_V0", "imm_6m", "imm_12m")
+
 plot_imm <- ggplot(validImm %>% filter(stat %in% c("imm_V0", "imm_6m", "imm_12m")), 
                    aes(x = prof, y = value, col = Vsched))+ 
   geom_boxplot(alpha = 0.5, fill = "grey") +
   geom_hline(yintercept = 0.7, linetype = "dashed")+
-  facet_grid(pV~stat)+
-  labs(x = "Flock profile", y="Flock proportion immune")+
+  facet_grid(pV~stat,
+             labeller = labeller(stat = supp.labs))+
+  labs(x = "Flock profile", y="Flock proportion immune", col = "Vaccination Frequency")+
   coord_cartesian(ylim=c(0,1))+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-          legend.position = "none")
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), 
+        legend.position = "top")
+
 plot_imm
 
 imm70_alt <- ggplot(validImm %>% filter(stat %in% c("imm70_w")), 
