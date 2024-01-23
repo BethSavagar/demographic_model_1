@@ -127,7 +127,7 @@ if(filesave){
 }
 
 if(output == "dynamics"){
-  var_input_backup <- var_input_set %>% as.data.frame() %>% slice_sample(.,n=100)
+  var_input_backup <- var_input_set %>% as.data.frame() %>% slice_sample(.,n=50)
 }
 
 ```
