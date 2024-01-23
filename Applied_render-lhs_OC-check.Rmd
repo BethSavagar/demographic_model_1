@@ -200,7 +200,7 @@ t1 <- TimeStop_dynamics
 ##################################
 
 lhs <- T
-lhs_n <- 1e4 # number of sets (parameter combinations)
+lhs_n <- 2.5e4 # number of sets (parameter combinations)
 pairs_plot <- F
 SA <- TRUE
 
@@ -414,7 +414,7 @@ if(plotsave){
 }
 
 ```
-# Summary stats for 10,000 LHS sets per flock profile
+# Summary stats for 10,000 (25,000) LHS sets per flock profile
 
 ```{r loopSummary}
 ## Model Output
@@ -745,10 +745,19 @@ ocPars.out <- ocPars.df %>%
                      tenyr_15age), 
             by = c("set", "prof", "prof_group"))
 
+# valid pars are those which have expected growth but also which have expected mortality rates
 ocPars.valid <- ocPars.out %>%
-  filter(tenyr_15age == 1, mortality_y>mortality_a)
+  filter(tenyr_15age == 1, 
+         mortality_y>mortality_a,
+         NET_offtake_m2>NET_offtake_f,
+         NET_offtake_m2>NET_offtake_m)
+
+# filter outvalid to contain same rows as outPars
+# ocOut.valid <- ocOut.growth %>%
+#   filter(tenyr_15age == 1)
 
 pairs(ocPars.valid %>% select(NET_offtake_y:min_age_repro))
+ocPars.valid %>% group_by(prof) %>% count() %>% kable()
 
 ```
 
@@ -767,6 +776,7 @@ stable_agesex <- ocOut.validLong %>%
 stable_agesex
 
 agesex_filename <- "Applied_AgeSex_OC.csv"
+agesex_filename <- paste0("Applied_AgeSex_OC_",Sys.Date(),".csv")
 # write.csv(stable_agesex, file = paste0("output/Applied/stableAgeSex/", agesex_filename), row.names = F)
 
 # ahift to wide format
@@ -805,8 +815,8 @@ dark2_palette <- c(brewer.pal(n = 8, name = "Dark2"), "#FF8C00", "#1E90FF", "#33
 
 dark2_palette
 
-ocPars.valid <- read_csv("output/Applied/applied_outValidPars_OC_2023-12-11.csv", col_names = T) %>%
-  mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"))
+# ocPars.valid <- read_csv("output/Applied/applied_outValidPars_OC_2023-12-11.csv", col_names = T) %>%
+#   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"))
 validpars_GSA <- read_csv("output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv", col_names = T)
 
 # Collate all valid parameters from GSA RSA
@@ -920,6 +930,7 @@ filename_pairsSh <- "pairsvalid_SAOCShp.png"
 filename_pairsGt <- "pairsvalid_SAOCGt.png"
 filename_ImmSum <- "ImmSum100_OC.png"
 
+# save as 25k for all validpars from sim with 25,000 sets per profile. And as 100 for just sampled 100 parameter sets
 if(plotsave){
   ggsave(paste0("plots/applied/",filename_pairsSh), plot = plot_pairsSh, width = 25, height = 20, units = "cm")
 ggsave(paste0("plots/applied/",filename_pairsGt), plot = plot_pairsGt, width = 25, height = 20, units = "cm")
@@ -930,5 +941,8 @@ saveValidPars <- ocPars.valid %>% select(NET_offtake_y:prof)
 filename_savePars <- paste0("applied_outValidPars_OC_", Sys.Date(), ".csv")
 write.csv(saveValidPars, file = paste0("output/Applied/", filename_savePars), row.names = F)
 
+saveValidPars100 <- saveValidPars %>% group_by(prof) %>% slice_sample(n=100) %>% ungroup()
+filename_savePars100 <- paste0("applied_outValidPars100_OC_", Sys.Date(), ".csv")
+write.csv(saveValidPars100, file = paste0("output/Applied/", filename_savePars100), row.names = F)
 # saveRDS(ocOut.valid, file = "output/Applied/applied_outValid_OC-LHS10000_2023-12-11.RData")
 ```
