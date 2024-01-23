@@ -58,9 +58,12 @@ applied_example <- T
 ## Load parameters
 datafile <- "-OC_validPars-seasonal"
 fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
-var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
+# var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars100_OC_2024-01-14.csv"))
+
 # load mean annual birth rate (calc from validVac non-seasonal.Rmd)
-nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
+# nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
+nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC100.csv")
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
 
 ## Datasets
@@ -321,6 +324,7 @@ for(l in 1:length(pVs)){
 }
 
 filename_immDyn_nonseasonal12 <- "immDyn_nonseasonalV12.csv"
+filename_immDyn_nonseasonal12 <- "immDyn_nonseasonalV12_prof100.csv"
 # write.csv(immDynamics.clean, file = paste0("output/Applied/", filename_immDyn_nonseasonal12))
 
 ```
@@ -328,6 +332,7 @@ filename_immDyn_nonseasonal12 <- "immDyn_nonseasonalV12.csv"
 ```{r DynamicsAnalysis}
 # Load data?
 # immDynamics.clean <- read.csv("output/Applied/immDyn_nonseasonalV12.csv", row.names = F)
+# immDynamics.clean <- read.csv("output/Applied/immDyn_nonseasonalV12_prof100.csv", row.names = F)
 
 immDynamics.long <- immDynamics.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
@@ -463,6 +468,8 @@ stopCluster(cl)
 # filename_immDyn_nonseasonalSumm12 <- "immDyn_nonseasonalSummV12.csv"
 # write.csv(ocOut.nonseasonalSumm, file = paste0("output/Applied/", filename_immDyn_nonseasonalSumm12))
 
+# filename_immDyn_nonseasonalSumm12 <- "immDyn_nonseasonalSummV12_prof100.csv"
+# write.csv(ocOut.nonseasonalSumm, file = paste0("output/Applied/", filename_immDyn_nonseasonalSumm12))
 ```
 
 # Summary Stats
@@ -476,7 +483,7 @@ stopCluster(cl)
 ```{r analysisSumm_V12}
 # load data?
 # ocOut.nonseasonalSumm <- read.csv("output/Applied/immDyn_nonseasonalSummV12.csv", row.names = F)
-
+# ocOut.nonseasonalSumm <- read.csv("output/Applied/immDyn_nonseasonalSummV12_prof100.csv", row.names = F)
 
 ## Custom labeller function
 custom_labeller <- function(variable, value) {
@@ -764,6 +771,7 @@ for(l in 1:length(pVs)){
 }
 
 filename_immDyn_nonseasonal6 <- "immDyn_nonseasonalV6.csv"
+filename_immDyn_nonseasonal6 <- "immDyn_nonseasonalV6_prof100.csv"
 # write.csv(immDynamics6.clean, file = paste0("output/Applied/", filename_immDyn_nonseasonal6))
 
 ```
@@ -771,6 +779,7 @@ filename_immDyn_nonseasonal6 <- "immDyn_nonseasonalV6.csv"
 ```{r analysisDyn_V6}
 # Load data?
 # immDynamics6.clean <- read_csv("output/Applied/immDyn_nonseasonalV6.csv") %>% select(-"...1")
+# immDynamics6.clean <- read_csv("output/Applied/immDyn_nonseasonalV6_prof100.csv") %>% select(-"...1")
 
 immDynamics6.long <- immDynamics6.clean %>%
   gather(key = "weeks", value = "prop_immune", -c(prof, pV)) %>%
@@ -907,6 +916,7 @@ stopCluster(cl)
 
 #  Start from here if not wanting to run the model:
 # filename_immDyn_nonseasonal6Summ <- "immDyn_nonseasonalSummV6.csv"
+# filename_immDyn_nonseasonal6Summ <- "immDyn_nonseasonalSummV6_prof100.csv"
 # write.csv(ocOut.nonseasonal6Summ, file = paste0("output/Applied/", filename_immDyn_nonseasonal6Summ))
 
 ```
@@ -923,6 +933,7 @@ stopCluster(cl)
 ```{r analysisSumm_V6}
 # load data?
 # ocOut.nonseasonal6Summ <- read.csv("output/Applied/immDyn_nonseasonalSummV6.csv", row.names = F)
+# ocOut.nonseasonal6Summ <- read.csv("output/Applied/immDyn_nonseasonalSummV6_prof100.csv", row.names = F)
 
 ocOut6.summdf <- ocOut.nonseasonal6Summ %>%
   mutate(prof_group = ifelse(grepl("*shp*", prof), "shp", "goat"),
