@@ -1,0 +1,253 @@
+---
+title: "oc_validation"
+author: "Beth Savagar"
+date: "2023-11-13"
+output: html_document
+---
+
+# Global Sensitivity Analysis - LHS-PRCC
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Sensitivity Analysis
+    i. Model Validation
+    ii. LHS-PRCC
+
+```{r loadLibraries, echo =F}
+############
+## SETUP ##
+############
+local <- T
+filepath <- ""
+filesave <- T # save files or no?
+
+source(paste0(filepath,"scripts/setup.R")) # load libraries
+
+custom_theme <- theme_bw() + 
+  theme(text = element_text(family = "Times New Roman", size = 9),
+        panel.grid.minor = element_blank(),
+        # panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+theme_set(custom_theme)
+```
+
+```{r sourceFunctions}
+## Functions:
+source(paste0(filepath, "functions/Appliedfunc.R")) # wrapper function
+source(paste0(filepath, "functions/demos_summary.R")) # summary stats for output
+source(paste0(filepath, "functions/dynmod-vac.R")) # flock dynamics model function
+source(paste0(filepath, "functions/output.R")) # what to include in output df
+source(paste0(filepath, "functions/GSA_outputs.R")) # summary stats accounting for vac
+```
+
+```{r loadData}
+# load fixed pars: flock age-sex structure
+fix_age_data_full <- read_csv("data/RSA_parameters/RSA_fix_input_final.csv",col_names=T)
+# load variable demographic inputs: 
+# original data for LHS:
+var_demo_data_full <- read_csv("data/RSA_parameters/RSA_var_input_final.csv", col_names=T)
+# valid data output from RSA (4140rows):
+# var_demo_data_full <- read_csv("data/GSA_parameters/GSA_var_input-PRCC.csv", col_names=T)
+
+imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
+
+
+# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv")
+# var_input_set <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
+
+ var_input_set <-   read.csv("output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv") 
+```
+
+## Demographic Parameters Check:
+
+```{r }
+
+#######################
+## Model Setup ##
+#######################
+
+TimeStop_dynamics <- 25*52 # Simulation Period (20yrs)
+TimeStop_transmission <- 24 # 1 day, hourly timestep for transmission component
+# turnover <- F; 
+# transmission <- F; 
+clean_environment <- T
+applied_example <- F # remove if update app_func
+min_pop <- 1 # set minimum size of population, if pop drops below then set to 0
+
+# timepoints for population growth
+t2 <- TimeStop_dynamics/2 # 10 yrs before end of simulation
+t1 <- TimeStop_dynamics
+
+output <- "dynamics" # define output type "summary" (age proporiotns), "summary_all" (age-sex proportions) or "count"
+summary_df <- output_func(TimeStop_dynamics, output) # create summary data frame to store summary stats for each timestep
+
+
+#######################
+## Vaccination Setup ##
+#######################
+# For GSA only?
+# Vaccination of 100% animals at mid-point of simulation.
+Vstart <- TimeStop_dynamics/2 # 10 years, midpoint
+
+Vprog <- data.frame(
+  Vround = 1,
+  Vtype = "full",
+  Vweek = Vstart,
+  Vmin = 0,
+  Vmax = NA,
+  pV = 1
+)
+
+Vstart <- Vprog %>% filter(Vround==1) %>% pull(Vweek)
+
+#######################
+## LHS Procedure ##
+#######################
+lhs <- T
+lhs_n <- 2e5
+pairs_plot <- F
+SA <- TRUE
+rates <- "yrly"
+
+# Define range for each parameter: 
+pars_min <- "min.final" # min val for LHS
+pars_max <- "max.final" # max val for LHS
+fixdata <- "sim.final" # colname for fixdata
+vardata <- "sim.final" # colname for vardata
+
+set.seed(1)
+if(SA == TRUE){
+  # latin hypercube sampling of parameter space:
+  source("scripts/RSA/RSA_lhs2.R")
+} 
+## OUTPUT = var_input_set, lhs_n rows of sampled parameter sets. 
+# var_input_set <-   read.csv("output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv") %>%
+# rename(
+#   "NET_offtake_m" = off_mA,
+#   "NET_offtake_f" = off_f,
+#   "mortality_y" = mort_Y,
+#   "mortality_a" = mort_A,
+#   #"birth_rate",
+#   "adu_f_max_yrs" = max_yrs_F,
+#   "adu_m_max_yrs" = max_yrs_M,
+#   "min_age_offtake" = min_off,
+#   "min_age_repro" = min_repro,
+#   "NET_offtake_m2" = off_mY
+# )
+```
+
+```{r savePars}
+
+var_input_backup <- var_input_set %>% as.data.frame()
+
+if(output == "dynamics"){
+  var_input_backup <- var_input_set %>% as.data.frame() %>% slice_sample(.,n=50)
+}
+
+```
+
+# Example of model dynamics output
+```{r runModel_dynamics, eval = F}
+
+## PARALLELISATION ##
+
+cores=detectCores()
+cl <- makeCluster(cores[1]-1) # for running locally
+registerDoParallel(cl)
+
+outDyn <- foreach (i = 1:nrow(var_input_backup),
+                            .packages = c("dplyr", "tibble")) %dopar% {
+                              print(i)
+                              
+                              var_input_full <- unlist(var_input_backup[i, ])
+                              
+                              App_func(
+                                imm_decay_corrected,
+                                var_input_full,
+                                fix_age_data_full,
+                                f_list,# initial state of female population
+                                m_list, # initial state of male population
+                                TimeStop_dynamics,# 1 year, weekly timestep for demographic component
+                                TimeStop_transmission, # 1 day, hourly timestep for transission component
+                                output,# model output: tracker or summary stats
+                                summary_df, #
+                                clean_environment,
+                                Vstart,
+                                Vprog,
+                                fixdata,
+                                vardata
+                              )
+                            }
+stopCluster(cl)
+
+```
+
+```{r dynamicsAnalysis, eval = F}
+
+popDyn <- lapply(outDyn, select, sum_pop) %>%
+  bind_cols() %>%
+  t() %>%
+  as.data.frame()
+
+colnames(popDyn) <- 1:ncol(popDyn)
+rownames(popDyn) <- 1:nrow(popDyn)
+
+popDyn.long <- popDyn %>%
+  mutate(set = 1:nrow(.)) %>% 
+  gather(key = "weeks", value = "sum_pop", -set) %>%
+  mutate(weeks = as.numeric(weeks))
+
+plot_popDyn <- ggplot(popDyn.long, aes(x = weeks, y = sum_pop, group = set)) +
+  geom_line(col = "grey", alpha = 0.7)+
+  labs(x="Time (years)", y = "Total population", title = "a.")+
+  scale_x_continuous(breaks = seq(0, TimeStop_dynamics, by=52), labels = seq(0, TimeStop_dynamics, 52)/52, 
+                     expand = c(0, 0), limits = c(0, NA)) + 
+  scale_y_continuous(expand = c(0, 0), limits = c(0, 100))
+
+plot_popDyn
+
+## Agesex
+
+agesexDyn <- lapply(outDyn, function(x) 
+  new <- x %>% 
+    select(starts_with("pf"), starts_with("pm")) %>%
+    mutate(weeks = 1:nrow(x))
+  ) %>%
+  bind_rows() %>%
+  mutate(set = rep(1:(nrow(.)/TimeStop_dynamics), each = TimeStop_dynamics)) %>%
+  as.data.frame()
+
+agesexDyn.long <- agesexDyn %>%
+  gather(key = "group", value = "Proportion", -c(set, weeks)) %>%
+  mutate(weeks = as.numeric(weeks),
+         group = factor(group, levels = c("pfAdu", "pfSub", "pfKid", "pmAdu", "pmSub", "pmKid")),
+         Group = recode(group,
+                        pfAdu = "Adu_F", 
+                        pfSub = "Sub_F",
+                        pfKid = "Kid_F",
+                        pmAdu = "Adu_M",
+                        pmSub = "Sub_M",
+                        pmKid = "Kid_M")
+         )
+
+plot_agesexDyn <- ggplot(agesexDyn.long %>% filter(Group != "pF"), 
+       aes(x = weeks, y = Proportion, group = set)) + 
+  geom_line(col = "grey", alpha = 0.7)+
+  labs(x="Time (years)", y = "Population proportion", title = "b.")+
+  facet_wrap(~Group)+
+  scale_x_continuous(breaks = seq(0, TimeStop_dynamics, by=104), labels = seq(0, TimeStop_dynamics, 104)/52, 
+                     expand = c(0, 0), limits = c(0, NA))
+
+plot_agesexDyn
+
+dynplot <- ggarrange(plot_popDyn, plot_agesexDyn, ncol =1, heights = c(1, 2))
+dynplot
+filename_DynPlot <- "GSAvalid_Dynamics.png"
+
+if(plotsave){
+  ggsave(paste0("plots/GSA/",filename_popDynPlot), plot = dynplot, width = 20, height = 15, units = "cm")
+}
+
+```
