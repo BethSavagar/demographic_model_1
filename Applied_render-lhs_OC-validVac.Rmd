@@ -57,10 +57,11 @@ applied_example <- T
 ## Load parameters
 datafile <- "-oc_validPars"
 fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
-var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
+# var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-05.csv"))
 # use  par sets from LHS validated again tenyr_growth & age-sex (GSA) conditions (11/12/2023)
 # - see lhs_OC-check.Rmd for details
 # var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars100_OC_2024-01-14.csv"))
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
 
 ## Datasets
@@ -214,8 +215,9 @@ colnames(popDynamics) <- 1:ncol(popDynamics)
 rownames(popDynamics) <- 1:nrow(popDynamics)
 
 popDynamics.clean <- popDynamics %>%
-  mutate(prof = profOrder,
-         set = 1:nrow(.))
+  mutate(prof = profOrder) %>%
+  group_by(prof) %>%
+  mutate(set = 1:n())
 
 popDynamics.long <- popDynamics.clean %>%
   gather(key = "weeks", value = "sum_pop", -c(prof,set)) %>%
@@ -229,7 +231,6 @@ plot_popDyn <- ggplot(popDynamics.long, aes(x = weeks, y = sum_pop)) +
 plot_popDyn
 
 
-
 # ocOut.dynamics
 Births <- lapply(Out.dynamics, select, c(nBirths)) %>%
   bind_cols() %>%
@@ -240,18 +241,16 @@ colnames(Births) <- 1:ncol(Births)
 rownames(Births) <- 1:nrow(Births)
 
 births.clean <- Births %>%
-  mutate(prof = profOrder,
-         set = 1:nrow(.)
-  )
-
+  mutate(prof = profOrder) %>%
+  group_by(prof) %>%
+  mutate(set = 1:n())
 
 births.long <- births.clean %>%
   gather(key = "weeks", value = "nBirths", -c(prof,set)) %>%
-  mutate(weeks = as.numeric(weeks),
-          yr = rep(
-           rep(1:(TimeStop_dynamics/52), each = 52), 
-           length(profOrder)
-           )) 
+  mutate(weeks = as.numeric(weeks)) %>%
+  group_by(prof,set) %>%
+  mutate(yr = rep(1:(TimeStop_dynamics/52), each = 52)) %>% 
+  ungroup()
 
 plot_births <- ggplot(births.long, aes(x = weeks, y = nBirths)) +
   geom_line(aes(group = set), col = "grey") +
@@ -271,17 +270,17 @@ plot_sumbirths <- ggplot(births.sum, aes(x = yr, y = yrBirths)) +
 
 plot_sumbirths
 
-
+# calc mean annual births in final ten years of sim
 births.mean <- births.sum %>%
+  filter(yr>=10) %>%
   ungroup() %>%
   group_by(set, prof) %>%
   summarise(mean = mean(yrBirths))
 
 kable(births.mean)
-filename_nBirths <- "Applied_nBirths_OC.csv"
+filename_nBirths <- "Applied_nBirths_OC100.csv"
 if(plotsave){
   write.csv(births.mean, file = paste0("output/Applied/stableAgeSex/", filename_nBirths), row.names = F)
-
 }
 
 ```
