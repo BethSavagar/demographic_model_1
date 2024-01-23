@@ -54,9 +54,12 @@ applied_example <- T
 ## Load parameters
 datafile <- "-OC_validPars-seasonal"
 fix_age_data_full <- read_csv(paste0("data/Applied_parameters/state_vars",datafile,".csv"),col_names=T)
-var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
+# var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars_OC_2023-12-11.csv"))
+var_demo_data_full <- read_csv(paste0("output/Applied/applied_outValidPars100_OC_2024-01-14.csv"))
+
 # load mean annual birth rate (calc from validVac non-seasonal.Rmd)
-nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
+# nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC.csv")
+nBirths_df <- read_csv("output/Applied/stableAgeSex/Applied_nBirths_OC100.csv")
 imm_decay_corrected <- read_csv("data/imm_decay_bodjo_v2.csv") 
 
 ## Datasets
@@ -113,7 +116,7 @@ wkmnthids <- data.frame(
 
 peakmnth <- 3  # Month of peak
 peakstart <- wkmnthids %>% filter(mnth == peakmnth) %>% pull()
-pkwk1 <- seq(from=peakstart, by=1, length.out=4)
+pkwk1 <- seq(from=peakstart, by=1, length.out=8)
 birthpeak_w <- c()
 time_yrs <- TimeStop_dynamics/52
 for(i in 1:time_yrs-1){
