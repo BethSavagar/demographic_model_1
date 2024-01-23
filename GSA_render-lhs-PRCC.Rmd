@@ -10,6 +10,15 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+```{r settheme}
+custom_theme <- theme_bw() + 
+  theme(text = element_text(family = "Times New Roman", size = 9),
+        panel.grid.minor = element_blank(),
+        # panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+theme_set(custom_theme)
+```
+
 
 # 1. Sensitivity Analysis
     i. Model Validation
@@ -253,7 +262,7 @@ stopCluster(cl)
 
 # Preliminary analysis:
 ```{r summaryAnalysis1, eval = F}
-# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv")
+# outGSA <- read_csv(file = "output/GSA_output/GSA_output_PRCC_2023-12-16.csv") %>% select(-c("...1))
 # var_input_set <- read_csv(file = "output/GSA_output/GSA_parsAll_2023-12-16.csv")
 
 # take a look at the data: 
@@ -361,6 +370,21 @@ if(plotsave){
   write.csv(outGSA.valid %>% select(-c(`...1`,set, tenyr_15, tenyr_15age)), file = "output/GSA_output/GSA_outputValid_PRCC_2023-12-16.csv", row.names = F)
    write.csv(parsGSA.valid %>% select(-c(tenyr_growth)), file = "output/GSA_output/GSA_parsValid_PRCC_2023-12-16.csv", row.names = F)
 }
+
+
+# ### Correlation plot - monotonicity:
+# monoton_df <- parsGSA.valid %>%
+#   gather(key = "Par", 
+#          value = "value", 
+#          -c(tenyr_growth)) %>%
+#   mutate(Par = as.factor(Par))
+# 
+# monoton_plot <- ggplot(monoton_df, aes(x=value, y = log(tenyr_growth)))+
+#   geom_point()+
+#   facet_wrap(~Par, scales = "free_x")+
+#   labs(x = "Parameter value", y = "Ten-year growth rate (log-scale)")
+
+ggsave(monoton_plot, file = "plots/for-methods/input-output-monotonicity-check.png", )
 ```
 
 # PRCC Analysis (Subset)
