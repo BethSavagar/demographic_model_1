@@ -8,3 +8,17 @@ immDyn_nonseasonalSummV6.csv
 immDyn_nonseasonalV6.csv
 immDyn_seasonal.csv
 immDyn_seasonalSumm.csv
+immDyn_seasonal_prof100.csv
+immDyn_seasonal_A2prof100.csv
+immDyn_seasonalSumm_prof100.csv
+immDyn_seasonalSumm_A2prof100.csv
+immDyn_nonseasonalV6_prof100.csv
+immDyn_nonseasonalSummV6_prof100.csv
+immDyn_nonseasonalV12_prof100.csv
+immDyn_nonseasonalSummV12_prof100.csv
+applied_outValidPars_OC_2024-01-14.csv
+applied_outValidPars_OC_2023-12-05.csv
+applied_outValidPars100_OC_2024-01-14.csv
+applied_outAllSummary_OC_2024-01-14.RData
+applied_outAllPars_OC_2024-01-14.RData
+Applied_validPars_Lesnoff-check.csv
